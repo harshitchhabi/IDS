@@ -1,0 +1,31 @@
+# Data is never committed (safety constraint). results/ may contain data.
+/data/
+*.pcap
+*.parquet
+
+# Model binaries: large and unreadable in a diff. The .meta.json sidecars next
+# to them are NOT ignored — they carry the reproducibility evidence.
+*.pkl
+*.pt
+*.joblib
+*.ubj
+*.model
+!*.meta.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Experiment scratch
+/results/**/*.tmp
