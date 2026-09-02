@@ -1,0 +1,54 @@
+{
+  "strategy": "day_split",
+  "near_dups_removed": {},
+  "buffer_rows_removed": {},
+  "a4_withheld_removed": {},
+  "nn_distance": {
+    "attack": {
+      "percentiles": {
+        "p0": 0.49634112102927386,
+        "p1": 0.6284576180140133,
+        "p5": 0.7067317191019936,
+        "p25": 0.856299429128707,
+        "p50": 1.0473580250447148,
+        "p90": 2.0238929736917655
+      },
+      "frac_below_grid": 0.0
+    },
+    "benign": {
+      "percentiles": {
+        "p0": 0.2861091876083836,
+        "p1": 0.3699883551625686,
+        "p5": 0.4074838974124111,
+        "p25": 0.4619956530237163,
+        "p50": 0.5023360796397874,
+        "p90": 0.5929864905107357
+      },
+      "frac_below_grid": 0.0
+    }
+  },
+  "nn_by_family": {
+    "Bot": {
+      "n": 1378,
+      "arm": "novel",
+      "min_rms": 0.5987721629966489,
+      "median_rms": 1.0295210270387571
+    },
+    "DDoS": {
+      "n": 1373,
+      "arm": "novel",
+      "min_rms": 0.49634112102927386,
+      "median_rms": 0.816180884446011
+    },
+    "PortScan": {
+      "n": 1385,
+      "arm": "novel",
+      "min_rms": 1.6456112782932475,
+      "median_rms": 1.9705276838188635
+    }
+  },
+  "leak_warning": false,
+  "notes": [
+    "day_split: dropped 1382 attack rows from prod_benign"
+  ]
+}

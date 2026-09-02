@@ -1,0 +1,96 @@
+{
+  "strategy": "within_day_temporal",
+  "near_dups_removed": {
+    "wednesday": {
+      "DoS Hulk": 42
+    },
+    "thursday": {
+      "Web Attack Brute Force": 41
+    },
+    "friday": {
+      "PortScan": 42,
+      "DDoS": 40
+    }
+  },
+  "buffer_rows_removed": {
+    "monday/benign": 451,
+    "tuesday/benign": 425,
+    "wednesday/benign": 427,
+    "wednesday/attack": 29,
+    "thursday/benign": 423,
+    "thursday/attack": 35,
+    "friday/benign": 435,
+    "friday/attack": 80
+  },
+  "a4_withheld_removed": {},
+  "nn_distance": {
+    "attack": {
+      "percentiles": {
+        "p0": 0.3277669350265098,
+        "p1": 0.44800592403104306,
+        "p5": 0.5223522266346103,
+        "p25": 0.7245600306576873,
+        "p50": 0.8846502494345194,
+        "p90": 1.3315938908261573
+      },
+      "frac_below_grid": 0.0
+    },
+    "benign": {
+      "percentiles": {
+        "p0": 0.28059139942312034,
+        "p1": 0.36923430114539235,
+        "p5": 0.40089984065491086,
+        "p25": 0.45282491193590024,
+        "p50": 0.4928469450772941,
+        "p90": 0.5802428112968998
+      },
+      "frac_below_grid": 0.0
+    }
+  },
+  "nn_by_family": {
+    "Bot": {
+      "n": 1378,
+      "arm": "novel",
+      "min_rms": 0.5881207319285288,
+      "median_rms": 0.8838802052713111
+    },
+    "DDoS": {
+      "n": 133,
+      "arm": "seen_both",
+      "min_rms": 0.3632498019671314,
+      "median_rms": 0.6071191799458576
+    },
+    "DoS Hulk": {
+      "n": 246,
+      "arm": "seen_both",
+      "min_rms": 0.39265174015589516,
+      "median_rms": 0.5985408629051803
+    },
+    "Infiltration": {
+      "n": 1376,
+      "arm": "novel",
+      "min_rms": 0.8809985415416052,
+      "median_rms": 1.2724586257224864
+    },
+    "PortScan": {
+      "n": 263,
+      "arm": "seen_both",
+      "min_rms": 0.3277669350265098,
+      "median_rms": 0.5273209404855603
+    },
+    "SSH-Patator": {
+      "n": 690,
+      "arm": "seed_only",
+      "min_rms": 0.5305074137411926,
+      "median_rms": 0.7869734243118452
+    },
+    "Web Attack Brute Force": {
+      "n": 227,
+      "arm": "seen_both",
+      "min_rms": 0.4092268970607715,
+      "median_rms": 0.5787226286803603
+    }
+  },
+  "leak_warning": false,
+  "notes": []
+}

@@ -1,0 +1,15 @@
+{
+  "seen_both": [
+    "DDoS",
+    "DoS Hulk",
+    "PortScan",
+    "Web Attack Brute Force"
+  ],
+  "seed_only": [
+    "SSH-Patator"
+  ],
+  "novel": [
+    "Bot",
+    "Infiltration"
+  ]
+}
