@@ -1,0 +1,107 @@
+{
+  "strategy": "within_day_temporal",
+  "near_dups_removed": {
+    "friday": {
+      "BENIGN": 194698,
+      "DDoS": 69297,
+      "PortScan": 812,
+      "Bot": 754
+    },
+    "monday": {
+      "BENIGN": 156905
+    },
+    "thursday": {
+      "BENIGN": 170452,
+      "Web Attack - Brute Force": 1231,
+      "Web Attack - XSS": 542,
+      "Infiltration": 2,
+      "Web Attack - Sql Injection": 1
+    },
+    "tuesday": {
+      "BENIGN": 150683,
+      "FTP-Patator": 3903,
+      "SSH-Patator": 2174
+    },
+    "wednesday": {
+      "BENIGN": 176933,
+      "DoS Hulk": 71564,
+      "DoS slowloris": 4403,
+      "DoS Slowhttptest": 4137,
+      "DoS GoldenEye": 2788
+    }
+  },
+  "buffer_rows_removed": {
+    "monday/benign": 533,
+    "tuesday/benign": 521,
+    "tuesday/attack": 9,
+    "wednesday/benign": 313,
+    "wednesday/attack": 87,
+    "thursday/benign": 402,
+    "friday/benign": 259,
+    "friday/attack": 115
+  },
+  "a4_withheld_removed": {},
+  "nn_distance": {
+    "attack": {
+      "percentiles": {
+        "p0": 0.0,
+        "p1": 0.0,
+        "p5": 0.0,
+        "p25": 0.0,
+        "p50": 0.005903245700012973,
+        "p90": 0.024859655871528868
+      },
+      "frac_below_grid": 0.8705146570699835,
+      "n_query": 28621
+    },
+    "benign": {
+      "percentiles": {
+        "p0": 0.0,
+        "p1": 0.0,
+        "p5": 0.0,
+        "p25": 0.004491234992045365,
+        "p50": 0.009243463986049517,
+        "p90": 0.03540030208804734
+      },
+      "frac_below_grid": 0.784725,
+      "n_query": 40000
+    }
+  },
+  "nn_by_family": {
+    "DDoS": {
+      "n": 22850,
+      "arm": "novel",
+      "min_rms": 0.0,
+      "median_rms": 0.004604685611914733
+    },
+    "DoS GoldenEye": {
+      "n": 5500,
+      "arm": "novel",
+      "min_rms": 0.0,
+      "median_rms": 0.021350281743969808
+    },
+    "Heartbleed": {
+      "n": 7,
+      "arm": "novel",
+      "min_rms": 0.0,
+      "median_rms": 0.0
+    },
+    "Infiltration": {
+      "n": 16,
+      "arm": "novel",
+      "min_rms": 0.0,
+      "median_rms": 0.0
+    },
+    "SSH-Patator": {
+      "n": 248,
+      "arm": "seen_both",
+      "min_rms": 0.0,
+      "median_rms": 0.005811582526191592
+    }
+  },
+  "leak_warning": true,
+  "notes": [
+    "NN check (benign): query subsampled 161465 -> 40000",
+    "LEAKAGE WARNING: trusted_eval rows sit near honeypot_pool rows in feature space (5th-pct per-feature RMS below threshold). An S0 improvement may be memorization, not learning. Stop and inspect nn_by_family / nn_distance before trusting the S0 checkpoint."
+  ]
+}

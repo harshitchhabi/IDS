@@ -31,8 +31,10 @@ one burst by time drops near-identical rows into both ``honeypot_pool`` and
 and *false-pass* the checkpoint:
 
   a. Hard de-duplication before splitting — exact duplicates (in
-     :mod:`dloop.features.cleaning`) plus near-duplicates here, snapped to a
-     grid in normalized feature space. Counts logged per day per class.
+     :mod:`dloop.features.cleaning`) plus near-duplicates here: a grid snap in
+     normalized feature space (O(n), collapses dense automated-tool bursts)
+     followed by a radius pass over the survivors (catches pairs that snapped
+     either side of a cell boundary). Counts logged per day per class.
   b. A temporal guard band: rows within ``boundary_buffer_seconds`` of an
      internal cut time are dropped so a burst cannot straddle the cut.
   c. Nearest-neighbour distance, in normalized feature space, from every
@@ -44,7 +46,6 @@ and *false-pass* the checkpoint:
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -107,6 +108,11 @@ class PartitionConfig:
 
     # A4 selective disclosure: attack families withheld from honeypot_pool.
     a4_withheld_families: tuple[str, ...] = ()
+
+    # Guard (c): cap the query side of the NN search (the honeypot_pool index
+    # stays complete, so a real near-duplicate is still found). Keeps the check
+    # tractable on CICIDS2017's millions of rows; 0 disables the cap.
+    nn_check_query_sample: int = 40_000
 
     seed: int = 20250903
 
@@ -198,47 +204,60 @@ class PartitionedData:
 # row hashing                                                                 #
 # --------------------------------------------------------------------------- #
 def _row_hashes(df: pd.DataFrame) -> pd.Series:
-    cols = [*schema.CANONICAL_FEATURES, schema.LABEL]
-    packed = df[cols].round(6).astype(str).agg("|".join, axis=1)
-    return packed.map(lambda s: hashlib.blake2b(s.encode(), digest_size=16).hexdigest())
+    """Fast per-row content hash over features + label (ignores day / timestamp).
+    Vectorized — the string-join version is unusably slow on CICIDS2017's
+    millions of rows."""
+    feats = list(schema.CANONICAL_FEATURES)
+    block = df[feats].to_numpy("float64").round(6)
+    h = pd.util.hash_pandas_object(pd.DataFrame(block), index=False)
+    h ^= pd.util.hash_pandas_object(df[schema.LABEL].reset_index(drop=True), index=False)
+    return h
 
 
 # --------------------------------------------------------------------------- #
 # guard (a): near-duplicate removal                                           #
 # --------------------------------------------------------------------------- #
 def _remove_near_duplicates(
-    day_df: pd.DataFrame, day: str, normalizer: Normalizer, grid: float, report: LeakageReport
+    df: pd.DataFrame, normalizer: Normalizer, grid: float, report: LeakageReport
 ) -> pd.DataFrame:
-    """Drop rows within ``grid`` (per-feature RMS, normalized units) of a kept
-    row of the same label. Radius-based, not grid-cell — grid-cell rounding lets
-    a near-duplicate pair straddle a cell boundary and survive, which is exactly
-    the leak this guard exists to stop."""
-    if grid <= 0 or len(day_df) < 2:
-        return day_df
-    from sklearn.neighbors import NearestNeighbors
+    """Drop near-duplicate rows (within ~``grid`` per-feature-RMS of a kept row
+    of the same label) before the temporal split.
 
-    x = normalizer.transform(day_df)
-    labels = day_df[schema.LABEL].to_numpy()
-    radius = grid * np.sqrt(x.shape[1])  # per-feature RMS -> total L2
-    graph = NearestNeighbors(radius=radius).fit(x).radius_neighbors_graph(x, mode="connectivity")
+    Two O(n) grid snaps. The first rounds normalized features to a ``grid``
+    lattice and keeps one row per (cell, label); the second repeats on a
+    half-cell-shifted lattice. A near-duplicate pair that straddled a cell
+    boundary in the first snap — the leak a single grid pass misses — lands in
+    the same shifted cell and is caught by the second. Both passes are linear,
+    which matters: on real CICIDS2017 a single DoS burst is hundreds of
+    thousands of near-identical rows and a radius graph over them does not fit
+    in memory. Runs on the whole dataset at once so a cross-day near-duplicate
+    pair is caught too."""
+    if grid <= 0 or len(df) < 2:
+        return df
 
-    kept: set[int] = set()
-    drop = np.zeros(len(day_df), dtype=bool)
-    for i in range(len(day_df)):
-        nbrs = graph.indices[graph.indptr[i] : graph.indptr[i + 1]]
-        if any(j in kept and labels[j] == labels[i] for j in nbrs):
-            drop[i] = True
-        else:
-            kept.add(i)
+    x = normalizer.transform(df)
+    labels = df[schema.LABEL].to_numpy()
+    days = df[schema.DAY].to_numpy()
+    drop = np.zeros(len(df), dtype=bool)
+
+    for offset in (0.0, 0.5):
+        live = ~drop
+        key = np.round(x[live] / grid + offset).astype(np.int64)
+        kdf = pd.DataFrame(key)
+        kdf["_lab"] = labels[live]
+        dup = kdf.duplicated(keep="first").to_numpy()
+        drop[np.where(live)[0][dup]] = True
 
     if drop.any():
-        by_class = {
-            str(k): int(v) for k, v in day_df.loc[drop, schema.LABEL].value_counts().items()
-        }
-        report.near_dups_removed[day] = by_class
-        log.info("near-duplicate rows removed", day=day, total=int(drop.sum()),
-                 by_class=by_class, grid=grid)
-    return day_df.loc[~drop]
+        removed = pd.DataFrame({"day": days[drop], "label": labels[drop]})
+        for day, g in removed.groupby("day", sort=True):
+            report.near_dups_removed[str(day)] = {
+                str(k): int(v) for k, v in g["label"].value_counts().items()
+            }
+        log.info("near-duplicate rows removed (global)", total=int(drop.sum()),
+                 by_day={d: sum(v.values()) for d, v in report.near_dups_removed.items()},
+                 grid=grid)
+    return df.loc[~drop].reset_index(drop=True)
 
 
 # --------------------------------------------------------------------------- #
@@ -294,12 +313,10 @@ def _split_stream_temporal(
 
 
 def _build_within_day(
-    cleaned: dict[str, pd.DataFrame], cfg: PartitionConfig, normalizer: Normalizer,
-    report: LeakageReport,
+    cleaned: dict[str, pd.DataFrame], cfg: PartitionConfig, report: LeakageReport,
 ) -> dict[str, list[pd.DataFrame]]:
     frames: dict[str, list[pd.DataFrame]] = {p: [] for p in PARTITIONS}
     for day, df in cleaned.items():
-        df = _remove_near_duplicates(df, day, normalizer, cfg.near_dup_grid, report)
         benign = df[df[schema.BINARY_LABEL] == 0]
         attack = df[df[schema.BINARY_LABEL] == 1]
         for part, seg in _split_stream_temporal(
@@ -354,18 +371,25 @@ def _nn_leakage_check(
     pcts = [0, 1, 5, 25, 50, 90]
     warn = False
 
+    rng = np.random.default_rng(cfg.seed)
     for cls_name, cls_val in (("attack", 1), ("benign", 0)):
-        te_c = te[te[schema.BINARY_LABEL] == cls_val]
+        te_c = te[te[schema.BINARY_LABEL] == cls_val].reset_index(drop=True)
         hp_c = hp[hp[schema.BINARY_LABEL] == cls_val]
         if te_c.empty or hp_c.empty:
             report.notes.append(f"NN check ({cls_name}) skipped: empty in trusted_eval or honeypot_pool")
             continue
-        rms = _nn_rms(normalizer.transform(te_c), normalizer.transform(hp_c))
+        q = te_c
+        cap = cfg.nn_check_query_sample
+        if cap and len(te_c) > cap:
+            q = te_c.iloc[np.sort(rng.choice(len(te_c), cap, replace=False))]
+            report.notes.append(f"NN check ({cls_name}): query subsampled {len(te_c)} -> {cap}")
+        rms_q = _nn_rms(normalizer.transform(q), normalizer.transform(hp_c))
         report.nn_distance[cls_name] = {
-            "percentiles": {f"p{p}": float(np.percentile(rms, p)) for p in pcts},
-            "frac_below_grid": float(np.mean(rms < max(cfg.near_dup_grid, 1e-6))),
+            "percentiles": {f"p{p}": float(np.percentile(rms_q, p)) for p in pcts},
+            "frac_below_grid": float(np.mean(rms_q < max(cfg.near_dup_grid, 1e-6))),
+            "n_query": int(len(rms_q)),
         }
-        if float(np.percentile(rms, 5)) < cfg.nn_leak_p5_threshold:
+        if float(np.percentile(rms_q, 5)) < cfg.nn_leak_p5_threshold:
             warn = True
 
         if cls_name == "attack":
@@ -375,17 +399,17 @@ def _nn_leakage_check(
                     data_frames["seed_train"][schema.BINARY_LABEL] == 1, schema.LABEL
                 ].unique()
             )
-            te_c = te_c.reset_index(drop=True)
-            for fam, idx in te_c.groupby(schema.LABEL).groups.items():
-                pos = np.asarray(idx)
+            fam_q = q[schema.LABEL].to_numpy()
+            for fam in np.unique(fam_q):
+                sel = fam_q == fam
                 arm = ("seen_both" if fam in pool_fams and fam in seed_fams
                        else "seed_only" if fam in seed_fams
                        else "novel")
                 report.nn_by_family[str(fam)] = {
-                    "n": int(len(pos)),
+                    "n": int(sel.sum()),
                     "arm": arm,
-                    "min_rms": float(np.min(rms[pos])),
-                    "median_rms": float(np.median(rms[pos])),
+                    "min_rms": float(np.min(rms_q[sel])),
+                    "median_rms": float(np.median(rms_q[sel])),
                 }
 
     report.leak_warning = warn
@@ -411,6 +435,11 @@ def build_partitions(
     cfg = config or PartitionConfig()
     report = LeakageReport(strategy=cfg.strategy)
 
+    if cfg.strategy == "day_split":
+        unknown = set(raw_by_day) - set(DAY_TO_PARTITION)
+        if unknown:
+            raise ValueError(f"day_split has no assignment for day(s): {sorted(unknown)}")
+
     cleaned: dict[str, pd.DataFrame] = {}
     reports: dict[str, CleaningReport] = {}
     for day, raw in raw_by_day.items():
@@ -418,10 +447,17 @@ def build_partitions(
         cleaned[day] = df
         reports[day] = rep
 
-    normalizer = fit_normalizer(pd.concat(cleaned.values(), ignore_index=True))
+    all_clean = pd.concat(cleaned.values(), ignore_index=True)
+    normalizer = fit_normalizer(all_clean)
+
+    # Guard (a) runs GLOBALLY, before the split: a near-duplicate pair that spans
+    # two capture days is still a memorization leak if the two rows land in
+    # different partitions, and a per-day pass would never see it.
+    all_clean = _remove_near_duplicates(all_clean, normalizer, cfg.near_dup_grid, report)
+    cleaned = {day: g for day, g in all_clean.groupby(schema.DAY, sort=False)}
 
     if cfg.strategy == "within_day_temporal":
-        frames = _build_within_day(cleaned, cfg, normalizer, report)
+        frames = _build_within_day(cleaned, cfg, report)
     elif cfg.strategy == "day_split":
         frames = _build_day_split(cleaned, report)
     else:  # pragma: no cover

@@ -62,7 +62,12 @@ def load_raw_by_day(root: Path | str = DEFAULT_ROOT) -> dict[str, pd.DataFrame]:
     for name, day in present:
         path = root / name
         # low_memory=False: rate columns mix ints, floats and "Infinity".
-        df = pd.read_csv(path, low_memory=False, skipinitialspace=False)
+        # encoding_errors="replace": the CICIDS2017 Web-Attack labels carry a
+        # non-ASCII dash; different mirrors encode it as cp1252 0x96 or a UTF-8
+        # replacement char. Any undecodable byte becomes U+FFFD, which
+        # normalize_label folds to "-".
+        df = pd.read_csv(path, low_memory=False, skipinitialspace=False,
+                         encoding="utf-8", encoding_errors="replace")
         df.columns = [str(c).strip() for c in df.columns]
         if "Label" in df.columns:
             df = df.rename(columns={"Label": schema.LABEL})

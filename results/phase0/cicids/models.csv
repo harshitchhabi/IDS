@@ -1,0 +1,7 @@
+model,threshold_mode,threshold,val_fpr,val_tpr,eval_fpr,eval_tpr,eval_precision,eval_f1,eval_auroc,tpr_seen_both,tpr_seed_only,tpr_novel
+rf,fixed,0.028944,0.01,0.9997,0.048,0.9165,0.7719,0.838,0.9869,0.9879,,0.0
+rf,recalibrated,0.125556,0.01,0.9997,0.01,0.8868,0.94,0.9126,0.9869,0.9798,,0.0
+xgboost,fixed,0.010811,0.01,0.9997,0.0262,0.8998,0.8589,0.8789,0.9929,0.9758,,0.0
+xgboost,recalibrated,0.035682,0.01,0.9997,0.01,0.8849,0.9401,0.9117,0.9929,0.9476,,0.0
+autoencoder,fixed,4.562236,0.0,0.0,0.0,0.0,0.0,0.0,0.5878,0.0,,0.0
+autoencoder,recalibrated,4.562236,0.0,0.0,0.0168,0.0005,0.0051,0.0009,0.5878,0.0,,0.0

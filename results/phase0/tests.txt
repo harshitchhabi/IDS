@@ -1,3 +1,4 @@
+warning: `VIRTUAL_ENV=C:\Users\HARSHIT\anaconda3` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
 ============================= test session starts =============================
 platform win32 -- Python 3.12.0, pytest-8.4.2, pluggy-1.6.0 -- D:\Downloads\IDS\.venv\Scripts\python.exe
 cachedir: .pytest_cache
@@ -67,4 +68,4 @@ tests/test_synthetic.py::test_fingerprint_tight_bursts_are_injected_for_sustaine
 tests/test_synthetic.py::test_corruption_is_injected PASSED              [ 98%]
 tests/test_synthetic.py::test_reproducible_for_fixed_seed PASSED         [100%]
 
-============================= 60 passed in 20.73s =============================
+============================= 60 passed in 19.32s =============================

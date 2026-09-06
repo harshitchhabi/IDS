@@ -172,3 +172,90 @@ identical predictions.
 coverage for 3.14 is incomplete and the autoencoder needs torch; pandas 2.3 on
 3.14 + NumPy 2.5 also surfaced a `Timedelta` deprecation-to-error. Pinning now
 avoids hitting either mid-build.
+
+## 10. Real CICIDS2017 validation — what the synthetic checkpoint hid
+
+The Phase 0 pipeline was re-run unchanged (`--source cicids`, same configs, same
+seeds) against the real CICIDS2017 `MachineLearningCVE` CSVs (~2.83M flows).
+Results are in `results/phase0/cicids/`, kept alongside the synthetic results
+for the methodology table. Getting there needed a handful of real-data fixes
+that the synthetic path never exercised — none change the method:
+
+- **Encoding.** The Web-Attack labels carry a non-ASCII dash; read with
+  `encoding_errors="replace"` and folded to `-` in `normalize_label`.
+- **The near-duplicate guard had to become global and O(n).** A single
+  Wednesday DoS burst is ~230k near-identical rows; a radius neighbour graph
+  over that does not fit in memory. Guard (a) now runs once over the whole
+  cleaned dataset (so a cross-day near-duplicate pair is also caught) using two
+  half-offset grid snaps instead of a radius graph — linear, and the offset
+  pass catches the boundary-straddle pairs a single grid rounding misses.
+- **Row-content hashing** for the disjointness assertion is vectorized
+  (`hash_pandas_object`); the string-join version was unusably slow at millions
+  of rows.
+- **Guard (c)** subsamples the *query* side of the nearest-neighbour search
+  (the honeypot-pool index stays complete, so a real near-duplicate is still
+  found).
+
+### What the real data showed
+
+1. **CICIDS2017 flow-statistic features are severely degenerate.** After exact
+   deduplication (cleaning already drops 25–34% of each day as exact
+   duplicates — the documented "duplicate rows" gotcha), guard (a) removes a
+   further ~1.01M rows (~49% of what survived cleaning) as near-duplicates at
+   the default grid. Most are BENIGN: real web traffic is highly repetitive in
+   24 flow-summary features.
+
+2. **Guard (c) fires `leak_warning` under _both_ partition strategies.** For
+   `within_day_temporal` it is a true positive: DoS attack flows are a
+   near-degenerate feature-space cluster, so a temporal cut through Wednesday's
+   DoS campaign puts near-identical Hulk flows in both `honeypot_pool` and
+   `trusted_eval` (attack 5th-pct per-feature RMS = 0.000, 87% of pairs within
+   grid distance). For `day_split` — whole different days, different attack
+   families — it fires on the **benign** class: a benign flow on Thursday is
+   feature-space-identical to a benign flow on Friday, and guard (c) cannot tell
+   "the same flow appears twice" from "two different flows have identical
+   summary statistics". The guard's benign-class leak test is therefore not
+   meaningful for a day-disjoint split and should be read as attack-class only.
+
+3. **`seed_only` — A4's controlled measurement arm — is structurally empty on
+   CICIDS2017.** Every attack family runs on exactly one capture day, so no
+   family can be present in `seed_train` and `trusted_eval` but withheld from
+   the pool. A4 cannot be measured on CICIDS2017 flow data without synthetic
+   augmentation or a second dataset.
+
+4. **`tpr_novel` is not a single number — it depends entirely on which family
+   is novel.** Under `within_day_temporal` the only genuinely-novel family is
+   Heartbleed (7 rows) and supervised `tpr_novel = 0.00` — the opposite of the
+   synthetic 0.55, confirming that the synthetic generator made "attack" a
+   generically separable region. Under `day_split` the novel families are Bot,
+   PortScan and DDoS, and RF's `tpr_novel = 0.90`: volumetric/scan attacks sit
+   so far outside the benign region that a classifier trained on *any* attacks
+   (Patator) flags them without ever seeing the family. Subtle families
+   (Heartbleed, and Bot for XGBoost) are missed. The synthetic number was an
+   artifact; the real behaviour is family-dependent and spans 0.0–0.9.
+
+5. **Both threshold modes matter more on real data.** `fixed` vs
+   `recalibrated` barely differed on synthetic; on CICIDS2017 the
+   seed→trusted-eval calibration transfer error is large (RF `eval_fpr` 0.048
+   under `fixed` vs 0.010 under `recalibrated`), validating why the loop must
+   report both.
+
+6. **The tabular autoencoder collapses on real benign traffic.** Reconstruction
+   error on real CICIDS2017 benign has so heavy a right tail that the
+   99th-percentile calibration threshold sits beyond every attack too
+   (`val_tpr = 0`, `eval_tpr = 0`, AUROC ≈ 0.6–0.8). It needs either a
+   higher operating FPR or a different anomaly score before it earns a place.
+
+### Consequence for the S0 checkpoint
+
+The S0 checkpoint ("the clean loop improves the detector over rounds") cannot be
+validated as designed on either dataset yet: the synthetic partition makes it
+pass trivially, and the real CICIDS2017 partition leaks (attack degeneracy under
+`within_day_temporal`; and the eval set is not genuinely held out at the
+feature-representation level). Resolving this is a prerequisite for Phase 0's
+checkpoint and is the open question to settle before building the loop —
+candidate directions: a dataset with per-flow timestamps and less feature
+degeneracy, a coarser poison-ratio regime where memorization is not the
+dominant effect, connection-5-tuple-level disjointness rather than
+feature-level, or accepting `day_split` with attack-class-only leak checking and
+the cross-family-generalization framing.

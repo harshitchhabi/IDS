@@ -33,7 +33,8 @@
     "near_dup_grid": 0.02,
     "nn_leak_p5_threshold": 0.25,
     "a4_withheld_families": [],
+    "nn_check_query_sample": 40000,
     "seed": 20250903
   },
-  "config_hash": "8c4a4cbb5bcea854"
+  "config_hash": "960ceaa36c37ecd8"
 }

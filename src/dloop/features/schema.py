@@ -101,11 +101,17 @@ CICIDS_COLUMN_MAP: dict[str, str] = {
 def normalize_label(raw: object) -> str:
     """Canonicalize a raw dataset label.
 
-    CICIDS2017 labels carry stray whitespace and inconsistent casing
-    (``"BENIGN"`` vs ``"Web Attack \x96 Brute Force"``). We upper-case BENIGN so
-    the benign class is a single value and leave attack labels otherwise intact.
+    CICIDS2017 labels carry stray whitespace, inconsistent casing, and a
+    non-ASCII dash in the Web-Attack labels that different mirrors store as a
+    cp1252 byte (0x96) or a UTF-8 replacement char (U+FFFD): e.g.
+    ``"Web Attack \x96 Brute Force"``. We fold any of those to ``-``, collapse
+    whitespace, and upper-case BENIGN so the benign class is a single value;
+    attack labels are otherwise left intact.
     """
-    s = str(raw).strip()
+    s = str(raw)
+    for junk in ("\x96", "\x97", "�"):
+        s = s.replace(junk, "-")
+    s = " ".join(s.split())
     return BENIGN_LABEL if s.upper() == BENIGN_LABEL else s
 
 

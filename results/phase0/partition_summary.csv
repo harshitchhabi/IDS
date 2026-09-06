@@ -1,5 +1,5 @@
 partition,rows,benign,attack,attack_frac,days,classes
-seed_train,24602,20416,4186,0.1701,"friday,monday,thursday,tuesday,wednesday","BENIGN,DDoS,DoS Hulk,FTP-Patator,PortScan,SSH-Patator,Web Attack Brute Force"
+seed_train,24603,20416,4187,0.1702,"friday,monday,thursday,tuesday,wednesday","BENIGN,DDoS,DoS Hulk,FTP-Patator,PortScan,SSH-Patator,Web Attack Brute Force"
 prod_benign,13104,13104,0,0.0,"friday,monday,thursday,tuesday,wednesday",BENIGN
 honeypot_pool,22144,19930,2214,0.1,"friday,monday,thursday,tuesday,wednesday","BENIGN,DDoS,DoS Hulk,PortScan,Web Attack Brute Force"
-trusted_eval,17593,13280,4313,0.2452,"friday,monday,thursday,tuesday,wednesday","BENIGN,Bot,DDoS,DoS Hulk,Infiltration,PortScan,SSH-Patator,Web Attack Brute Force"
+trusted_eval,17594,13280,4314,0.2452,"friday,monday,thursday,tuesday,wednesday","BENIGN,Bot,DDoS,DoS Hulk,Infiltration,PortScan,SSH-Patator,Web Attack Brute Force"

@@ -169,13 +169,21 @@ def determinism_evidence(data: PartitionedData, out: Path) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--source", choices=["auto", "cicids", "synthetic"], default="synthetic")
+    ap.add_argument("--strategy", choices=["within_day_temporal", "day_split"],
+                    default="within_day_temporal")
     ap.add_argument("--out", type=Path, default=Path("results/phase0"))
     args = ap.parse_args(argv)
     configure()
 
+    from dloop.sim.partition import PartitionConfig
+
     buf = io.StringIO()
     with redirect_stderr(buf):
-        data = load_partitions(source=args.source, synthetic_config=synthetic.SyntheticConfig())
+        data = load_partitions(source=args.source, synthetic_config=synthetic.SyntheticConfig(),
+                               partition_config=PartitionConfig(strategy=args.strategy))
+    if data.leakage.leak_warning:
+        print("*** guard (c) leak_warning is set on this partition — the trusted_eval "
+              "metrics below reflect memorization, not held-out detection. ***\n")
     models_df = train_all(data, args.out)
     det = determinism_evidence(data, args.out)
 

@@ -167,10 +167,14 @@ def _plot_nn_leakage(data: PartitionedData, path: Path) -> None:
 
     te = data["trusted_eval"]
     hp = data["honeypot_pool"]
-    te_atk = te[te[schema.BINARY_LABEL] == 1]
+    te_atk = te[te[schema.BINARY_LABEL] == 1].reset_index(drop=True)
     hp_atk = hp[hp[schema.BINARY_LABEL] == 1]
     if te_atk.empty or hp_atk.empty:
         return
+    cap = data.config.nn_check_query_sample
+    if cap and len(te_atk) > cap:
+        rng = np.random.default_rng(data.config.seed + 1)
+        te_atk = te_atk.iloc[np.sort(rng.choice(len(te_atk), cap, replace=False))].reset_index(drop=True)
     n_feat = len(schema.CANONICAL_FEATURES)
     nn = NearestNeighbors(n_neighbors=1).fit(data.normalizer.transform(hp_atk))
     dist, _ = nn.kneighbors(data.normalizer.transform(te_atk))
@@ -218,13 +222,16 @@ def _write_partitions_md(data: PartitionedData, cfg_hash: str, path: Path) -> No
           "(coerced to NaN then dropped), negative Flow Duration artifacts, exact "
           "duplicate rows, unparseable timestamps.", ""]
 
+    total_clean = sum(r.rows_out for r in data.cleaning.values())
+    total_nd = sum(sum(v.values()) for v in lk.near_dups_removed.values())
     L += ["## Guard (a) — near-duplicate removal before splitting", "",
-          "Radius-based in normalized feature space (grid "
-          f"`{data.config.near_dup_grid}` per-feature RMS). The synthetic generator "
-          "injects fingerprint-tight bursts into every *sustained* attack family "
-          "(an automated tool emitting near-byte-identical flows); the guard must "
-          "clear them or they leak across the temporal cut and let S0 pass by "
-          "memorization.", ""]
+          f"Two half-offset grid snaps in normalized feature space (grid "
+          f"`{data.config.near_dup_grid}` per-feature RMS), run globally over all "
+          f"days so a cross-day near-duplicate pair is also caught. Removed "
+          f"**{total_nd:,}** of {total_clean:,} cleaned rows "
+          f"({total_nd / max(total_clean, 1):.1%}). On synthetic data this clears "
+          "the injected fingerprint-tight bursts; on real CICIDS2017 it also "
+          "removes the dataset's heavy benign and DoS self-similarity.", ""]
     if lk.near_dups_removed:
         L.append("| day | family | rows removed |")
         L.append("|---|---|---|")

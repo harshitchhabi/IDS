@@ -1,0 +1,88 @@
+{
+  "strategy": "day_split",
+  "near_dups_removed": {
+    "friday": {
+      "BENIGN": 194698,
+      "DDoS": 69297,
+      "PortScan": 812,
+      "Bot": 754
+    },
+    "monday": {
+      "BENIGN": 156905
+    },
+    "thursday": {
+      "BENIGN": 170452,
+      "Web Attack - Brute Force": 1231,
+      "Web Attack - XSS": 542,
+      "Infiltration": 2,
+      "Web Attack - Sql Injection": 1
+    },
+    "tuesday": {
+      "BENIGN": 150683,
+      "FTP-Patator": 3903,
+      "SSH-Patator": 2174
+    },
+    "wednesday": {
+      "BENIGN": 176933,
+      "DoS Hulk": 71564,
+      "DoS slowloris": 4403,
+      "DoS Slowhttptest": 4137,
+      "DoS GoldenEye": 2788
+    }
+  },
+  "buffer_rows_removed": {},
+  "a4_withheld_removed": {},
+  "nn_distance": {
+    "attack": {
+      "percentiles": {
+        "p0": 0.0,
+        "p1": 0.0,
+        "p5": 0.0,
+        "p25": 0.0,
+        "p50": 0.8434555820036511,
+        "p90": 0.9324182187086534
+      },
+      "frac_below_grid": 0.33225,
+      "n_query": 40000
+    },
+    "benign": {
+      "percentiles": {
+        "p0": 0.0,
+        "p1": 0.0,
+        "p5": 0.0,
+        "p25": 0.007953832199562558,
+        "p50": 0.016954472594228873,
+        "p90": 0.0668135238280016
+      },
+      "frac_below_grid": 0.5582,
+      "n_query": 40000
+    }
+  },
+  "nn_by_family": {
+    "Bot": {
+      "n": 399,
+      "arm": "novel",
+      "min_rms": 0.0,
+      "median_rms": 0.49093374398227335
+    },
+    "DDoS": {
+      "n": 38861,
+      "arm": "novel",
+      "min_rms": 0.0,
+      "median_rms": 0.84407054607201
+    },
+    "PortScan": {
+      "n": 740,
+      "arm": "novel",
+      "min_rms": 0.0,
+      "median_rms": 0.7662358356657519
+    }
+  },
+  "leak_warning": true,
+  "notes": [
+    "day_split: dropped 109834 attack rows from prod_benign",
+    "NN check (attack): query subsampled 60391 -> 40000",
+    "NN check (benign): query subsampled 140409 -> 40000",
+    "LEAKAGE WARNING: trusted_eval rows sit near honeypot_pool rows in feature space (5th-pct per-feature RMS below threshold). An S0 improvement may be memorization, not learning. Stop and inspect nn_by_family / nn_distance before trusting the S0 checkpoint."
+  ]
+}

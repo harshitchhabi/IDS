@@ -1,15 +1,15 @@
 {
   "strategy": "within_day_temporal",
   "near_dups_removed": {
-    "wednesday": {
-      "DoS Hulk": 42
-    },
-    "thursday": {
-      "Web Attack Brute Force": 41
-    },
     "friday": {
       "PortScan": 42,
       "DDoS": 40
+    },
+    "thursday": {
+      "Web Attack Brute Force": 39
+    },
+    "wednesday": {
+      "DoS Hulk": 42
     }
   },
   "buffer_rows_removed": {
@@ -27,13 +27,14 @@
     "attack": {
       "percentiles": {
         "p0": 0.3277669350265098,
-        "p1": 0.44800592403104306,
-        "p5": 0.5223522266346103,
-        "p25": 0.7245600306576873,
-        "p50": 0.8846502494345194,
-        "p90": 1.3315938908261573
+        "p1": 0.4480092462403473,
+        "p5": 0.5223568955366992,
+        "p25": 0.7244889962287813,
+        "p50": 0.8846379640193888,
+        "p90": 1.3315744077792913
       },
-      "frac_below_grid": 0.0
+      "frac_below_grid": 0.0,
+      "n_query": 4314
     },
     "benign": {
       "percentiles": {
@@ -44,7 +45,8 @@
         "p50": 0.4928469450772941,
         "p90": 0.5802428112968998
       },
-      "frac_below_grid": 0.0
+      "frac_below_grid": 0.0,
+      "n_query": 13280
     }
   },
   "nn_by_family": {
@@ -85,10 +87,10 @@
       "median_rms": 0.7869734243118452
     },
     "Web Attack Brute Force": {
-      "n": 227,
+      "n": 228,
       "arm": "seen_both",
       "min_rms": 0.4092268970607715,
-      "median_rms": 0.5787226286803603
+      "median_rms": 0.5782267487639574
     }
   },
   "leak_warning": false,

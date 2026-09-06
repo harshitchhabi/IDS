@@ -2,5 +2,5 @@ day,rows_in,rows_out_clean,dropped_nan,dropped_negative,dropped_exact_dup,droppe
 monday,14210,13778,195,27,210,0,280,0,inf
 tuesday,17052,16533,238,34,247,0,344,0,4.99
 wednesday,15631,15155,217,30,229,0,312,42,9.97
-thursday,17052,16534,238,32,248,0,344,41,5.03
+thursday,17052,16534,238,32,248,0,344,39,5.03
 friday,18473,17913,255,37,268,0,370,82,3.33

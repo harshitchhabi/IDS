@@ -1,15 +1,15 @@
 # Phase 0 partitions
 
-Strategy `within_day_temporal`, config hash `73b51fab903836e0`. Reviewable without re-running; regenerate with `make phase0-explore`.
+Strategy `within_day_temporal`, config hash `5de2d602e2f020a0`. Reviewable without re-running; regenerate with `make phase0-explore`.
 
 ## Row counts per partition / class
 
 | partition     |   rows |   benign |   attack |   attack_frac | days                                     | classes                                                                           |
 |:--------------|-------:|---------:|---------:|--------------:|:-----------------------------------------|:----------------------------------------------------------------------------------|
-| seed_train    |  24602 |    20416 |     4186 |        0.1701 | friday,monday,thursday,tuesday,wednesday | BENIGN,DDoS,DoS Hulk,FTP-Patator,PortScan,SSH-Patator,Web Attack Brute Force      |
+| seed_train    |  24603 |    20416 |     4187 |        0.1702 | friday,monday,thursday,tuesday,wednesday | BENIGN,DDoS,DoS Hulk,FTP-Patator,PortScan,SSH-Patator,Web Attack Brute Force      |
 | prod_benign   |  13104 |    13104 |        0 |        0      | friday,monday,thursday,tuesday,wednesday | BENIGN                                                                            |
 | honeypot_pool |  22144 |    19930 |     2214 |        0.1    | friday,monday,thursday,tuesday,wednesday | BENIGN,DDoS,DoS Hulk,PortScan,Web Attack Brute Force                              |
-| trusted_eval  |  17593 |    13280 |     4313 |        0.2452 | friday,monday,thursday,tuesday,wednesday | BENIGN,Bot,DDoS,DoS Hulk,Infiltration,PortScan,SSH-Patator,Web Attack Brute Force |
+| trusted_eval  |  17594 |    13280 |     4314 |        0.2452 | friday,monday,thursday,tuesday,wednesday | BENIGN,Bot,DDoS,DoS Hulk,Infiltration,PortScan,SSH-Patator,Web Attack Brute Force |
 
 ## Row counts per partition / day / class
 
@@ -27,12 +27,12 @@ Strategy `within_day_temporal`, config hash `73b51fab903836e0`. Reviewable witho
 | ('prod_benign', 'wednesday')   |        0 |     2629 |
 | ('seed_train', 'friday')       |     1095 |     4045 |
 | ('seed_train', 'monday')       |        0 |     4040 |
-| ('seed_train', 'thursday')     |      521 |     4103 |
+| ('seed_train', 'thursday')     |      522 |     4103 |
 | ('seed_train', 'tuesday')      |     2072 |     4053 |
 | ('seed_train', 'wednesday')    |      498 |     4175 |
 | ('trusted_eval', 'friday')     |     1774 |     2644 |
 | ('trusted_eval', 'monday')     |        0 |     2737 |
-| ('trusted_eval', 'thursday')   |     1603 |     2637 |
+| ('trusted_eval', 'thursday')   |     1604 |     2637 |
 | ('trusted_eval', 'tuesday')    |      690 |     2691 |
 | ('trusted_eval', 'wednesday')  |      246 |     2571 |
 
@@ -43,20 +43,20 @@ Strategy `within_day_temporal`, config hash `73b51fab903836e0`. Reviewable witho
 | monday    |     14210 |            13778 |           195 |                 27 |                 210 |                0 |                  280 |                   0 |                inf    |
 | tuesday   |     17052 |            16533 |           238 |                 34 |                 247 |                0 |                  344 |                   0 |                  4.99 |
 | wednesday |     15631 |            15155 |           217 |                 30 |                 229 |                0 |                  312 |                  42 |                  9.97 |
-| thursday  |     17052 |            16534 |           238 |                 32 |                 248 |                0 |                  344 |                  41 |                  5.03 |
+| thursday  |     17052 |            16534 |           238 |                 32 |                 248 |                0 |                  344 |                  39 |                  5.03 |
 | friday    |     18473 |            17913 |           255 |                 37 |                 268 |                0 |                  370 |                  82 |                  3.33 |
 
 Drop reasons: whitespace column names, +-Inf in the two rate features (coerced to NaN then dropped), negative Flow Duration artifacts, exact duplicate rows, unparseable timestamps.
 
 ## Guard (a) — near-duplicate removal before splitting
 
-Radius-based in normalized feature space (grid `0.02` per-feature RMS). The synthetic generator injects fingerprint-tight bursts into every *sustained* attack family (an automated tool emitting near-byte-identical flows); the guard must clear them or they leak across the temporal cut and let S0 pass by memorization.
+Two half-offset grid snaps in normalized feature space (grid `0.02` per-feature RMS), run globally over all days so a cross-day near-duplicate pair is also caught. Removed **163** of 79,913 cleaned rows (0.2%). On synthetic data this clears the injected fingerprint-tight bursts; on real CICIDS2017 it also removes the dataset's heavy benign and DoS self-similarity.
 
 | day | family | rows removed |
 |---|---|---|
 | friday | PortScan | 42 |
 | friday | DDoS | 40 |
-| thursday | Web Attack Brute Force | 41 |
+| thursday | Web Attack Brute Force | 39 |
 | wednesday | DoS Hulk | 42 |
 
 ## Guard (b) — temporal guard band at internal cuts
@@ -78,7 +78,7 @@ Rows within 150s of a cut time dropped so a burst cannot straddle it.
 
 Per-feature RMS distance in normalized space, run for both classes. Concentration near zero would mean the partition leaks; `leak_warning = False`.
 
-- **attack**: p0=0.328, p1=0.448, p5=0.522, p25=0.725, p50=0.885, p90=1.332; frac below grid = 0.0000
+- **attack**: p0=0.328, p1=0.448, p5=0.522, p25=0.724, p50=0.885, p90=1.332; frac below grid = 0.0000
 - **benign**: p0=0.281, p1=0.369, p5=0.401, p25=0.453, p50=0.493, p90=0.580; frac below grid = 0.0000
 
 ### Per trusted_eval attack family
@@ -91,7 +91,7 @@ Per-feature RMS distance in normalized space, run for both classes. Concentratio
 | Infiltration | novel | 1376 | 0.881 | 1.272 |
 | PortScan | seen_both | 263 | 0.328 | 0.527 |
 | SSH-Patator | seed_only | 690 | 0.531 | 0.787 |
-| Web Attack Brute Force | seen_both | 227 | 0.409 | 0.579 |
+| Web Attack Brute Force | seen_both | 228 | 0.409 | 0.578 |
 
 ## trusted_eval family arms (three-way)
 
