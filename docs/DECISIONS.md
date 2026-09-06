@@ -198,12 +198,12 @@ that the synthetic path never exercised — none change the method:
 
 ### What the real data showed
 
-1. **CICIDS2017 flow-statistic features are severely degenerate.** After exact
-   deduplication (cleaning already drops 25–34% of each day as exact
-   duplicates — the documented "duplicate rows" gotcha), guard (a) removes a
-   further ~1.01M rows (~49% of what survived cleaning) as near-duplicates at
-   the default grid. Most are BENIGN: real web traffic is highly repetitive in
-   24 flow-summary features.
+1. **CICIDS2017 flow-statistic features are severely degenerate.** Cleaning
+   drops 765k rows (27% of the raw 2.83M; 22–34% per day) as exact duplicates —
+   the documented "duplicate rows" gotcha. Guard (a) then removes a further
+   ~1.01M rows (~49% of what survived cleaning) as near-duplicates at the
+   default grid. Most are BENIGN: real web traffic is highly repetitive in 24
+   flow-summary features.
 
 2. **Guard (c) fires `leak_warning` under _both_ partition strategies.** For
    `within_day_temporal` it is a true positive: DoS attack flows are a

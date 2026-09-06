@@ -10,13 +10,13 @@ synthetic artifacts.
 | | synthetic | CICIDS2017 |
 |---|---:|---:|
 | raw rows | 37,757 | 2,830,743 |
-| dropped: exact duplicates | 553 | 674,038 (24%) |
+| dropped: exact duplicates | 553 | 765,038 (**27%**) |
 | dropped: NaN / +-Inf rate cells | 521 | 2,867 |
 | dropped: negative Flow Duration | 69 | 2,890 |
 | dropped: unparseable timestamp | 0 | 0 (no Timestamp column at all) |
 | **cleaned rows** | **36,614** | **2,059,948** |
-| guard (a) near-duplicates removed | 163 (0.4%) | 1,011,279 (**49%**) |
-| rows into the partition | 36,451 | 1,048,669 |
+| guard (a) near-duplicates removed | 163 (0.4%) | 1,011,279 (**49% of cleaned**) |
+| rows into the partition | ~36,451 | 1,048,669 |
 
 CICIDS2017's `MachineLearningCVE` CSVs have **no `Timestamp` column**, so
 `within_day_temporal` sorts each day by row order — a poor proxy for capture
