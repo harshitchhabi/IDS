@@ -59,61 +59,53 @@ _BENIGN_FLAGS = {"syn_flag_count": 1.0, "psh_flag_count": 3.0, "ack_flag_count":
 # Attack profiles: multiplicative overrides on the benign (mean, sigma) pairs,
 # plus flag-count means. Everything else inherits the benign profile.
 #
-# ``burst`` places the family on the day's timeline, which decides how the
-# within-day temporal split routes it (attack cuts at 40% / 80% of the window):
-#   "sustained"        - long campaign spanning the window; straddles both cuts,
-#                        so the family lands in seed_train AND the adversary pool
-#                        AND trusted_eval  -> eval arm "seen_both".
-#   "brief_early"       - short burst near the start; seed_train only (not scored).
-#   "brief_late"        - short burst near the end; trusted_eval only -> "novel".
-#   "split_early_late"  - two short bursts, one before the first cut and one
-#                        after the last, nothing in the middle: seed_train AND
-#                        trusted_eval but NOT the adversary pool -> eval arm
-#                        "seed_only", the baseline for A4's controlled withholding.
+# Each family runs as one contiguous time block. Days with multiple families run
+# them in sequential non-overlapping blocks, mirroring CICIDS2017 (Friday = Bot
+# then PortScan then DDoS). Because the partition splits per (day, family), block
+# placement no longer decides an arm — every family gets seed_train + pool + eval
+# segments in time order. The eval-family arms are set via PartitionConfig
+# withholding, not burst timing.
 @dataclass(frozen=True)
 class _AttackProfile:
     label: str
     scale: dict[str, float] = field(default_factory=dict)
     flags: dict[str, float] = field(default_factory=dict)
-    burst: str = "sustained"
 
 
 _ATTACKS: dict[str, list[_AttackProfile]] = {
     "tuesday": [
-        _AttackProfile("SSH-Patator", {"flow_duration": 0.6, "fwd_packets": 1.8,
-                                       "bwd_packets": 1.8, "fwd_bytes": 2.5},
-                       {"syn_flag_count": 6.0, "ack_flag_count": 40.0}, burst="split_early_late"),
         _AttackProfile("FTP-Patator", {"flow_duration": 0.4, "fwd_packets": 2.2,
                                        "fwd_bytes": 1.6, "bwd_bytes": 0.3},
-                       {"syn_flag_count": 6.0}, burst="brief_early"),
+                       {"syn_flag_count": 6.0}),
+        _AttackProfile("SSH-Patator", {"flow_duration": 0.6, "fwd_packets": 1.8,
+                                       "bwd_packets": 1.8, "fwd_bytes": 2.5},
+                       {"syn_flag_count": 6.0, "ack_flag_count": 40.0}),
     ],
     "wednesday": [
         _AttackProfile("DoS Hulk", {"flow_duration": 0.15, "fwd_packets": 0.4,
                                     "bwd_packets": 0.2, "fwd_bytes": 4.0,
                                     "pkt_size_avg": 3.0, "flow_iat_min": 0.05},
-                       {"syn_flag_count": 2.0, "psh_flag_count": 8.0, "ack_flag_count": 2.0},
-                       burst="sustained"),
+                       {"syn_flag_count": 2.0, "psh_flag_count": 8.0, "ack_flag_count": 2.0}),
     ],
     "thursday": [
         _AttackProfile("Web Attack Brute Force", {"flow_duration": 2.5, "fwd_bytes": 5.0,
                                                   "fwd_pkt_len_max": 4.0, "fwd_packets": 2.0},
-                       {"psh_flag_count": 12.0}, burst="sustained"),
+                       {"psh_flag_count": 12.0}),
         _AttackProfile("Infiltration", {"flow_duration": 6.0, "bwd_bytes": 20.0,
                                         "bwd_packets": 8.0, "down_up_ratio": 5.0},
-                       {"ack_flag_count": 80.0}, burst="brief_late"),
+                       {"ack_flag_count": 80.0}),
     ],
     "friday": [
         _AttackProfile("Bot", {"flow_duration": 0.5, "fwd_packets": 0.5, "bwd_packets": 0.5,
                                "fwd_bytes": 0.4, "flow_iat_std": 0.2},
-                       {"psh_flag_count": 1.0, "ack_flag_count": 6.0}, burst="brief_late"),
+                       {"psh_flag_count": 1.0, "ack_flag_count": 6.0}),
         _AttackProfile("PortScan", {"flow_duration": 0.02, "fwd_packets": 0.15,
                                     "bwd_packets": 0.1, "fwd_bytes": 0.05, "bwd_bytes": 0.05,
                                     "pkt_size_avg": 0.2, "flow_iat_mean": 0.02},
-                       {"syn_flag_count": 12.0, "ack_flag_count": 0.0, "psh_flag_count": 0.0},
-                       burst="sustained"),
+                       {"syn_flag_count": 12.0, "ack_flag_count": 0.0, "psh_flag_count": 0.0}),
         _AttackProfile("DDoS", {"flow_duration": 0.3, "fwd_packets": 6.0, "bwd_packets": 0.3,
                                 "fwd_bytes": 8.0, "pkt_size_avg": 2.0},
-                       {"syn_flag_count": 10.0, "psh_flag_count": 4.0}, burst="sustained"),
+                       {"syn_flag_count": 10.0, "psh_flag_count": 4.0}),
     ],
 }
 
@@ -123,22 +115,23 @@ DAYS: tuple[str, ...] = ("monday", "tuesday", "wednesday", "thursday", "friday")
 @dataclass
 class SyntheticConfig:
     seed: int = 20250903
-    # Volumes sized so the two-class adversary pool reaches ~20k rows and A1
-    # poison ratios up to 50% are reachable with fresh (not resampled) rows.
+    # Volumes sized so the two-class adversary pool reaches ~20k rows, A1 poison
+    # ratios up to 50% are reachable with fresh (not resampled) rows, and each
+    # family's ~20% trusted_eval segment clears the 500-row per-family reporting
+    # floor.
     benign_per_day: int = 14000
-    attack_per_class: int = 1400
+    attack_per_class: int = 3200
     # Capture window each day (flows get timestamps inside it so the within-day
     # temporal split has a real timeline to cut).
     first_date: str = "2017-07-03"       # a Monday
     window_start_hour: int = 9
     window_hours: float = 8.0
-    brief_burst_frac: float = 0.12       # fraction of the window a brief burst spans
     # Corruption injection (fraction of each day's rows), mirrors CICIDS2017.
     frac_nonfinite_rate: float = 0.010   # zero-duration -> Inf rate columns
     frac_nan_cell: float = 0.004         # sporadic missing feature
     frac_negative: float = 0.002         # negative Flow Duration artifact
     frac_duplicate: float = 0.015        # exact duplicate rows
-    # Guard-(a) self-test: a fraction of each sustained attack family's rows are
+    # Guard-(a) self-test: a fraction of each attack family's rows are
     # near-identical copies of a few centroids, mimicking an automated tool that
     # emits near-byte-identical flows. The partition's near-duplicate guard must
     # remove these before splitting. Set 0 to disable.
@@ -204,28 +197,10 @@ def _to_raw_cicids(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _burst_offsets_s(
-    rng: np.random.Generator, n: int, burst: str, window_s: float, brief_frac: float
+    rng: np.random.Generator, n: int, lo_s: float, hi_s: float
 ) -> np.ndarray:
-    """Sorted second-offsets into the day's window for one attack family."""
-    if burst == "sustained":
-        lo = rng.uniform(0.05, 0.15) * window_s
-        hi = rng.uniform(0.88, 1.00) * window_s
-    elif burst == "brief_early":
-        lo = rng.uniform(0.0, 0.05) * window_s
-        hi = lo + brief_frac * window_s
-    elif burst == "brief_late":
-        hi = rng.uniform(0.95, 1.00) * window_s
-        lo = hi - brief_frac * window_s
-    elif burst == "split_early_late":
-        # two short bursts: one in the first ~5%, one in the last ~5%, nothing
-        # in the middle -> seed_train + trusted_eval but not the adversary pool.
-        n_early = n // 2
-        early = rng.uniform(0.0, brief_frac, n_early) * window_s
-        late = (1.0 - brief_frac + rng.uniform(0.0, brief_frac, n - n_early)) * window_s
-        return np.sort(np.concatenate([early, late]))
-    else:  # pragma: no cover
-        raise ValueError(f"unknown burst type: {burst!r}")
-    return np.sort(rng.uniform(lo, hi, n))
+    """Sorted second-offsets for one contiguous attack burst within [lo_s, hi_s]."""
+    return np.sort(rng.uniform(lo_s, hi_s, n))
 
 
 def _apply_fingerprint_tightness(
@@ -268,13 +243,16 @@ def generate_raw_by_day(cfg: SyntheticConfig | None = None) -> dict[str, pd.Data
             np.sort(rng.uniform(0.0, window_s, len(benign))), unit="s"
         )
         parts = [benign]
-        for profile in _ATTACKS.get(day, []):
+        # each family runs in its own sequential, non-overlapping time block
+        families = _ATTACKS.get(day, [])
+        for i, profile in enumerate(families):
+            slot = window_s / len(families)
+            lo = i * slot + 0.10 * slot
+            hi = (i + 1) * slot - 0.10 * slot
             atk = _sample_class(rng, cfg.attack_per_class, profile)
-            if profile.burst == "sustained":
-                atk = _apply_fingerprint_tightness(rng, atk, cfg)
+            atk = _apply_fingerprint_tightness(rng, atk, cfg)
             atk[schema.TIMESTAMP] = base + pd.to_timedelta(
-                _burst_offsets_s(rng, len(atk), profile.burst, window_s, cfg.brief_burst_frac),
-                unit="s",
+                _burst_offsets_s(rng, len(atk), lo, hi), unit="s"
             )
             parts.append(atk)
 

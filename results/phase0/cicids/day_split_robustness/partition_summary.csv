@@ -1,5 +1,5 @@
 partition,rows,benign,attack,attack_frac,days,classes
 seed_train,428862,425861,3001,0.007,"monday,tuesday","BENIGN,FTP-Patator,SSH-Patator"
-prod_benign,167209,167209,0,0.0,wednesday,BENIGN
-honeypot_pool,141964,141606,358,0.0025,thursday,"BENIGN,Infiltration,Web Attack - Brute Force,Web Attack - Sql Injection,Web Attack - XSS"
-trusted_eval,200800,140409,60391,0.3008,friday,"BENIGN,Bot,DDoS,PortScan"
+prod_benign,167208,167208,0,0.0,wednesday,BENIGN
+honeypot_pool,141962,141604,358,0.0025,thursday,"BENIGN,Infiltration,Web Attack - Brute Force,Web Attack - Sql Injection,Web Attack - XSS"
+trusted_eval,200801,140410,60391,0.3008,friday,"BENIGN,Bot,DDoS,PortScan"

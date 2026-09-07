@@ -2,66 +2,71 @@
   "strategy": "day_split",
   "near_dups_removed": {
     "friday": {
-      "PortScan": 42,
-      "DDoS": 40
+      "Bot": 95,
+      "DDoS": 94,
+      "PortScan": 94
     },
     "thursday": {
-      "Web Attack Brute Force": 39
+      "Web Attack Brute Force": 95,
+      "Infiltration": 93
+    },
+    "tuesday": {
+      "FTP-Patator": 94,
+      "SSH-Patator": 91
     },
     "wednesday": {
-      "DoS Hulk": 42
+      "DoS Hulk": 94
     }
   },
   "buffer_rows_removed": {},
-  "a4_withheld_removed": {},
   "nn_distance": {
     "attack": {
       "percentiles": {
-        "p0": 0.49634112102927386,
-        "p1": 0.6280799149967866,
-        "p5": 0.7072693095613761,
-        "p25": 0.8579676460759115,
-        "p50": 1.047310046226447,
-        "p90": 2.0234821836786865
+        "p0": 0.45195185971267604,
+        "p1": 0.58012437677872,
+        "p5": 0.6566482266190424,
+        "p25": 0.8069507662438845,
+        "p50": 0.9791572087672765,
+        "p90": 1.8369788682161015
       },
       "frac_below_grid": 0.0,
-      "n_query": 4054
+      "n_query": 9177
     },
     "benign": {
       "percentiles": {
-        "p0": 0.2861091876083836,
-        "p1": 0.3699883551625686,
-        "p5": 0.4074838974124111,
-        "p25": 0.4619956530237163,
-        "p50": 0.5023360796397874,
-        "p90": 0.5929864905107357
+        "p0": 0.2768322882717604,
+        "p1": 0.361146224590334,
+        "p5": 0.3961557793408,
+        "p25": 0.449204934463049,
+        "p50": 0.48827720418052845,
+        "p90": 0.5763614060756096
       },
       "frac_below_grid": 0.0,
-      "n_query": 13777
+      "n_query": 13764
     }
   },
   "nn_by_family": {
     "Bot": {
-      "n": 1378,
+      "n": 3061,
       "arm": "novel",
-      "min_rms": 0.5987721629966489,
-      "median_rms": 1.0295210270387571
+      "min_rms": 0.5395035261737859,
+      "median_rms": 0.9592967157121713
     },
     "DDoS": {
-      "n": 1333,
+      "n": 3054,
       "arm": "novel",
-      "min_rms": 0.49634112102927386,
-      "median_rms": 0.8178743693449358
+      "min_rms": 0.45195185971267604,
+      "median_rms": 0.7722670600076271
     },
     "PortScan": {
-      "n": 1343,
+      "n": 3062,
       "arm": "novel",
-      "min_rms": 1.6456112782932475,
-      "median_rms": 1.9718856364933284
+      "min_rms": 1.522066203990717,
+      "median_rms": 1.7898499846304705
     }
   },
   "leak_warning": false,
   "notes": [
-    "day_split: dropped 1340 attack rows from prod_benign"
+    "day_split: dropped 3058 attack rows from prod_benign"
   ]
 }

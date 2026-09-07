@@ -27,7 +27,10 @@ phase0-explore:
 phase0-models:
 	$(UV) run python -m experiments.phase0_models --source synthetic --out results/phase0
 
-phase0-results: phase0-explore phase0-models
+phase0-grid-sweep:
+	$(UV) run python -m experiments.phase0_grid_sweep --source synthetic --out results/phase0
+
+phase0-results: phase0-explore phase0-models phase0-grid-sweep
 	$(UV) run pytest -o addopts="-rN" -v | tee results/phase0/tests.txt
 
 sim:

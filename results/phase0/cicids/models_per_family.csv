@@ -1,0 +1,10 @@
+model,family,arm,n_seed_train,n_honeypot_pool,n_trusted_eval,tpr_fixed,tpr_recalibrated
+rf,DDoS,seen_both,28670,21667,8075,0.9965,0.9958
+rf,DoS GoldenEye,seen_both,1086,3200,3172,0.9956,0.9931
+rf,DoS Hulk,seen_both,52520,35552,12002,0.9336,0.8897
+xgboost,DDoS,seen_both,28670,21667,8075,0.9969,0.9969
+xgboost,DoS GoldenEye,seen_both,1086,3200,3172,0.9328,0.9247
+xgboost,DoS Hulk,seen_both,52520,35552,12002,0.9717,0.9663
+autoencoder,DDoS,seen_both,28670,21667,8075,0.1325,0.098
+autoencoder,DoS GoldenEye,seen_both,1086,3200,3172,0.0028,0.0009
+autoencoder,DoS Hulk,seen_both,52520,35552,12002,0.0387,0.0029

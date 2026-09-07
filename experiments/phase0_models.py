@@ -48,16 +48,43 @@ def _calib_threshold(scores: np.ndarray, y: np.ndarray, target_fpr: float) -> fl
     return float(np.quantile(scores[y == 0], 1.0 - target_fpr, method="higher"))
 
 
+_ARMS = ("seen_both", "seed_only", "honeypot_only", "novel")
+
+
+def _tpr(model, sub: pd.DataFrame, threshold: float) -> float:
+    if sub.empty:
+        return float("nan")
+    X, _ = _xy(sub)
+    return float(np.mean(model.score_samples(X) >= threshold))
+
+
 def _per_arm_tpr(model, te: pd.DataFrame, threshold: float, arms: dict[str, list[str]]) -> dict:
+    te_atk = te[te[schema.BINARY_LABEL] == 1]
     out = {}
-    for arm, families in arms.items():
-        sub = te[te[schema.LABEL].isin(families)]
-        if sub.empty:
-            out[f"tpr_{arm}"] = float("nan")
-            continue
-        X, _ = _xy(sub)
-        out[f"tpr_{arm}"] = float(np.mean(model.score_samples(X) >= threshold))
+    for arm in _ARMS:
+        sub = te_atk[te_atk[schema.LABEL].isin(arms[arm])]
+        out[f"tpr_{arm}"] = round(_tpr(model, sub, threshold), 4) if not sub.empty else ""
+        out[f"n_{arm}"] = int(len(sub))
     return out
+
+
+def _per_family_rows(model, data: PartitionedData, thr_fixed: float, thr_recal: float,
+                     kind: str) -> list[dict]:
+    """Per-family TPR (both threshold modes) for families with >=500 eval rows."""
+    stats = data.eval_family_stats()
+    te_atk = data["trusted_eval"]
+    te_atk = te_atk[te_atk[schema.BINARY_LABEL] == 1]
+    rows = []
+    for _, r in stats[stats["reportable"]].iterrows():
+        sub = te_atk[te_atk[schema.LABEL] == r["family"]]
+        rows.append({
+            "model": kind, "family": r["family"], "arm": r["arm"],
+            "n_seed_train": r["n_seed_train"], "n_honeypot_pool": r["n_honeypot_pool"],
+            "n_trusted_eval": r["n_trusted_eval"],
+            "tpr_fixed": round(_tpr(model, sub, thr_fixed), 4),
+            "tpr_recalibrated": round(_tpr(model, sub, thr_recal), 4),
+        })
+    return rows
 
 
 def train_all(data: PartitionedData, out: Path) -> pd.DataFrame:
@@ -69,6 +96,7 @@ def train_all(data: PartitionedData, out: Path) -> pd.DataFrame:
     arms = data.eval_family_split()
 
     rows = []
+    family_rows = []
     (out / "models").mkdir(parents=True, exist_ok=True)
     for kind in KINDS:
         cfg = ModelConfig(kind=kind, seed=SEED, target_fpr=TARGET_FPR, threshold_mode="fixed")
@@ -78,6 +106,7 @@ def train_all(data: PartitionedData, out: Path) -> pd.DataFrame:
         eval_scores = model.score_samples(Xte)
         thr_fixed = model.threshold_                       # calibrated on seed_train val
         thr_recal = _calib_threshold(model.score_samples(Xte_b), yte_b, TARGET_FPR)
+        family_rows += _per_family_rows(model, data, thr_fixed, thr_recal, kind)
 
         for mode, thr in (("fixed", thr_fixed), ("recalibrated", thr_recal)):
             m = binary_metrics(yte, eval_scores, thr)
@@ -92,10 +121,11 @@ def train_all(data: PartitionedData, out: Path) -> pd.DataFrame:
                 "eval_precision": round(m["precision"], 4),
                 "eval_f1": round(m["f1"], 4),
                 "eval_auroc": round(m["auroc"], 4),
-                **{k: round(v, 4) for k, v in _per_arm_tpr(model, te, thr, arms).items()},
+                **_per_arm_tpr(model, te, thr, arms),
             })
     df = pd.DataFrame(rows)
     df.to_csv(out / "models.csv", index=False)
+    pd.DataFrame(family_rows).to_csv(out / "models_per_family.csv", index=False)
     return df
 
 
@@ -175,12 +205,12 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     configure()
 
-    from dloop.sim.partition import PartitionConfig
+    from experiments._common import partition_config
 
     buf = io.StringIO()
     with redirect_stderr(buf):
         data = load_partitions(source=args.source, synthetic_config=synthetic.SyntheticConfig(),
-                               partition_config=PartitionConfig(strategy=args.strategy))
+                               partition_config=partition_config(args.source, args.strategy))
     if data.leakage.leak_warning:
         print("*** guard (c) leak_warning is set on this partition — the trusted_eval "
               "metrics below reflect memorization, not held-out detection. ***\n")

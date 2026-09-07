@@ -1,6 +1,6 @@
 day,rows_in,rows_out_clean,dropped_nan,dropped_negative,dropped_exact_dup,dropped_bad_ts,inf_cells_replaced,near_dups_removed,imbalance_ratio_out
 monday,14210,13778,195,27,210,0,280,0,inf
-tuesday,17052,16533,238,34,247,0,344,0,4.99
-wednesday,15631,15155,217,30,229,0,312,42,9.97
-thursday,17052,16534,238,32,248,0,344,39,5.03
-friday,18473,17913,255,37,268,0,370,82,3.33
+tuesday,20706,20076,290,40,300,0,418,185,2.18
+wednesday,17458,16927,241,33,257,0,346,94,4.37
+thursday,20706,20076,291,40,299,0,418,188,2.19
+friday,23954,23224,331,48,351,0,476,283,1.45

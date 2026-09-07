@@ -2,97 +2,115 @@
   "strategy": "within_day_temporal",
   "near_dups_removed": {
     "friday": {
-      "PortScan": 42,
-      "DDoS": 40
+      "Bot": 95,
+      "DDoS": 94,
+      "PortScan": 94
     },
     "thursday": {
-      "Web Attack Brute Force": 39
+      "Web Attack Brute Force": 95,
+      "Infiltration": 93
+    },
+    "tuesday": {
+      "FTP-Patator": 94,
+      "SSH-Patator": 91
     },
     "wednesday": {
-      "DoS Hulk": 42
+      "DoS Hulk": 94
     }
   },
   "buffer_rows_removed": {
-    "monday/benign": 451,
-    "tuesday/benign": 425,
-    "wednesday/benign": 427,
-    "wednesday/attack": 29,
-    "thursday/benign": 423,
-    "thursday/attack": 35,
-    "friday/benign": 435,
-    "friday/attack": 80
+    "monday/BENIGN": 451,
+    "tuesday/BENIGN": 430,
+    "tuesday/FTP-Patator": 174,
+    "tuesday/SSH-Patator": 154,
+    "wednesday/BENIGN": 424,
+    "wednesday/DoS Hulk": 77,
+    "thursday/BENIGN": 424,
+    "thursday/Infiltration": 175,
+    "thursday/Web Attack Brute Force": 155,
+    "friday/BENIGN": 439,
+    "friday/Bot": 235,
+    "friday/DDoS": 219,
+    "friday/PortScan": 243
   },
-  "a4_withheld_removed": {},
   "nn_distance": {
     "attack": {
       "percentiles": {
-        "p0": 0.3277669350265098,
-        "p1": 0.4480092462403473,
-        "p5": 0.5223568955366992,
-        "p25": 0.7244889962287813,
-        "p50": 0.8846379640193888,
-        "p90": 1.3315744077792913
+        "p0": 0.00014445192424787542,
+        "p1": 0.3946231341655958,
+        "p5": 0.437334953010847,
+        "p25": 0.5109101535975498,
+        "p50": 0.5711259241596791,
+        "p90": 0.7326782740673631
       },
-      "frac_below_grid": 0.0,
-      "n_query": 4314
+      "frac_below_grid": 0.0002205071664829107,
+      "n_query": 4535
     },
     "benign": {
       "percentiles": {
-        "p0": 0.28059139942312034,
-        "p1": 0.36923430114539235,
-        "p5": 0.40089984065491086,
-        "p25": 0.45282491193590024,
-        "p50": 0.4928469450772941,
-        "p90": 0.5802428112968998
+        "p0": 0.27163190362682327,
+        "p1": 0.35920862936619896,
+        "p5": 0.38972588497486405,
+        "p25": 0.44011898623129564,
+        "p50": 0.47894860566931163,
+        "p90": 0.5643857218082139
       },
       "frac_below_grid": 0.0,
-      "n_query": 13280
+      "n_query": 13262
     }
   },
   "nn_by_family": {
     "Bot": {
-      "n": 1378,
+      "n": 558,
       "arm": "novel",
-      "min_rms": 0.5881207319285288,
-      "median_rms": 0.8838802052713111
+      "min_rms": 0.5346001494074459,
+      "median_rms": 0.7538678300442614
     },
     "DDoS": {
-      "n": 133,
+      "n": 557,
       "arm": "seen_both",
-      "min_rms": 0.3632498019671314,
-      "median_rms": 0.6071191799458576
+      "min_rms": 0.3490181903206882,
+      "median_rms": 0.5498731282974203
     },
     "DoS Hulk": {
-      "n": 246,
+      "n": 589,
+      "arm": "honeypot_only",
+      "min_rms": 0.3642117053053892,
+      "median_rms": 0.5363361983607429
+    },
+    "FTP-Patator": {
+      "n": 598,
       "arm": "seen_both",
-      "min_rms": 0.39265174015589516,
-      "median_rms": 0.5985408629051803
+      "min_rms": 0.36700090762569165,
+      "median_rms": 0.5568539373619044
     },
     "Infiltration": {
-      "n": 1376,
-      "arm": "novel",
-      "min_rms": 0.8809985415416052,
-      "median_rms": 1.2724586257224864
+      "n": 537,
+      "arm": "seen_both",
+      "min_rms": 0.00014445192424787542,
+      "median_rms": 0.5666612162968335
     },
     "PortScan": {
-      "n": 263,
+      "n": 551,
       "arm": "seen_both",
-      "min_rms": 0.3277669350265098,
-      "median_rms": 0.5273209404855603
+      "min_rms": 0.3260694187536224,
+      "median_rms": 0.4896794761975676
     },
     "SSH-Patator": {
-      "n": 690,
+      "n": 588,
       "arm": "seed_only",
-      "min_rms": 0.5305074137411926,
-      "median_rms": 0.7869734243118452
+      "min_rms": 0.4449653674469304,
+      "median_rms": 0.6621024165767465
     },
     "Web Attack Brute Force": {
-      "n": 228,
+      "n": 557,
       "arm": "seen_both",
-      "min_rms": 0.4092268970607715,
-      "median_rms": 0.5782267487639574
+      "min_rms": 0.35923136997778027,
+      "median_rms": 0.5447153609573065
     }
   },
   "leak_warning": false,
-  "notes": []
+  "notes": [
+    "family 'Bot' withheld from seed_train AND honeypot_pool (novel arm): 3061 rows -> trusted_eval segment only"
+  ]
 }

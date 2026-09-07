@@ -6,42 +6,48 @@ CLAUDE.md, Phase 0: four **disjoint** sets — ``seed_train``, ``prod_benign``,
 Two strategies (``PartitionConfig.strategy``):
 
 ``within_day_temporal`` *(default)*
-    Split each capture day along its own timeline. The literature's claim for
-    honeypot auto-labeling is *contemporaneous and within-campaign* — the decoy
-    sees the current campaign and the detector gets better at catching it — so
-    the honeypot pool and the eval set must be allowed to contain the same
-    attack families, separated only in time. Per day, the benign and attack
-    flow streams are each sorted by timestamp and cut by cumulative fraction:
+    Split each **(day, family) block** along its own timeline. CICIDS2017 runs
+    its attacks in sequential time blocks within a day (Friday = Bot morning,
+    PortScan midday, DDoS afternoon), so a per-day temporal cut would route
+    whole families into single partitions and re-create the day-split problem
+    at finer granularity. Grouping by (day, family), sorting each group by
+    timestamp and cutting by cumulative fraction puts every family in every
+    partition with temporal ordering intact:
 
-      * benign  -> ``seed_train`` (early) | ``prod_benign`` (mid) | ``trusted_eval`` (late)
-      * attack  -> ``seed_train`` (early) | ``honeypot_pool`` (mid) | ``trusted_eval`` (late)
+      * benign  -> ``seed_train`` | ``prod_benign`` | ``honeypot_pool`` | ``trusted_eval``
+      * attack  -> ``seed_train`` | ``honeypot_pool`` | ``trusted_eval``
+
+    The eval-family arms are then set explicitly, not left to chance:
+    ``pool_withheld_families`` (A4) keeps a family out of ``honeypot_pool`` so it
+    lands in ``seed_only``; ``seed_withheld_families`` keeps one out of
+    ``seed_train`` so it lands in ``honeypot_only`` (the loop teaching a
+    decoy-only family); a family in both lists is ``novel``.
 
 ``day_split``
     Whole days routed to whole partitions (:data:`DAY_TO_PARTITION`). Retained
-    as a robustness check: it withholds every attack family from the honeypot
-    maximally *by construction*, which both makes A4 (fingerprint-and-split) a
-    partition artifact rather than a manipulable variable and turns the S0
-    checkpoint into a cross-family-generalization test the literature never
-    claims. Useful only as a contrast to the default.
+    as a robustness check only.
 
 Leakage guards (``within_day_temporal``), all reported, none silently passed —
-because most CICIDS2017 attacks are single automated-tool bursts and splitting
-one burst by time drops near-identical rows into both ``honeypot_pool`` and
-``trusted_eval``, which would let S0 "improve" by memorizing a tool fingerprint
+because CICIDS2017 attacks are automated-tool bursts whose early and late flows
+are near-identical, so a temporal cut can leave ``honeypot_pool`` and
+``trusted_eval`` near-identical and let S0 "improve" by memorizing a fingerprint
 and *false-pass* the checkpoint:
 
   a. Hard de-duplication before splitting — exact duplicates (in
-     :mod:`dloop.features.cleaning`) plus near-duplicates here: a grid snap in
-     normalized feature space (O(n), collapses dense automated-tool bursts)
-     followed by a radius pass over the survivors (catches pairs that snapped
-     either side of a cell boundary). Counts logged per day per class.
+     :mod:`dloop.features.cleaning`) plus near-duplicates here: two half-offset
+     grid snaps in normalized feature space, run globally so cross-day pairs are
+     caught. The grid resolution is a swept, evidence-justified parameter
+     (DECISIONS.md §11) because on real data it removes a large fraction of the
+     benign class.
   b. A temporal guard band: rows within ``boundary_buffer_seconds`` of an
      internal cut time are dropped so a burst cannot straddle the cut.
-  c. Nearest-neighbour distance, in normalized feature space, from every
-     ``trusted_eval`` attack flow to its closest ``honeypot_pool`` attack flow.
-     The distribution is reported; concentration near zero means the partition
-     is leaking and any S0 gain is memorization — :class:`LeakageReport` flags
-     it and callers must stop.
+  c. Nearest-neighbour distance, in normalized feature space, from each
+     ``trusted_eval`` row to its closest ``honeypot_pool`` row of the same
+     class. Reported for both classes; only the **attack** class gates
+     ``leak_warning`` (near-identical benign flows across partitions are the
+     normal state of real traffic, not a leak). Concentration near zero on the
+     attack class means the partition is leaking and any S0 gain is
+     memorization — callers must stop.
 """
 
 from __future__ import annotations
@@ -106,8 +112,13 @@ class PartitionConfig:
     # below this.
     nn_leak_p5_threshold: float = 0.25
 
-    # A4 selective disclosure: attack families withheld from honeypot_pool.
-    a4_withheld_families: tuple[str, ...] = ()
+    # Family withholding — the two knobs that carve the eval-family arms out of
+    # the default "everything seen_both" baseline:
+    #   pool_withheld_families  removed from honeypot_pool  -> seed_only (this is A4)
+    #   seed_withheld_families   removed from seed_train      -> honeypot_only
+    #   a family in both lists is in trusted_eval only        -> novel
+    pool_withheld_families: tuple[str, ...] = ()
+    seed_withheld_families: tuple[str, ...] = ()
 
     # Guard (c): cap the query side of the NN search (the honeypot_pool index
     # stays complete, so a real near-duplicate is still found). Keeps the check
@@ -130,8 +141,7 @@ class PartitionConfig:
 class LeakageReport:
     strategy: str
     near_dups_removed: dict[str, dict[str, int]] = field(default_factory=dict)   # day -> class -> n
-    buffer_rows_removed: dict[str, int] = field(default_factory=dict)            # "day/class" -> n
-    a4_withheld_removed: dict[str, int] = field(default_factory=dict)            # family -> n
+    buffer_rows_removed: dict[str, int] = field(default_factory=dict)            # "day/family" -> n
     # guard (c): NN distance trusted_eval -> nearest honeypot_pool row, run per
     # class. {"attack"|"benign": {"percentiles": {...}, "frac_below_grid": float}}
     nn_distance: dict[str, dict] = field(default_factory=dict)
@@ -160,25 +170,81 @@ class PartitionedData:
             for p, df in self.frames.items()
         }
 
-    def eval_family_split(self) -> dict[str, list[str]]:
-        """trusted_eval attack families, in three arms by where they appear.
+    # A trusted_eval attack family with fewer than this many rows cannot support
+    # a stable per-family TPR and is excluded from per-family reporting (its rows
+    # stay in the data).
+    MIN_FAMILY_ROWS = 500
 
-        S0's TPR must be reported broken out these three ways every round:
-
-        * ``seen_both`` — in seed_train AND the adversary pool. The loop may
-          improve TPR here.
-        * ``seed_only`` — in seed_train, withheld from the adversary pool. This
-          is A4's controlled measurement arm and must never be collapsed into
-          ``novel``.
-        * ``novel`` — in neither. Supervised models are expected at ~0 TPR.
-        """
+    def eval_family_arm(self, family: str) -> str:
+        """Which coverage arm a family falls in, by where it actually appears."""
         fam = self.families_by_partition()
-        te, seed, pool = fam["trusted_eval"], fam["seed_train"], fam["honeypot_pool"]
-        return {
-            "seen_both": sorted(f for f in te if f in seed and f in pool),
-            "seed_only": sorted(f for f in te if f in seed and f not in pool),
-            "novel": sorted(f for f in te if f not in seed and f not in pool),
+        in_seed = family in fam["seed_train"]
+        in_pool = family in fam["honeypot_pool"]
+        if in_seed and in_pool:
+            return "seen_both"
+        if in_seed:
+            return "seed_only"       # A4's controlled arm
+        if in_pool:
+            return "honeypot_only"   # the loop teaching a decoy-only family
+        return "novel"
+
+    def eval_family_split(self) -> dict[str, list[str]]:
+        """trusted_eval attack families grouped into the four coverage arms.
+
+        * ``seen_both``     — in seed_train AND honeypot_pool.
+        * ``seed_only``     — in seed_train, withheld from honeypot_pool (A4).
+        * ``honeypot_only`` — in honeypot_pool, not in seed_train (the detector
+          learning a family it only saw through the decoy — S0's most
+          interesting arm).
+        * ``novel``         — in neither.
+
+        None of these is ever folded into an aggregate.
+        """
+        te = self.families_by_partition()["trusted_eval"]
+        arms: dict[str, list[str]] = {
+            "seen_both": [], "seed_only": [], "honeypot_only": [], "novel": []
         }
+        for f in sorted(te):
+            arms[self.eval_family_arm(f)].append(f)
+        return arms
+
+    def _arm_source(self, family: str, arm: str) -> str:
+        """Whether a non-``seen_both`` arm was set on purpose or fell out of the
+        split. ``config`` = the family is in a withholding list; ``artifact`` =
+        it landed there because its (day, family) block was too small or too
+        time-skewed to yield all segments (watch for these — they are not
+        controlled manipulations)."""
+        if arm == "seen_both":
+            return "-"
+        cfg = self.config
+        if cfg.strategy != "within_day_temporal":
+            return "strategy"   # day_split routes whole days -> every eval family is novel
+        if arm == "seed_only":
+            return "config" if family in cfg.pool_withheld_families else "artifact"
+        if arm == "honeypot_only":
+            return "config" if family in cfg.seed_withheld_families else "artifact"
+        return "config" if (family in cfg.pool_withheld_families
+                            and family in cfg.seed_withheld_families) else "artifact"
+
+    def eval_family_stats(self) -> pd.DataFrame:
+        """Per-family row counts across the partitions + arm + reportable flag."""
+        te = self.frames["trusted_eval"]
+        seed = self.frames["seed_train"]
+        pool = self.frames["honeypot_pool"]
+        te_atk = te[te[schema.BINARY_LABEL] == 1]
+        rows = []
+        for fam, n_eval in te_atk[schema.LABEL].value_counts().items():
+            arm = self.eval_family_arm(str(fam))
+            rows.append({
+                "family": str(fam),
+                "arm": arm,
+                "arm_source": self._arm_source(str(fam), arm),
+                "n_seed_train": int((seed[schema.LABEL] == fam).sum()),
+                "n_honeypot_pool": int((pool[schema.LABEL] == fam).sum()),
+                "n_trusted_eval": int(n_eval),
+                "reportable": bool(n_eval >= self.MIN_FAMILY_ROWS),
+            })
+        return pd.DataFrame(rows).sort_values(["arm", "family"]).reset_index(drop=True)
 
     def summary(self) -> pd.DataFrame:
         rows = []
@@ -203,14 +269,16 @@ class PartitionedData:
 # --------------------------------------------------------------------------- #
 # row hashing                                                                 #
 # --------------------------------------------------------------------------- #
-def _row_hashes(df: pd.DataFrame) -> pd.Series:
-    """Fast per-row content hash over features + label (ignores day / timestamp).
-    Vectorized — the string-join version is unusably slow on CICIDS2017's
-    millions of rows."""
-    feats = list(schema.CANONICAL_FEATURES)
-    block = df[feats].to_numpy("float64").round(6)
-    h = pd.util.hash_pandas_object(pd.DataFrame(block), index=False)
-    h ^= pd.util.hash_pandas_object(df[schema.LABEL].reset_index(drop=True), index=False)
+def _row_hashes(df: pd.DataFrame) -> np.ndarray:
+    """Per-row uint64 content hash over features + label (ignores day / timestamp).
+    Rolling hash over one column at a time — never materializes a second copy of
+    a millions-row feature block."""
+    lab = pd.util.hash_array(df[schema.LABEL].to_numpy())   # deterministic across calls
+    h = lab * np.uint64(1000003) + np.uint64(11)
+    for feat in schema.CANONICAL_FEATURES:
+        # 6 decimal places — matches "the same flow" without float64 fragility
+        q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+        h = h * np.uint64(1000003) + q.astype(np.uint64)
     return h
 
 
@@ -235,18 +303,23 @@ def _remove_near_duplicates(
     if grid <= 0 or len(df) < 2:
         return df
 
-    x = normalizer.transform(df)
+    x = normalizer.transform(df)                       # float32, clipped to +-25
+    lab_codes = pd.factorize(df[schema.LABEL].to_numpy())[0].astype(np.int64)
     labels = df[schema.LABEL].to_numpy()
     days = df[schema.DAY].to_numpy()
     drop = np.zeros(len(df), dtype=bool)
 
     for offset in (0.0, 0.5):
-        live = ~drop
-        key = np.round(x[live] / grid + offset).astype(np.int64)
-        kdf = pd.DataFrame(key)
-        kdf["_lab"] = labels[live]
-        dup = kdf.duplicated(keep="first").to_numpy()
-        drop[np.where(live)[0][dup]] = True
+        live = np.where(~drop)[0]
+        # rolling hash of (grid cell per feature, label) -> one uint64 per row.
+        # keys are small ints (|x|<=25) so a 64-bit polynomial hash is collision-safe
+        # enough for a dedup sanity pass.
+        h = lab_codes[live].astype(np.uint64)
+        for j in range(x.shape[1]):
+            cell = np.rint(x[live, j] / grid + offset).astype(np.int64) + (1 << 20)
+            h = h * np.uint64(1000003) + cell.astype(np.uint64)
+        dup = pd.Series(h).duplicated(keep="first").to_numpy()
+        drop[live[dup]] = True
 
     if drop.any():
         removed = pd.DataFrame({"day": days[drop], "label": labels[drop]})
@@ -266,14 +339,16 @@ def _remove_near_duplicates(
 def _split_stream_temporal(
     stream: pd.DataFrame,
     split: tuple[float, ...],
-    route: tuple[str, ...],
+    route: tuple[str | None, ...],
     cfg: PartitionConfig,
     tag: str,
     report: LeakageReport,
-) -> dict[str, pd.DataFrame]:
-    """Cut one time-sorted class stream into ``len(route)`` segments, dropping a
-    temporal guard band around each internal cut."""
-    out: dict[str, pd.DataFrame] = {}
+) -> list[tuple[str, pd.DataFrame]]:
+    """Cut one time-sorted (day, family) group into ``len(route)`` segments,
+    dropping a temporal guard band around each internal cut. ``route`` entries
+    of ``None`` drop that segment (a fully-withheld family arm); repeated
+    partition names accumulate."""
+    out: list[tuple[str, pd.DataFrame]] = []
     if stream.empty:
         return out
     s = stream.sort_values(schema.TIMESTAMP, kind="stable")
@@ -306,27 +381,53 @@ def _split_stream_temporal(
         ts.astype("int64"), [c.astype("datetime64[ns]").astype("int64") for c in cut_times]
     )
     for i, part in enumerate(route):
+        if part is None:
+            continue
         mask = (seg_idx == i) & ~in_band
         if mask.any():
-            out[part] = s.loc[mask]
+            out.append((part, s.loc[mask]))
     return out
+
+
+def _attack_route(family: str, cfg: PartitionConfig) -> tuple[str | None, str | None, str]:
+    """3-segment route for one attack family under the withholding config.
+    seg0 is earliest, seg2 latest; temporal order is preserved when a segment is
+    reassigned rather than dropped."""
+    seed_w = family in cfg.seed_withheld_families
+    pool_w = family in cfg.pool_withheld_families
+    if seed_w and pool_w:              # novel: trusted_eval only
+        return (None, None, "trusted_eval")
+    if seed_w:                         # honeypot_only: early+mid -> pool
+        return ("honeypot_pool", "honeypot_pool", "trusted_eval")
+    if pool_w:                         # seed_only (A4): early+mid -> seed_train
+        return ("seed_train", "seed_train", "trusted_eval")
+    return ("seed_train", "honeypot_pool", "trusted_eval")   # seen_both
 
 
 def _build_within_day(
     cleaned: dict[str, pd.DataFrame], cfg: PartitionConfig, report: LeakageReport,
 ) -> dict[str, list[pd.DataFrame]]:
+    """Split within each (day, family) block, not each day. CICIDS2017 runs its
+    attacks in sequential time blocks within a day, so a per-day temporal cut
+    would route whole families to single partitions; splitting per (day, family)
+    puts every family in every partition with temporal ordering intact."""
     frames: dict[str, list[pd.DataFrame]] = {p: [] for p in PARTITIONS}
+    withheld: dict[str, int] = {}
     for day, df in cleaned.items():
-        benign = df[df[schema.BINARY_LABEL] == 0]
-        attack = df[df[schema.BINARY_LABEL] == 1]
-        for part, seg in _split_stream_temporal(
-            benign, cfg.benign_split, BENIGN_ROUTE, cfg, f"{day}/benign", report
-        ).items():
-            frames[part].append(seg)
-        for part, seg in _split_stream_temporal(
-            attack, cfg.attack_split, ATTACK_ROUTE, cfg, f"{day}/attack", report
-        ).items():
-            frames[part].append(seg)
+        for (label, is_atk), grp in df.groupby([schema.LABEL, schema.BINARY_LABEL], sort=True):
+            if is_atk == 0:
+                split, route = cfg.benign_split, BENIGN_ROUTE
+            else:
+                split, route = cfg.attack_split, _attack_route(str(label), cfg)
+                if route.count("trusted_eval") == 1 and route[0] is None and route[1] is None:
+                    withheld[str(label)] = withheld.get(str(label), 0) + len(grp)
+            for part, seg in _split_stream_temporal(
+                grp, split, route, cfg, f"{day}/{label}", report
+            ):
+                frames[part].append(seg)
+    for fam, n in withheld.items():
+        report.notes.append(f"family {fam!r} withheld from seed_train AND honeypot_pool "
+                            f"(novel arm): {n} rows -> trusted_eval segment only")
     return frames
 
 
@@ -389,22 +490,25 @@ def _nn_leakage_check(
             "frac_below_grid": float(np.mean(rms_q < max(cfg.near_dup_grid, 1e-6))),
             "n_query": int(len(rms_q)),
         }
-        if float(np.percentile(rms_q, 5)) < cfg.nn_leak_p5_threshold:
+        # Only the ATTACK class drives leak_warning: near-identical benign flows
+        # across partitions are the normal state of real network traffic (two
+        # different HTTP GETs have identical flow stats), not a memorization
+        # leak. The benign distances are reported for context, not gated on.
+        if cls_name == "attack" and float(np.percentile(rms_q, 5)) < cfg.nn_leak_p5_threshold:
             warn = True
 
         if cls_name == "attack":
-            pool_fams = set(hp_c[schema.LABEL].unique())
-            seed_fams = set(
-                data_frames["seed_train"].loc[
-                    data_frames["seed_train"][schema.BINARY_LABEL] == 1, schema.LABEL
-                ].unique()
-            )
+            def _atk_fams(part: str) -> set[str]:
+                d = data_frames[part]
+                return set(d.loc[d[schema.BINARY_LABEL] == 1, schema.LABEL].unique())
+
+            pool_fams, seed_fams = _atk_fams("honeypot_pool"), _atk_fams("seed_train")
             fam_q = q[schema.LABEL].to_numpy()
             for fam in np.unique(fam_q):
                 sel = fam_q == fam
-                arm = ("seen_both" if fam in pool_fams and fam in seed_fams
-                       else "seed_only" if fam in seed_fams
-                       else "novel")
+                in_s, in_p = fam in seed_fams, fam in pool_fams
+                arm = ("seen_both" if in_s and in_p else "seed_only" if in_s
+                       else "honeypot_only" if in_p else "novel")
                 report.nn_by_family[str(fam)] = {
                     "n": int(sel.sum()),
                     "arm": arm,
@@ -419,10 +523,10 @@ def _nn_leakage_check(
           benign_p5=round(report.nn_distance.get("benign", {}).get("percentiles", {}).get("p5", float("nan")), 4))
     if warn:
         report.notes.append(
-            "LEAKAGE WARNING: trusted_eval rows sit near honeypot_pool rows in feature "
-            "space (5th-pct per-feature RMS below threshold). An S0 improvement may be "
-            "memorization, not learning. Stop and inspect nn_by_family / nn_distance "
-            "before trusting the S0 checkpoint."
+            "LEAKAGE WARNING (attack class): trusted_eval attack rows sit near "
+            "honeypot_pool attack rows in feature space (5th-pct per-feature RMS below "
+            "threshold). An S0 improvement may be memorization, not learning. Stop and "
+            "inspect nn_by_family / nn_distance before trusting the S0 checkpoint."
         )
 
 
@@ -469,15 +573,11 @@ def build_partitions(
             raise ValueError(f"partition {part!r} received no rows (strategy={cfg.strategy})")
         out[part] = pd.concat(frames[part], ignore_index=True)
 
-    # A4 selective disclosure: withhold families from the honeypot pool.
-    if cfg.a4_withheld_families:
-        hp = out["honeypot_pool"]
-        mask = hp[schema.LABEL].isin(cfg.a4_withheld_families)
-        report.a4_withheld_removed = {
-            str(k): int(v) for k, v in hp.loc[mask, schema.LABEL].value_counts().items()
-        }
-        out["honeypot_pool"] = hp.loc[~mask].reset_index(drop=True)
-        log.info("A4: withheld families from honeypot_pool", removed=report.a4_withheld_removed)
+    if cfg.strategy == "within_day_temporal" and (
+        cfg.pool_withheld_families or cfg.seed_withheld_families
+    ):
+        log.info("family withholding applied", pool_withheld=list(cfg.pool_withheld_families),
+                 seed_withheld=list(cfg.seed_withheld_families))
 
     result = PartitionedData(
         frames=out, cleaning=reports, leakage=report, config=cfg, normalizer=normalizer
@@ -510,22 +610,27 @@ def assert_disjoint(data: PartitionedData) -> dict[str, int]:
                 if a < b and day_sets[a] & day_sets[b]:
                     raise AssertionError(f"day overlap {a}/{b}: {sorted(day_sets[a] & day_sets[b])}")
     else:
-        # within_day_temporal: for each day+class stream the segments must be
+        # within_day_temporal: for each (day, family) block the segments must be
         # time-ordered across partitions with no overlap (the guard band ensures
-        # a gap). Check max(earlier) < min(later).
-        for day in {d for df in frames.values() for d in df[schema.DAY].unique()}:
-            for is_attack, route in ((0, BENIGN_ROUTE), (1, ATTACK_ROUTE)):
-                bounds = []
-                for part in route:
-                    df = frames[part]
-                    seg = df[(df[schema.DAY] == day) & (df[schema.BINARY_LABEL] == is_attack)]
-                    if not seg.empty:
-                        bounds.append((seg[schema.TIMESTAMP].min(), seg[schema.TIMESTAMP].max()))
-                for (lo1, hi1), (lo2, hi2) in zip(bounds, bounds[1:], strict=False):
-                    if hi1 >= lo2:
-                        raise AssertionError(
-                            f"time overlap in {day} attack={is_attack}: {hi1} >= {lo2}"
-                        )
+        # a gap). Check max(earlier) < min(later) along the partition ordering,
+        # which differs by class (benign visits prod_benign, attack does not).
+        benign_order = {"seed_train": 0, "prod_benign": 1, "honeypot_pool": 2, "trusted_eval": 3}
+        attack_order = {"seed_train": 0, "honeypot_pool": 1, "trusted_eval": 2}
+        # (day, label) -> list of (order, min_ts, max_ts); built per-partition so
+        # the full dataset is never concatenated into one frame.
+        spans: dict[tuple, list] = {}
+        for part, df in frames.items():
+            gb = df.groupby([schema.DAY, schema.LABEL], sort=False)
+            gmin, gmax = gb[schema.TIMESTAMP].min(), gb[schema.TIMESTAMP].max()
+            is_benign = gb[schema.BINARY_LABEL].first()
+            for k, lo in gmin.items():
+                order = benign_order if is_benign[k] == 0 else attack_order
+                spans.setdefault(k, []).append((order[part], lo, gmax[k]))
+        for (day, label), bounds in spans.items():
+            bounds.sort()
+            for (o1, _, hi1), (o2, lo2, _) in zip(bounds, bounds[1:], strict=False):
+                if o1 != o2 and hi1 >= lo2:
+                    raise AssertionError(f"time overlap in ({day}, {label}): {hi1} >= {lo2}")
 
     log.info("partition disjointness verified", strategy=data.config.strategy,
              pair_overlaps=overlaps)

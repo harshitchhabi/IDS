@@ -1,9 +1,22 @@
 {
   "seen_both": [
-    "SSH-Patator"
+    "Bot",
+    "DDoS",
+    "DoS GoldenEye",
+    "DoS Hulk",
+    "DoS Slowhttptest",
+    "DoS slowloris",
+    "Heartbleed",
+    "Infiltration",
+    "PortScan",
+    "SSH-Patator",
+    "Web Attack - Brute Force",
+    "Web Attack - Sql Injection",
+    "Web Attack - XSS"
   ],
-  "seed_only": [],
-  "novel": [
-    "Heartbleed"
-  ]
+  "seed_only": [
+    "FTP-Patator"
+  ],
+  "honeypot_only": [],
+  "novel": []
 }

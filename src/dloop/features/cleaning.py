@@ -186,7 +186,10 @@ def clean_flows(df: pd.DataFrame, *, source: str) -> tuple[pd.DataFrame, Cleanin
             np.arange(len(df)), unit="s"
         )
 
-    # Step 7: finalize schema.
+    # Step 7: finalize schema. Features stored as float32 — flow summary
+    # statistics do not need double precision, and CICIDS2017 is ~2.8M rows, so
+    # this halves the memory the partition and leakage guards work in.
+    df[feats] = df[feats].astype("float32")
     df[schema.BINARY_LABEL] = (df[schema.LABEL] != schema.BENIGN_LABEL).astype("int8")
     if schema.DAY not in df.columns:
         df[schema.DAY] = source

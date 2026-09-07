@@ -1,6 +1,7 @@
 {
   "seen_both": [],
   "seed_only": [],
+  "honeypot_only": [],
   "novel": [
     "Bot",
     "DDoS",

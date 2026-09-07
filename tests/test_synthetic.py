@@ -24,23 +24,18 @@ def test_attack_days_carry_expected_classes():
     assert schema.BENIGN_LABEL in fri
 
 
-def test_burst_types_place_families_on_the_timeline():
+def test_families_run_in_sequential_non_overlapping_blocks():
     raw = synthetic.generate_raw_by_day(_CFG)
-    fri, tue = raw["friday"], raw["tuesday"]
-
-    def frac(df):
-        ts = df[schema.CICIDS_TIMESTAMP_COLUMN]
-        lo, hi = df[schema.CICIDS_TIMESTAMP_COLUMN].min(), df[schema.CICIDS_TIMESTAMP_COLUMN].max()
-        return lambda label: ((ts[df[schema.CICIDS_LABEL_COLUMN] == label] - lo) / (hi - lo))
-
-    ff = frac(fri)
-    assert ff("Bot").min() > 0.7                       # brief_late
-    assert ff("PortScan").max() - ff("PortScan").min() > 0.5  # sustained
-
-    ft = frac(tue)
-    ssh = ft("SSH-Patator")                            # split_early_late
-    assert ssh.min() < 0.15 and ssh.max() > 0.85
-    assert ((ssh > 0.4) & (ssh < 0.8)).mean() < 0.02   # nothing in the middle
+    fri = raw["friday"]
+    ts = fri[schema.CICIDS_TIMESTAMP_COLUMN]
+    spans = {}
+    for fam in ("Bot", "PortScan", "DDoS"):
+        f = ts[fri[schema.CICIDS_LABEL_COLUMN] == fam]
+        spans[fam] = (f.min(), f.max())
+    # blocks are ordered and do not overlap
+    assert spans["Bot"][1] < spans["PortScan"][0] < spans["PortScan"][1] < spans["DDoS"][0]
+    # each family's block is contiguous (spans a real interval, not two clusters)
+    assert (spans["PortScan"][1] - spans["PortScan"][0]).total_seconds() > 60
 
 
 def test_fingerprint_tight_bursts_are_injected_for_sustained_families():

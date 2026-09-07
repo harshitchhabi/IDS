@@ -1,0 +1,4 @@
+family,arm,arm_source,n_seed_train,n_honeypot_pool,n_trusted_eval,reportable
+Bot,novel,strategy,0,0,583,True
+DDoS,novel,strategy,0,0,58697,True
+PortScan,novel,strategy,0,0,1111,True

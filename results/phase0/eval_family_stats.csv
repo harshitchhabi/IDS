@@ -1,0 +1,9 @@
+family,arm,arm_source,n_seed_train,n_honeypot_pool,n_trusted_eval,reportable
+DoS Hulk,honeypot_only,config,0,2392,589,True
+Bot,novel,config,0,0,558,True
+SSH-Patator,seed_only,config,2321,0,588,True
+DDoS,seen_both,-,1175,1103,557,True
+FTP-Patator,seen_both,-,1155,1135,598,True
+Infiltration,seen_both,-,1206,1140,537,True
+PortScan,seen_both,-,1198,1070,551,True
+Web Attack Brute Force,seen_both,-,1186,1153,557,True

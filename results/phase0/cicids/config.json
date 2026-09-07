@@ -3,11 +3,10 @@
   "synthetic_config": {
     "seed": 20250903,
     "benign_per_day": 14000,
-    "attack_per_class": 1400,
+    "attack_per_class": 3200,
     "first_date": "2017-07-03",
     "window_start_hour": 9,
     "window_hours": 8.0,
-    "brief_burst_frac": 0.12,
     "frac_nonfinite_rate": 0.01,
     "frac_nan_cell": 0.004,
     "frac_negative": 0.002,
@@ -32,9 +31,10 @@
     "max_buffer_frac": 0.25,
     "near_dup_grid": 0.02,
     "nn_leak_p5_threshold": 0.25,
-    "a4_withheld_families": [],
+    "pool_withheld_families": [],
+    "seed_withheld_families": [],
     "nn_check_query_sample": 40000,
     "seed": 20250903
   },
-  "config_hash": "a5883d9b8cb462b3"
+  "config_hash": "f1392e544f423199"
 }

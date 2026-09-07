@@ -8,7 +8,8 @@ disjointness + leakage guards), then writes to ``results/phase0/``:
 * ``dropped_summary.csv``    rows dropped per day per reason (incl. near-dups)
 * ``leakage_report.json``    guard (a)/(b)/(c) results; ``leak_warning`` gates S0
 * ``partition_summary.csv``  rows / class balance / days per partition
-* ``eval_family_split.json`` trusted_eval attack families, three-way: seen_both / seed_only / novel
+* ``eval_family_split.json`` trusted_eval attack families, four-way: seen_both / seed_only / honeypot_only / novel
+* ``eval_family_stats.csv``  per-family row counts across partitions + arm + reportable flag
 * ``feature_stats.csv``      per-feature stats, per partition, per class
 * ``class_feature_means.csv``per-label feature means
 * ``feature_hist.png``       benign-vs-attack distribution grid
@@ -252,22 +253,29 @@ def _write_partitions_md(data: PartitionedData, cfg_hash: str, path: Path) -> No
 
     L += ["## Guard (c) — nearest-neighbour distance, trusted_eval → honeypot_pool", "",
           "Per-feature RMS distance in normalized space, run for both classes. "
-          "Concentration near zero would mean the partition leaks; "
-          f"`leak_warning = {lk.leak_warning}`.", ""]
+          "Only the **attack** class gates `leak_warning` (near-identical benign "
+          f"flows across partitions are normal for real traffic). `leak_warning = "
+          f"{lk.leak_warning}`.", ""]
     for cls, d in lk.nn_distance.items():
         pc = ", ".join(f"{k}={v:.3f}" for k, v in d["percentiles"].items())
-        L.append(f"- **{cls}**: {pc}; frac below grid = {d['frac_below_grid']:.4f}")
-    L += ["", "### Per trusted_eval attack family", "",
+        L.append(f"- **{cls}** (n={d.get('n_query', '?')}): {pc}; "
+                 f"frac below grid = {d['frac_below_grid']:.4f}")
+    L += ["", "### Per trusted_eval attack family (NN distance, sampled)", "",
           "| family | arm | n | min RMS | median RMS |", "|---|---|---|---|---|"]
     for fam, d in sorted(lk.nn_by_family.items()):
         L.append(f"| {fam} | {d['arm']} | {d['n']} | {d['min_rms']:.3f} | {d['median_rms']:.3f} |")
     L.append("")
 
     fs = data.eval_family_split()
-    L += ["## trusted_eval family arms (three-way)", "",
-          f"- **seen_both** (seed_train ∩ adversary pool): {fs['seen_both']}",
-          f"- **seed_only** (seed_train only — A4's controlled arm): {fs['seed_only']}",
-          f"- **novel** (neither — ~0 TPR expected for supervised): {fs['novel']}", ""]
+    L += ["## trusted_eval family arms (four-way)", "",
+          f"- **seen_both** (seed_train AND honeypot_pool): {fs['seen_both']}",
+          f"- **seed_only** (seed_train, withheld from pool — A4): {fs['seed_only']}",
+          f"- **honeypot_only** (pool, not seed_train — decoy-only teaching): {fs['honeypot_only']}",
+          f"- **novel** (neither): {fs['novel']}", "",
+          "### Per-family row counts", "",
+          "Families with <500 trusted_eval rows are excluded from per-family TPR "
+          "reporting (kept in the data).", "",
+          data.eval_family_stats().to_markdown(index=False), ""]
 
     path.write_text("\n".join(L), encoding="utf-8")
 
@@ -286,13 +294,14 @@ def main(argv: list[str] | None = None) -> int:
     out: Path = args.out
     out.mkdir(parents=True, exist_ok=True)
 
+    from experiments._common import partition_config
+
     scfg = synthetic.SyntheticConfig()
-    pkw: dict = {"strategy": args.strategy}
-    if args.boundary_buffer_seconds is not None:
-        pkw["boundary_buffer_seconds"] = args.boundary_buffer_seconds
-    if args.near_dup_grid is not None:
-        pkw["near_dup_grid"] = args.near_dup_grid
-    pcfg = PartitionConfig(**pkw)
+    pcfg = partition_config(
+        args.source, args.strategy,
+        boundary_buffer_seconds=args.boundary_buffer_seconds,
+        near_dup_grid=args.near_dup_grid,
+    )
 
     blob = {
         "source": args.source,
@@ -308,6 +317,7 @@ def main(argv: list[str] | None = None) -> int:
     (out / "cleaning_report.json").write_text(json.dumps(_cleaning_json(data), indent=2))
     (out / "leakage_report.json").write_text(json.dumps(lk.as_dict(), indent=2, default=str))
     (out / "eval_family_split.json").write_text(json.dumps(data.eval_family_split(), indent=2))
+    data.eval_family_stats().to_csv(out / "eval_family_stats.csv", index=False)
     _write_partitions_md(data, cfg_hash, out / "partitions.md")
 
     dropped = _dropped_summary(data)
@@ -359,10 +369,11 @@ def main(argv: list[str] | None = None) -> int:
     print(summary.to_string(index=False))
 
     fam_split = data.eval_family_split()
-    print("\ntrusted_eval attack families (three-way):")
-    print(f"  seen_both (in seed_train AND adversary pool; S0 may improve TPR): {fam_split['seen_both']}")
-    print(f"  seed_only (seed_train, withheld from pool; A4's arm):             {fam_split['seed_only']}")
-    print(f"  novel     (in neither; ~0 TPR expected for supervised):          {fam_split['novel']}")
+    print("\ntrusted_eval attack families (four-way):")
+    for arm in ("seen_both", "seed_only", "honeypot_only", "novel"):
+        print(f"  {arm:<14} {fam_split[arm]}")
+    print("\nPer-family row counts:")
+    print(data.eval_family_stats().to_string(index=False))
 
     print("\nGuard (c) NN distance trusted_eval -> nearest honeypot_pool row (per-feature RMS, IQR units):")
     for cls_name, d in lk.nn_distance.items():

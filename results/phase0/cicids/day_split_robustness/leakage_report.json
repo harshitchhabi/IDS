@@ -2,7 +2,7 @@
   "strategy": "day_split",
   "near_dups_removed": {
     "friday": {
-      "BENIGN": 194698,
+      "BENIGN": 194697,
       "DDoS": 69297,
       "PortScan": 812,
       "Bot": 754
@@ -11,7 +11,7 @@
       "BENIGN": 156905
     },
     "thursday": {
-      "BENIGN": 170452,
+      "BENIGN": 170454,
       "Web Attack - Brute Force": 1231,
       "Web Attack - XSS": 542,
       "Infiltration": 2,
@@ -23,7 +23,7 @@
       "SSH-Patator": 2174
     },
     "wednesday": {
-      "BENIGN": 176933,
+      "BENIGN": 176934,
       "DoS Hulk": 71564,
       "DoS slowloris": 4403,
       "DoS Slowhttptest": 4137,
@@ -31,30 +31,29 @@
     }
   },
   "buffer_rows_removed": {},
-  "a4_withheld_removed": {},
   "nn_distance": {
     "attack": {
       "percentiles": {
         "p0": 0.0,
-        "p1": 0.0,
-        "p5": 0.0,
-        "p25": 0.0,
-        "p50": 0.8434555820036511,
-        "p90": 0.9324182187086534
+        "p1": 0.43676575507794146,
+        "p5": 0.6451437192030736,
+        "p25": 0.8414726020912165,
+        "p50": 0.8821849286374019,
+        "p90": 1.2059726722871824
       },
-      "frac_below_grid": 0.33225,
+      "frac_below_grid": 0.0002,
       "n_query": 40000
     },
     "benign": {
       "percentiles": {
-        "p0": 0.0,
-        "p1": 0.0,
-        "p5": 0.0,
-        "p25": 0.007953832199562558,
-        "p50": 0.016954472594228873,
-        "p90": 0.0668135238280016
+        "p0": 0.00027730969033720005,
+        "p1": 0.002346674619769259,
+        "p5": 0.00455188115690444,
+        "p25": 0.011009815046301361,
+        "p50": 0.021904235010036723,
+        "p90": 0.11554303566829444
       },
-      "frac_below_grid": 0.5582,
+      "frac_below_grid": 0.467175,
       "n_query": 40000
     }
   },
@@ -62,27 +61,26 @@
     "Bot": {
       "n": 399,
       "arm": "novel",
-      "min_rms": 0.0,
-      "median_rms": 0.49093374398227335
+      "min_rms": 0.22667194361366952,
+      "median_rms": 0.4909337454870767
     },
     "DDoS": {
       "n": 38861,
       "arm": "novel",
-      "min_rms": 0.0,
-      "median_rms": 0.84407054607201
+      "min_rms": 0.07209172563712787,
+      "median_rms": 0.883681713528435
     },
     "PortScan": {
       "n": 740,
       "arm": "novel",
       "min_rms": 0.0,
-      "median_rms": 0.7662358356657519
+      "median_rms": 0.7662358515876457
     }
   },
-  "leak_warning": true,
+  "leak_warning": false,
   "notes": [
     "day_split: dropped 109834 attack rows from prod_benign",
     "NN check (attack): query subsampled 60391 -> 40000",
-    "NN check (benign): query subsampled 140409 -> 40000",
-    "LEAKAGE WARNING: trusted_eval rows sit near honeypot_pool rows in feature space (5th-pct per-feature RMS below threshold). An S0 improvement may be memorization, not learning. Stop and inspect nn_by_family / nn_distance before trusting the S0 checkpoint."
+    "NN check (benign): query subsampled 140410 -> 40000"
   ]
 }

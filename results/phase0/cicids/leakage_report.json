@@ -2,7 +2,7 @@
   "strategy": "within_day_temporal",
   "near_dups_removed": {
     "friday": {
-      "BENIGN": 194698,
+      "BENIGN": 194697,
       "DDoS": 69297,
       "PortScan": 812,
       "Bot": 754
@@ -11,7 +11,7 @@
       "BENIGN": 156905
     },
     "thursday": {
-      "BENIGN": 170452,
+      "BENIGN": 170454,
       "Web Attack - Brute Force": 1231,
       "Web Attack - XSS": 542,
       "Infiltration": 2,
@@ -23,7 +23,7 @@
       "SSH-Patator": 2174
     },
     "wednesday": {
-      "BENIGN": 176933,
+      "BENIGN": 176934,
       "DoS Hulk": 71564,
       "DoS slowloris": 4403,
       "DoS Slowhttptest": 4137,
@@ -31,77 +31,138 @@
     }
   },
   "buffer_rows_removed": {
-    "monday/benign": 533,
-    "tuesday/benign": 521,
-    "tuesday/attack": 9,
-    "wednesday/benign": 313,
-    "wednesday/attack": 87,
-    "thursday/benign": 402,
-    "friday/benign": 259,
-    "friday/attack": 115
+    "monday/BENIGN": 533,
+    "tuesday/BENIGN": 521,
+    "tuesday/SSH-Patator": 2,
+    "wednesday/BENIGN": 313,
+    "wednesday/DoS GoldenEye": 30,
+    "wednesday/DoS Hulk": 196,
+    "wednesday/DoS Slowhttptest": 144,
+    "wednesday/DoS slowloris": 7,
+    "wednesday/Heartbleed": 1,
+    "thursday/BENIGN": 402,
+    "thursday/Web Attack - Brute Force": 1,
+    "thursday/Web Attack - Sql Injection": 4,
+    "thursday/Web Attack - XSS": 5,
+    "friday/BENIGN": 259,
+    "friday/Bot": 5,
+    "friday/DDoS": 285
   },
-  "a4_withheld_removed": {},
   "nn_distance": {
     "attack": {
       "percentiles": {
         "p0": 0.0,
-        "p1": 0.0,
-        "p5": 0.0,
-        "p25": 0.0,
-        "p50": 0.005903245700012973,
-        "p90": 0.024859655871528868
+        "p1": 0.0017866300475765744,
+        "p5": 0.003005854617208323,
+        "p25": 0.006150960110963808,
+        "p50": 0.011642609853009921,
+        "p90": 0.06108455603508056
       },
-      "frac_below_grid": 0.8705146570699835,
-      "n_query": 28621
+      "frac_below_grid": 0.7032397229020616,
+      "n_query": 24107
     },
     "benign": {
       "percentiles": {
-        "p0": 0.0,
-        "p1": 0.0,
-        "p5": 0.0,
-        "p25": 0.004491234992045365,
-        "p50": 0.009243463986049517,
-        "p90": 0.03540030208804734
+        "p0": 0.00014299833896723452,
+        "p1": 0.001246075243682279,
+        "p5": 0.0023660203863748955,
+        "p25": 0.005421598424275294,
+        "p50": 0.010189342323604387,
+        "p90": 0.03924838861560737
       },
-      "frac_below_grid": 0.784725,
+      "frac_below_grid": 0.7579,
       "n_query": 40000
     }
   },
   "nn_by_family": {
+    "Bot": {
+      "n": 6,
+      "arm": "seen_both",
+      "min_rms": 0.0017636730302834878,
+      "median_rms": 0.002628187151483637
+    },
     "DDoS": {
-      "n": 22850,
-      "arm": "novel",
-      "min_rms": 0.0,
-      "median_rms": 0.004604685611914733
+      "n": 8075,
+      "arm": "seen_both",
+      "min_rms": 0.00017214378991721398,
+      "median_rms": 0.00841195261577372
     },
     "DoS GoldenEye": {
-      "n": 5500,
-      "arm": "novel",
-      "min_rms": 0.0,
-      "median_rms": 0.021350281743969808
+      "n": 3172,
+      "arm": "seen_both",
+      "min_rms": 0.00016656629694159473,
+      "median_rms": 0.014882163197306526
     },
-    "Heartbleed": {
-      "n": 7,
-      "arm": "novel",
-      "min_rms": 0.0,
-      "median_rms": 0.0
+    "DoS Hulk": {
+      "n": 12002,
+      "arm": "seen_both",
+      "min_rms": 0.0002962975976034698,
+      "median_rms": 0.014216134025636946
     },
-    "Infiltration": {
-      "n": 16,
-      "arm": "novel",
-      "min_rms": 0.0,
-      "median_rms": 0.0
-    },
-    "SSH-Patator": {
-      "n": 248,
+    "DoS Slowhttptest": {
+      "n": 73,
       "arm": "seen_both",
       "min_rms": 0.0,
-      "median_rms": 0.005811582526191592
+      "median_rms": 0.06041952324230704
+    },
+    "DoS slowloris": {
+      "n": 348,
+      "arm": "seen_both",
+      "min_rms": 0.0,
+      "median_rms": 0.24602289818005518
+    },
+    "FTP-Patator": {
+      "n": 5,
+      "arm": "seed_only",
+      "min_rms": 0.18227765774173565,
+      "median_rms": 0.42479598124864126
+    },
+    "Heartbleed": {
+      "n": 1,
+      "arm": "seen_both",
+      "min_rms": 0.5105993619503356,
+      "median_rms": 0.5105993619503356
+    },
+    "Infiltration": {
+      "n": 6,
+      "arm": "seen_both",
+      "min_rms": 0.037295069279868885,
+      "median_rms": 0.12780372884737579
+    },
+    "PortScan": {
+      "n": 199,
+      "arm": "seen_both",
+      "min_rms": 0.001328835449627703,
+      "median_rms": 0.013212003211937908
+    },
+    "SSH-Patator": {
+      "n": 185,
+      "arm": "seen_both",
+      "min_rms": 0.001066561437726587,
+      "median_rms": 0.009974475806327671
+    },
+    "Web Attack - Brute Force": {
+      "n": 16,
+      "arm": "seen_both",
+      "min_rms": 0.0009072760718965688,
+      "median_rms": 0.013361147502325829
+    },
+    "Web Attack - Sql Injection": {
+      "n": 4,
+      "arm": "seen_both",
+      "min_rms": 0.002746372992147155,
+      "median_rms": 0.04021551283358394
+    },
+    "Web Attack - XSS": {
+      "n": 15,
+      "arm": "seen_both",
+      "min_rms": 0.0041268410493262245,
+      "median_rms": 0.028238094166738725
     }
   },
   "leak_warning": true,
   "notes": [
     "NN check (benign): query subsampled 161465 -> 40000",
-    "LEAKAGE WARNING: trusted_eval rows sit near honeypot_pool rows in feature space (5th-pct per-feature RMS below threshold). An S0 improvement may be memorization, not learning. Stop and inspect nn_by_family / nn_distance before trusting the S0 checkpoint."
+    "LEAKAGE WARNING (attack class): trusted_eval attack rows sit near honeypot_pool attack rows in feature space (5th-pct per-feature RMS below threshold). An S0 improvement may be memorization, not learning. Stop and inspect nn_by_family / nn_distance before trusting the S0 checkpoint."
   ]
 }

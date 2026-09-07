@@ -26,6 +26,17 @@ def within_day() -> PartitionedData:
 
 
 @pytest.fixture(scope="module")
+def within_day_arms() -> PartitionedData:
+    # populate all four eval-family arms explicitly
+    cfg = PartitionConfig(
+        strategy="within_day_temporal",
+        pool_withheld_families=("SSH-Patator", "Bot"),
+        seed_withheld_families=("DoS Hulk", "Bot"),
+    )
+    return load_partitions(source="synthetic", synthetic_config=_SCFG, partition_config=cfg)
+
+
+@pytest.fixture(scope="module")
 def day_split() -> PartitionedData:
     return load_partitions(source="synthetic", synthetic_config=_SCFG,
                            partition_config=PartitionConfig(strategy="day_split"))
@@ -69,12 +80,14 @@ def test_row_content_disjoint_day_split(day_split):
 
 
 def test_within_day_segments_are_time_ordered(within_day):
+    # per (day, family): seed_train < honeypot_pool < trusted_eval in time
     st, hp, te = (within_day[p] for p in ("seed_train", "honeypot_pool", "trusted_eval"))
-    for cls in (0, 1):
-        for day in st[schema.DAY].unique():
-            a = st[(st[schema.DAY] == day) & (st[schema.BINARY_LABEL] == cls)][schema.TIMESTAMP]
-            b = hp[(hp[schema.DAY] == day) & (hp[schema.BINARY_LABEL] == cls)][schema.TIMESTAMP]
-            c = te[(te[schema.DAY] == day) & (te[schema.BINARY_LABEL] == cls)][schema.TIMESTAMP]
+    fams = te.loc[te[schema.BINARY_LABEL] == 1, schema.LABEL].unique()
+    for day in st[schema.DAY].unique():
+        for fam in fams:
+            def ts(df):
+                return df[(df[schema.DAY] == day) & (df[schema.LABEL] == fam)][schema.TIMESTAMP]
+            a, b, c = ts(st), ts(hp), ts(te)
             if len(a) and len(b):
                 assert a.max() < b.min()
             if len(b) and len(c):
@@ -122,27 +135,42 @@ def test_guard_a_self_test_fires_on_fingerprint_tight_bursts():
     assert total_loose < 20, "guard (a) should be near-silent without fingerprint bursts"
 
 
-def test_guard_c_runs_for_both_classes_and_does_not_warn_on_synthetic(within_day):
+def test_guard_c_runs_for_both_classes_gates_on_attack_only(within_day):
     assert set(within_day.leakage.nn_distance) == {"attack", "benign"}
-    for cls in ("attack", "benign"):
-        assert within_day.leakage.nn_distance[cls]["percentiles"]["p5"] > 0.25
-        assert within_day.leakage.nn_distance[cls]["frac_below_grid"] < 0.001
+    assert within_day.leakage.nn_distance["attack"]["percentiles"]["p5"] > 0.25
     assert not within_day.leakage.leak_warning
 
 
-def test_eval_family_split_is_three_way(within_day):
+def test_within_day_default_puts_every_family_in_every_partition(within_day):
+    # no withholding -> every trusted_eval attack family is seen_both
     split = within_day.eval_family_split()
-    assert split["seed_only"] == ["SSH-Patator"], "A4's controlled arm must be populated"
-    assert set(split["novel"]) == {"Bot", "Infiltration"}
-    assert set(split["seen_both"]) >= {"DDoS", "PortScan", "DoS Hulk"}
+    assert split["seed_only"] == [] and split["honeypot_only"] == [] and split["novel"] == []
+    assert len(split["seen_both"]) >= 5
 
 
-def test_a4_withholding_moves_a_family_to_seed_only():
-    cfg = PartitionConfig(a4_withheld_families=("PortScan",))
-    data = load_partitions(source="synthetic", synthetic_config=_SCFG, partition_config=cfg)
-    assert "PortScan" not in set(data["honeypot_pool"][schema.LABEL].unique())
-    assert data.leakage.a4_withheld_removed.get("PortScan", 0) > 0
-    assert "PortScan" in data.eval_family_split()["seed_only"]
+def test_eval_family_split_is_four_way(within_day_arms):
+    split = within_day_arms.eval_family_split()
+    assert split["seed_only"] == ["SSH-Patator"]       # A4
+    assert split["honeypot_only"] == ["DoS Hulk"]      # decoy-only teaching
+    assert split["novel"] == ["Bot"]
+    assert set(split["seen_both"]) >= {"DDoS", "PortScan"}
+
+
+def test_withheld_families_actually_absent_from_their_partitions(within_day_arms):
+    seed_fams = set(within_day_arms["seed_train"].loc[
+        within_day_arms["seed_train"][schema.BINARY_LABEL] == 1, schema.LABEL].unique())
+    pool_fams = set(within_day_arms["honeypot_pool"].loc[
+        within_day_arms["honeypot_pool"][schema.BINARY_LABEL] == 1, schema.LABEL].unique())
+    assert "SSH-Patator" not in pool_fams          # pool-withheld
+    assert "DoS Hulk" not in seed_fams             # seed-withheld
+    assert "Bot" not in seed_fams and "Bot" not in pool_fams   # both
+
+
+def test_eval_family_stats_row_counts_and_reportable_flag(within_day):
+    stats = within_day.eval_family_stats()
+    assert set(stats.columns) >= {"family", "arm", "n_seed_train", "n_honeypot_pool",
+                                  "n_trusted_eval", "reportable"}
+    assert (stats["reportable"] == (stats["n_trusted_eval"] >= 500)).all()
 
 
 # --- config -------------------------------------------------------------

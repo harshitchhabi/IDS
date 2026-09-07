@@ -1,0 +1,10 @@
+model,family,arm,n_seed_train,n_honeypot_pool,n_trusted_eval,tpr_fixed,tpr_recalibrated
+rf,Bot,novel,0,0,583,0.0755,0.0515
+rf,DDoS,novel,0,0,58697,0.9079,0.9001
+rf,PortScan,novel,0,0,1111,0.8443,0.7786
+xgboost,Bot,novel,0,0,583,0.0463,0.1046
+xgboost,DDoS,novel,0,0,58697,0.6635,0.6915
+xgboost,PortScan,novel,0,0,1111,0.3294,0.5482
+autoencoder,Bot,novel,0,0,583,0.0755,0.0034
+autoencoder,DDoS,novel,0,0,58697,0.2419,0.0
+autoencoder,PortScan,novel,0,0,1111,0.0837,0.0
