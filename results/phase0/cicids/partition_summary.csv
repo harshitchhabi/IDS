@@ -1,5 +1,5 @@
 partition,rows,benign,attack,attack_frac,days,classes
-seed_train,353523,267323,86200,0.2438,"friday,monday,thursday,tuesday,wednesday","BENIGN,Bot,DDoS,DoS GoldenEye,DoS Hulk,DoS Slowhttptest,DoS slowloris,FTP-Patator,Heartbleed,Infiltration,PortScan,SSH-Patator,Web Attack - Brute Force,Web Attack - Sql Injection,Web Attack - XSS"
-prod_benign,168491,168491,0,0.0,"friday,monday,thursday,tuesday,wednesday",BENIGN
-honeypot_pool,338373,275776,62597,0.185,"friday,monday,thursday,tuesday,wednesday","BENIGN,Bot,DDoS,DoS GoldenEye,DoS Hulk,DoS Slowhttptest,DoS slowloris,Heartbleed,Infiltration,PortScan,SSH-Patator,Web Attack - Brute Force,Web Attack - Sql Injection,Web Attack - XSS"
-trusted_eval,185572,161465,24107,0.1299,"friday,monday,thursday,tuesday,wednesday","BENIGN,Bot,DDoS,DoS GoldenEye,DoS Hulk,DoS Slowhttptest,DoS slowloris,FTP-Patator,Heartbleed,Infiltration,PortScan,SSH-Patator,Web Attack - Brute Force,Web Attack - Sql Injection,Web Attack - XSS"
+seed_train,423700,344823,78877,0.1862,"friday,monday,thursday,tuesday,wednesday","BENIGN,Bot,DDoS,DoS GoldenEye,DoS Slowhttptest,DoS slowloris,FTP-Patator,Heartbleed,Infiltration,PortScan,SSH-Patator,Web Attack - Brute Force,Web Attack - Sql Injection,Web Attack - XSS"
+prod_benign,229139,229139,0,0.0,"friday,monday,thursday,tuesday,wednesday",BENIGN
+honeypot_pool,474387,344221,130166,0.2744,"friday,monday,thursday,tuesday,wednesday","BENIGN,Bot,DoS GoldenEye,DoS Hulk,DoS Slowhttptest,DoS slowloris,FTP-Patator,Heartbleed,Infiltration,PortScan,SSH-Patator,Web Attack - Brute Force,Web Attack - Sql Injection,Web Attack - XSS"
+trusted_eval,281749,229695,52054,0.1848,"friday,monday,thursday,tuesday,wednesday","BENIGN,Bot,DDoS,DoS GoldenEye,DoS Hulk,DoS Slowhttptest,DoS slowloris,FTP-Patator,Heartbleed,Infiltration,PortScan,SSH-Patator,Web Attack - Brute Force,Web Attack - Sql Injection,Web Attack - XSS"

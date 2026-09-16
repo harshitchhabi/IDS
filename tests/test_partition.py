@@ -194,3 +194,48 @@ def test_day_split_rejects_unknown_day():
     raw["someday"] = raw["monday"]
     with pytest.raises(ValueError):
         build_partitions(raw, config=PartitionConfig(strategy="day_split"))
+
+
+# --- guard (b): burst segmentation -----------------------------------------
+from dloop.sim.partition import _burst_ids  # noqa: E402
+
+
+def test_burst_ids_split_on_gap_not_on_every_row():
+    # three 1s-spaced rows, a 10s gap, three more 1s-spaced rows: two bursts
+    ts = np.array(
+        ["2024-01-01T00:00:00", "2024-01-01T00:00:01", "2024-01-01T00:00:02",
+         "2024-01-01T00:00:12", "2024-01-01T00:00:13", "2024-01-01T00:00:14"],
+        dtype="datetime64[ns]",
+    )
+    ids = _burst_ids(ts, gap_seconds=2.0)
+    assert list(ids) == [0, 0, 0, 1, 1, 1]
+
+
+def test_burst_ids_single_row_and_empty():
+    assert list(_burst_ids(np.array([], dtype="datetime64[ns]"), 2.0)) == []
+    ts = np.array(["2024-01-01T00:00:00"], dtype="datetime64[ns]")
+    assert list(_burst_ids(ts, 2.0)) == [0]
+
+
+def test_no_burst_is_split_across_partitions(within_day):
+    # For every (day, family) stream, no two rows in the same burst (same
+    # family, gap <= burst_gap_seconds) should land in different partitions.
+    # Reconstruct bursts per (day, family) across the union of all four
+    # partitions and check each burst maps to exactly one partition.
+    cfg = within_day.config
+    frames = []
+    for part, df in within_day.frames.items():
+        d = df[[schema.DAY, schema.LABEL, schema.TIMESTAMP]].copy()
+        d["partition"] = part
+        frames.append(d)
+    all_rows = pd.concat(frames, ignore_index=True)
+    for (day, label), grp in all_rows.groupby([schema.DAY, schema.LABEL]):
+        g = grp.sort_values(schema.TIMESTAMP)
+        ts = g[schema.TIMESTAMP].to_numpy("datetime64[ns]")
+        ids = _burst_ids(ts, cfg.burst_gap_seconds)
+        parts = g["partition"].to_numpy()
+        for b in np.unique(ids):
+            in_burst = parts[ids == b]
+            assert len(set(in_burst)) == 1, (
+                f"burst split across partitions in ({day}, {label}): {set(in_burst)}"
+            )

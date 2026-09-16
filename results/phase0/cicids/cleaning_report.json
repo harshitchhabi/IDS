@@ -153,12 +153,12 @@
       },
       "rows_dropped_negative": 512,
       "negative_by_column": {
+        "flow_duration": 15,
         "flow_iat_min": 512,
         "flow_bytes_per_s": 9,
-        "flow_pkts_per_s": 15,
-        "flow_iat_mean": 15,
         "flow_iat_max": 15,
-        "flow_duration": 15
+        "flow_pkts_per_s": 15,
+        "flow_iat_mean": 15
       },
       "rows_dropped_duplicate": 128571,
       "duplicate_by_class": {
@@ -328,11 +328,11 @@
       },
       "rows_dropped_negative": 504,
       "negative_by_column": {
+        "flow_duration": 17,
         "flow_iat_min": 504,
-        "flow_pkts_per_s": 17,
-        "flow_iat_mean": 17,
         "flow_iat_max": 17,
-        "flow_duration": 17
+        "flow_pkts_per_s": 17,
+        "flow_iat_mean": 17
       },
       "rows_dropped_duplicate": 103012,
       "duplicate_by_class": {
@@ -508,12 +508,12 @@
       },
       "rows_dropped_negative": 749,
       "negative_by_column": {
+        "flow_duration": 21,
         "flow_iat_min": 749,
         "flow_bytes_per_s": 16,
-        "flow_pkts_per_s": 21,
-        "flow_iat_mean": 21,
         "flow_iat_max": 21,
-        "flow_duration": 21
+        "flow_pkts_per_s": 21,
+        "flow_iat_mean": 21
       },
       "rows_dropped_duplicate": 153789,
       "duplicate_by_class": {
@@ -697,12 +697,12 @@
       },
       "rows_dropped_negative": 616,
       "negative_by_column": {
+        "flow_duration": 15,
         "flow_iat_min": 616,
         "flow_bytes_per_s": 14,
-        "flow_pkts_per_s": 15,
-        "flow_iat_mean": 15,
         "flow_iat_max": 15,
-        "flow_duration": 15
+        "flow_pkts_per_s": 15,
+        "flow_iat_mean": 15
       },
       "rows_dropped_duplicate": 143818,
       "duplicate_by_class": {
@@ -882,12 +882,12 @@
       },
       "rows_dropped_negative": 509,
       "negative_by_column": {
+        "flow_duration": 47,
         "flow_iat_min": 509,
         "flow_bytes_per_s": 46,
-        "flow_pkts_per_s": 47,
-        "flow_iat_mean": 47,
         "flow_iat_max": 47,
-        "flow_duration": 47
+        "flow_pkts_per_s": 47,
+        "flow_iat_mean": 47
       },
       "rows_dropped_duplicate": 235848,
       "duplicate_by_class": {

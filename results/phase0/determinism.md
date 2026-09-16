@@ -16,9 +16,9 @@ Zero-weight all attack rows (autoencoder: the high-fwd_bytes benign half); refit
 
 | model | mean abs delta score | predictions changed | frac flipped |
 |---|---|---|---|
-| rf | 0.2140 | True | 0.2035 |
-| xgboost | 0.2038 | True | 0.1992 |
-| autoencoder | 0.1460 | True | 0.0064 |
+| rf | 0.2132 | True | 0.2016 |
+| xgboost | 0.2015 | True | 0.1987 |
+| autoencoder | 0.1495 | True | 0.0067 |
 
 ## save / load round-trip
 

@@ -1,11 +1,10 @@
 {
   "seen_both": [
     "Bot",
-    "DDoS",
     "DoS GoldenEye",
-    "DoS Hulk",
     "DoS Slowhttptest",
     "DoS slowloris",
+    "FTP-Patator",
     "Heartbleed",
     "Infiltration",
     "PortScan",
@@ -15,8 +14,10 @@
     "Web Attack - XSS"
   ],
   "seed_only": [
-    "FTP-Patator"
+    "DDoS"
   ],
-  "honeypot_only": [],
+  "honeypot_only": [
+    "DoS Hulk"
+  ],
   "novel": []
 }
