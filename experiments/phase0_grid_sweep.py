@@ -87,6 +87,13 @@ def main(argv: list[str] | None = None) -> int:
             "leak_warning": data.leakage.leak_warning,
             "nn_attack_p5": round(
                 data.leakage.nn_distance.get("attack", {}).get("percentiles", {}).get("p5", float("nan")), 4),
+            # A1 (benign mimicry) is gated by benign-side separation, not
+            # nn_attack_p5 — attack-family structure is irrelevant to a poison
+            # channel that stamps benign traffic malicious. Reported alongside
+            # attack for every grid point so A1 doesn't inherit an unmeasured
+            # assumption.
+            "nn_benign_p5": round(
+                data.leakage.nn_distance.get("benign", {}).get("percentiles", {}).get("p5", float("nan")), 4),
         }
         for kind in ("rf", "xgboost"):
             model = make_model(ModelConfig(kind=kind, seed=SEED, target_fpr=0.01,

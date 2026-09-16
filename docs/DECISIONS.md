@@ -371,3 +371,198 @@ less degenerate feature representation (packet-level or sequence features), a
 dataset whose campaigns span multiple sessions, or connection-5-tuple-level
 disjointness. That is the open question; it does not block building the loop on
 synthetic.
+
+## 14. Burst-level splitting — tried, does not fix the leak
+
+§13 left an open question: would replacing the row-level temporal cut with a
+burst-aware cut close the gap? A row-level cut through a flood tool's output
+seemed like the obvious culprit — Hulk/PortScan/DDoS emit long runs of
+near-identical flows, and a fractional-time cut has no way to avoid slicing
+through the middle of one. If the leak were really "the cut lands inside a
+burst," segmenting each (day, family) stream into contiguous episodes by
+inter-flow gap and assigning whole bursts to partitions (never splitting one)
+should have raised `nn_attack_p5` well above the 0.25 threshold. It did not.
+
+**Gap distribution first** (`experiments/phase0_burst_gaps.py`, per-family
+percentiles of the time between consecutive flows, `results/phase0/cicids/
+burst_gap_distribution.csv`). Families split into two groups:
+
+- **Session-like** (Bot, SSH-Patator, FTP-Patator, DoS GoldenEye, Web Attack
+  variants): median gap 4-38s, tens to thousands of bursts per day. A row-level
+  cut genuinely could slice through one of these.
+- **Continuous floods** (DoS Hulk, DDoS, DoS Slowhttptest, PortScan): median gap
+  1s or less, gap > 2s for well under 1% of rows. DDoS in particular is ~128k
+  rows in **22 bursts** for the whole day — the tool does not pause.
+
+**Implementation** (`PartitionConfig.burst_gap_seconds`, default 2.0s, picked
+from the above): `_burst_ids` segments each stream on gaps exceeding the
+threshold; `_split_stream_temporal` walks bursts in temporal order and assigns
+each one whole to a partition once the running row count crosses the
+cumulative split-fraction target, so no burst is ever divided across a
+boundary. The old fixed-time guard band is kept as a secondary check on the
+*realized* boundary gap, not the primary defense. `tests/test_partition.py`
+asserts the invariant directly: reconstructing bursts from the union of all
+four partitions, every burst maps to exactly one partition.
+
+**Result, real CICIDS2017, `within_day_temporal`, guard (a) grid 0.005-0.05**
+(`results/phase0/cicids/grid_sweep.csv`, burst splitting on):
+
+| grid | nn_attack_p5 | leak_warning |
+|---|---:|---|
+| 0.005 | 0.0010 | true |
+| 0.01 | 0.0016 | true |
+| 0.02 | 0.0027 | true |
+| 0.05 | 0.0058 | true |
+
+Same order of magnitude as the row-level cut (§11: 0.001-0.0067). Burst
+splitting changed essentially nothing. The per-family NN breakdown
+(`leakage_report.json` → `nn_by_family`) explains why: DoS Hulk's nearest
+`honeypot_pool` neighbour to a `trusted_eval` row has RMS **0.0003**, DDoS
+**0.00017**, DoS GoldenEye **0.00017** — a different *burst*, sometimes a
+different *day-half*, and the feature vector is still within noise of zero
+distance.
+
+**Why**: the working hypothesis in §11/§13 was that the leak is a
+*boundary artifact* — a temporal cut severing one continuous burst into two
+near-identical halves. The gap-distribution and per-family NN evidence say
+otherwise: DoS Hulk, DDoS and DoS GoldenEye are degenerate **for the whole
+campaign**, not just within one burst. CICFlowMeter's flow-summary statistics
+for a fixed attack tool hitting a fixed target collapse onto a tiny region of
+feature space, and that region does not drift meaningfully from the first
+burst of the day to the last. Two bursts an hour apart are as
+feature-identical as two rows a millisecond apart. Burst-boundary placement was
+never the mechanism — no partition boundary, wherever it falls, holds out
+information the pool doesn't already have, because there is no temporal
+structure in the feature representation to exploit. Session-like families
+(SSH-Patator, Bot, Web Attack) do NOT show this degeneracy to the same degree,
+consistent with the gap-distribution split above, but they don't carry
+`leak_warning` (the attack-class p5 gate) because the flood families dominate
+the pooled distribution.
+
+**Conclusion**: this is the negative result CLAUDE.md asked for. Per its
+Phase-0 checkpoint instructions, burst splitting was the fix to try before
+concluding CICIDS2017 cannot support the within-campaign S0 claim honestly on
+`within_day_temporal`; it does not clear the guard, so that conclusion now
+stands as settled, not tentative. **CICIDS2017's `within_day_temporal`
+partition remains unusable for S0 on the flood-attack families** (DoS Hulk,
+DDoS, DoS GoldenEye, PortScan, DoS Slowhttptest) — any measured improvement
+there is memorization, not learning, and no amount of guard-(a)/(b) tuning
+changes that, because the degeneracy is in the raw feature representation
+CICFlowMeter produces for these tools, not an artifact of how the split is
+cut. `day_split` remains the only leak-free CICIDS2017 option, at the
+already-documented cost of testing cross-family generalization instead. The
+loop (part 3 of this request) is built and exercised on **synthetic data**,
+where guard (c) passes cleanly and all four eval-family arms are populated;
+CICIDS2017's `day_split` `novel`-arm numbers remain a real-data cross-check,
+not the primary evidence.
+
+The path to a real-data S0 result — if wanted later — is a different feature
+representation (packet/sequence-level, not per-flow summary statistics) or a
+dataset whose campaigns are not single continuous tool invocations. Flagging
+per CLAUDE.md: this is a methodological limitation worth surfacing before
+Phase 3 rather than after.
+
+## 15. The degeneracy is not confined to floods — benign fails guard (c) too, and no family clears the reportable bar
+
+§14 scoped the negative result to "the learning claim on flood families." Two
+follow-up measurements narrow it further, in a direction that matters for A1 as
+much as S0.
+
+**A1 does not depend on attack-family structure, and it has its own unmeasured
+assumption.** A1 poisons `honeypot_pool` *benign* rows and measures FPR on
+`trusted_eval` *benign* — `nn_attack_p5` and the flood-family diagnosis in §14
+say nothing about it. `phase0_grid_sweep.py` now reports `nn_benign_p5`
+alongside `nn_attack_p5` (guard c, benign class, `results/phase0/cicids/
+grid_sweep.csv`):
+
+| grid | nn_attack_p5 | nn_benign_p5 |
+|---|---:|---:|
+| 0.005 | 0.0010 | **0.0007** |
+| 0.01 | 0.0014 | 0.0014 |
+| 0.02 | 0.0026 | 0.0024 |
+| 0.05 | 0.0056 | 0.0058 |
+
+Benign is not cleaner than attack — at every grid it is the same order of
+magnitude, at 0.005 slightly *worse*. The expectation that ordinary web/SSH/DNS
+browsing is too varied to collapse the way a flood does does not hold on this
+dataset: §10 already documented CICIDS2017 benign traffic as "highly repetitive
+in 24 flow-summary features" (guard (a) removes ~49% of it as near-duplicate at
+the default grid), and guard (c) confirms the repetition survives across the
+partition boundary too. Consequence: an A1 FPR increase measured on
+`within_day_temporal` cannot yet be told apart from the model rejecting
+literal near-copies of specific `trusted_eval` rows it was fed mislabeled,
+rather than learning a "benign-shaped-traffic-is-malicious" boundary that
+would generalize to production traffic the adversary never touched. That is a
+narrower, weaker result than the paper wants to claim, and it applies before
+any attack-family reasoning enters — A1 needs its own guard, not a borrowed one.
+
+**No family — attack or, by the same logic, benign — is intrinsically
+"structured" once it is actually eligible to teach the loop.** §14's grid
+sweep withheld DDoS from `honeypot_pool` (it is the `seed_only`/A4 arm), and
+guard (c)'s per-family check searches the *whole* honeypot_pool attack class,
+not just same-family rows (module docstring, guard c: "nearest ... row of the
+same class" — binary class, not family). Withholding DDoS from the pool
+therefore also removed its own near-duplicates from the search, and its
+reported `min_rms` (0.0013, just above the 0.001 tier cut) was consequently an
+artifact of the withholding, not a property of DDoS traffic. Restoring DDoS to
+`seen_both` (own near-duplicates back in the search pool) collapses it to
+`min_rms = 3.8e-05` — as degenerate as DoS Hulk.
+
+So the tier measurement has to be taken with every family exposed to
+`honeypot_pool` (`seen_both`), which is now how it's computed and committed:
+`experiments/phase0_nn_by_family.py --source cicids` (defaults to no
+withholding for exactly this reason) → **`results/phase0/cicids/
+nn_by_family.csv`**, tier assigned from the measured `min_rms` against a
+`DEGENERATE_RMS_THRESHOLD = 0.001` (an order of magnitude below the aggregate
+`leak_warning` gate of 0.25, so it is a finer per-family cut, not a restatement
+of guard c). At `near_dup_grid = 0.005` (the gentlest grid that still passes
+`assert_disjoint`, per the request to stop over-cleaning structured families):
+
+| tier | families | max `n_trusted_eval` among them |
+|---|---|---:|
+| degenerate | DDoS, DoS GoldenEye, DoS Hulk, DoS Slowhttptest, DoS slowloris, FTP-Patator, PortScan, SSH-Patator, Web Attack - Brute Force, Web Attack - XSS | 30,334 (DoS Hulk) |
+| structured | Bot, Heartbleed, Infiltration, Web Attack - Sql Injection | **193** (Bot) |
+
+(`n_trusted_eval` is the true partition count; guard (c)'s own `min_rms` /
+`median_rms` are computed on its query-side subsample, capped at 40,000 rows
+across the whole trusted_eval attack class — both are in `nn_by_family.csv`.)
+Every family with real held-out volume is degenerate; every family that isn't
+degenerate has too little volume to report on (Bot's 193 rows is under half
+the 500-row bar, and it is the *best* of the four). **No family clears both
+bars.** This is the dataset-limit finding CLAUDE.md asked for if burst
+splitting and stratification still came up empty: CICIDS2017, under
+CICFlowMeter's per-flow summary statistics, does not contain an attack family
+that is simultaneously voluminous enough to report on and distinguishable
+enough across the partition boundary to demonstrate learning rather than
+memorization. Re-pointing `seed_withheld_families` / `pool_withheld_families`
+at a "structured" family (as requested) is not possible at current volumes —
+there is nothing there to point at.
+
+**Consequence for Phase 0's remaining work.** `pool_withheld_families=("DDoS",)`
+/ `seed_withheld_families=("DoS Hulk",)` stay as the A4/`honeypot_only`
+configuration in `experiments/_common.py` for real-data volume and
+row-count-reporting purposes (`models.csv`'s arm counts are legitimate — n is
+n regardless of tier), but neither arm should be read as evidence of learning
+on real CICIDS2017: both families are degenerate once exposed to the pool, so
+`tpr_seed_only`/`tpr_honeypot_only` there measure memorization capacity, not
+generalization. The loop (S0 + A1 + control, per-round metrics, cost
+accounting) has **not** been built against real CICIDS2017 pending a decision
+on how to proceed, because both of its headline scenarios currently rest on an
+unmeasured or now-measured-and-failing assumption on this dataset:
+
+- S0's learning claim has no real-data family that is both reportable and
+  non-degenerate (this section).
+- A1's FPR claim rests on benign separation that is not clean either (same
+  order of magnitude as the attack-class leak).
+
+Options, none exercised yet: (a) build and run S0/A1/control on **synthetic
+data only** for Phase 0 (already leak-free on both classes, `nn_benign_p5` not
+yet measured there but expected clean given the generator's design — should be
+confirmed, not assumed, before leaning on it); (b) find or construct a feature
+representation where benign and campaign traffic are not this degenerate
+(packet/sequence-level features, or connection-5-tuple-level disjointness, as
+§13 already flagged for the attack side); (c) report real-CICIDS2017 S0/A1 as
+explicitly measuring worst-case/memorization behavior rather than the
+generalization claim, with the degeneracy disclosed up front as this section
+does. This is a decision for the next session, not one to make silently by
+picking whichever option makes the loop runnable.

@@ -1,25 +1,25 @@
 model,family,arm,n_seed_train,n_honeypot_pool,n_trusted_eval,tpr_fixed,tpr_recalibrated
-rf,DoS Hulk,honeypot_only,0,2392,589,0.4329,0.4754
-rf,Bot,novel,0,0,558,0.0072,0.0072
-rf,SSH-Patator,seed_only,2321,0,588,0.9966,0.9983
-rf,DDoS,seen_both,1175,1103,557,0.9964,0.9982
-rf,FTP-Patator,seen_both,1155,1135,598,0.8261,0.8395
-rf,Infiltration,seen_both,1206,1140,537,1.0,1.0
-rf,PortScan,seen_both,1198,1070,551,1.0,1.0
-rf,Web Attack Brute Force,seen_both,1186,1153,557,0.9228,0.9354
-xgboost,DoS Hulk,honeypot_only,0,2392,589,0.3548,0.3871
-xgboost,Bot,novel,0,0,558,0.0072,0.0072
-xgboost,SSH-Patator,seed_only,2321,0,588,0.9966,0.9966
-xgboost,DDoS,seen_both,1175,1103,557,0.9964,0.9982
-xgboost,FTP-Patator,seen_both,1155,1135,598,0.8311,0.8428
-xgboost,Infiltration,seen_both,1206,1140,537,1.0,1.0
-xgboost,PortScan,seen_both,1198,1070,551,1.0,1.0
-xgboost,Web Attack Brute Force,seen_both,1186,1153,557,0.9372,0.9443
-autoencoder,DoS Hulk,honeypot_only,0,2392,589,0.9915,0.9915
-autoencoder,Bot,novel,0,0,558,0.2616,0.2599
-autoencoder,SSH-Patator,seed_only,2321,0,588,0.2823,0.2806
-autoencoder,DDoS,seen_both,1175,1103,557,0.3357,0.3321
-autoencoder,FTP-Patator,seen_both,1155,1135,598,0.0485,0.0485
-autoencoder,Infiltration,seen_both,1206,1140,537,1.0,1.0
-autoencoder,PortScan,seen_both,1198,1070,551,1.0,1.0
-autoencoder,Web Attack Brute Force,seen_both,1186,1153,557,0.2513,0.2496
+rf,DoS Hulk,honeypot_only,0,2394,596,0.4128,0.4815
+rf,Bot,novel,0,0,553,0.0054,0.0072
+rf,SSH-Patator,seed_only,2329,0,576,0.9983,0.9983
+rf,DDoS,seen_both,1162,1113,560,0.9964,1.0
+rf,FTP-Patator,seen_both,1177,1145,572,0.8164,0.8409
+rf,Infiltration,seen_both,1187,1131,562,1.0,1.0
+rf,PortScan,seen_both,1164,1121,543,1.0,1.0
+rf,Web Attack Brute Force,seen_both,1184,1152,568,0.9208,0.9437
+xgboost,DoS Hulk,honeypot_only,0,2394,596,0.3305,0.3507
+xgboost,Bot,novel,0,0,553,0.0072,0.0072
+xgboost,SSH-Patator,seed_only,2329,0,576,0.9965,0.9965
+xgboost,DDoS,seen_both,1162,1113,560,0.9964,0.9982
+xgboost,FTP-Patator,seen_both,1177,1145,572,0.8409,0.8462
+xgboost,Infiltration,seen_both,1187,1131,562,1.0,1.0
+xgboost,PortScan,seen_both,1164,1121,543,0.9982,0.9982
+xgboost,Web Attack Brute Force,seen_both,1184,1152,568,0.9384,0.9419
+autoencoder,DoS Hulk,honeypot_only,0,2394,596,0.9916,0.9916
+autoencoder,Bot,novel,0,0,553,0.2658,0.2586
+autoencoder,SSH-Patator,seed_only,2329,0,576,0.2882,0.2778
+autoencoder,DDoS,seen_both,1162,1113,560,0.3518,0.3375
+autoencoder,FTP-Patator,seen_both,1177,1145,572,0.049,0.049
+autoencoder,Infiltration,seen_both,1187,1131,562,1.0,1.0
+autoencoder,PortScan,seen_both,1164,1121,543,1.0,1.0
+autoencoder,Web Attack Brute Force,seen_both,1184,1152,568,0.2606,0.2518

@@ -58,13 +58,28 @@ def _tpr(model, sub: pd.DataFrame, threshold: float) -> float:
     return float(np.mean(model.score_samples(X) >= threshold))
 
 
+_INSUFFICIENT = "insufficient rows"
+
+
 def _per_arm_tpr(model, te: pd.DataFrame, threshold: float, arms: dict[str, list[str]]) -> dict:
+    """Per-arm TPR, gated by the same <500-trusted_eval-row bar that
+    ``eval_family_stats`` applies per family (DECISIONS.md §1): an arm's total
+    row count can be dominated by a single tiny, split-artifact family (e.g.
+    5 FTP-Patator rows landing in seed_only), and a TPR off that few rows is
+    not a stable rate. Below the bar the cell is an explicit marker, never a
+    number that looks precise but isn't."""
     te_atk = te[te[schema.BINARY_LABEL] == 1]
     out = {}
     for arm in _ARMS:
         sub = te_atk[te_atk[schema.LABEL].isin(arms[arm])]
-        out[f"tpr_{arm}"] = round(_tpr(model, sub, threshold), 4) if not sub.empty else ""
-        out[f"n_{arm}"] = int(len(sub))
+        n = int(len(sub))
+        if n == 0:
+            out[f"tpr_{arm}"] = ""
+        elif n < PartitionedData.MIN_FAMILY_ROWS:
+            out[f"tpr_{arm}"] = _INSUFFICIENT
+        else:
+            out[f"tpr_{arm}"] = round(_tpr(model, sub, threshold), 4)
+        out[f"n_{arm}"] = n
     return out
 
 

@@ -29,7 +29,7 @@ Two strategies (``PartitionConfig.strategy``):
 
 Leakage guards (``within_day_temporal``), all reported, none silently passed —
 because CICIDS2017 attacks are automated-tool bursts whose early and late flows
-are near-identical, so a temporal cut can leave ``honeypot_pool`` and
+are near-identical, so a naive temporal cut can leave ``honeypot_pool`` and
 ``trusted_eval`` near-identical and let S0 "improve" by memorizing a fingerprint
 and *false-pass* the checkpoint:
 
@@ -39,8 +39,18 @@ and *false-pass* the checkpoint:
      caught. The grid resolution is a swept, evidence-justified parameter
      (DECISIONS.md §11) because on real data it removes a large fraction of the
      benign class.
-  b. A temporal guard band: rows within ``boundary_buffer_seconds`` of an
-     internal cut time are dropped so a burst cannot straddle the cut.
+  b. Burst-level assignment, not a row-level time cut (DECISIONS.md §14). A
+     temporal cut through a flood tool's output separates nothing — consecutive
+     rows in one burst are near-identical and the tool's behaviour does not
+     change over its run, so whichever side of the cut they land on, the other
+     side still "sees" the same fingerprint. Each (day, family) stream is first
+     segmented into contiguous episodes using inter-flow time gaps
+     (``burst_gap_seconds``), then whole bursts — never a fraction of one — are
+     assigned to partitions, filling toward the configured split fractions by
+     cumulative row count. A guard band (``boundary_buffer_seconds``) around
+     each realized partition boundary is kept as a secondary check: it only
+     drops rows when two adjacent bursts happen to sit closer in time than the
+     band, which the burst cut alone does not guarantee.
   c. Nearest-neighbour distance, in normalized feature space, from each
      ``trusted_eval`` row to its closest ``honeypot_pool`` row of the same
      class. Reported for both classes; only the **attack** class gates
@@ -99,7 +109,21 @@ class PartitionConfig:
     benign_split: tuple[float, float, float, float] = (0.30, 0.20, 0.30, 0.20)
     attack_split: tuple[float, float, float] = (0.40, 0.40, 0.20)
 
-    # Guard (b): temporal guard band around each internal cut.
+    # Guard (b): burst segmentation + whole-burst assignment, not a row-level
+    # time cut. Two consecutive rows in the same (day, family) stream separated
+    # by more than this many seconds start a new burst; bursts are never split
+    # across partitions. Chosen from the reported per-family inter-arrival
+    # distribution (DECISIONS.md §14): most families have a clear gap structure
+    # at 1-2s (session/tool-retry boundaries); a couple of flood families
+    # (DDoS, DoS Hulk) are near-continuous but still yield hundreds of bursts at
+    # this threshold, which is enough resolution to fill the split fractions.
+    burst_gap_seconds: float = 2.0
+
+    # Secondary check on the burst assignment: if two adjacent bursts assigned
+    # to different partitions land closer than this in time, drop rows within
+    # half this band of the boundary. Bursts already guarantee a gap >=
+    # burst_gap_seconds, so this rarely fires; it exists as defense in depth,
+    # not as the primary leakage guard (that is burst assignment itself).
     boundary_buffer_seconds: float = 300.0
     max_buffer_frac: float = 0.25  # shrink the band rather than exceed this per stream
 
@@ -142,6 +166,8 @@ class LeakageReport:
     strategy: str
     near_dups_removed: dict[str, dict[str, int]] = field(default_factory=dict)   # day -> class -> n
     buffer_rows_removed: dict[str, int] = field(default_factory=dict)            # "day/family" -> n
+    # guard (b): burst segmentation stats per (day, family) stream.
+    bursts_per_stream: dict[str, dict] = field(default_factory=dict)
     # guard (c): NN distance trusted_eval -> nearest honeypot_pool row, run per
     # class. {"attack"|"benign": {"percentiles": {...}, "frac_below_grid": float}}
     nn_distance: dict[str, dict] = field(default_factory=dict)
@@ -336,6 +362,17 @@ def _remove_near_duplicates(
 # --------------------------------------------------------------------------- #
 # within_day_temporal split                                                   #
 # --------------------------------------------------------------------------- #
+def _burst_ids(ts: np.ndarray, gap_seconds: float) -> np.ndarray:
+    """Per-row burst id (0-based, ascending) for a time-sorted timestamp array.
+    A new burst starts whenever the gap to the previous row exceeds
+    ``gap_seconds``."""
+    if len(ts) <= 1:
+        return np.zeros(len(ts), dtype=np.int64)
+    gaps_s = np.diff(ts) / np.timedelta64(1, "s")
+    new_burst = np.concatenate(([True], gaps_s > gap_seconds))
+    return np.cumsum(new_burst) - 1
+
+
 def _split_stream_temporal(
     stream: pd.DataFrame,
     split: tuple[float, ...],
@@ -344,46 +381,72 @@ def _split_stream_temporal(
     tag: str,
     report: LeakageReport,
 ) -> list[tuple[str, pd.DataFrame]]:
-    """Cut one time-sorted (day, family) group into ``len(route)`` segments,
-    dropping a temporal guard band around each internal cut. ``route`` entries
-    of ``None`` drop that segment (a fully-withheld family arm); repeated
-    partition names accumulate."""
+    """Split one time-sorted (day, family) group into ``len(route)`` segments at
+    burst granularity: segment the stream into contiguous bursts (guard b),
+    then assign whole bursts to segments in temporal order, filling toward the
+    cumulative ``split`` fractions by row count. No burst is ever divided
+    across a partition boundary. ``route`` entries of ``None`` drop that
+    segment (a fully-withheld family arm); repeated partition names
+    accumulate. A guard band around each realized boundary is applied as a
+    secondary check (see module docstring, guard b)."""
     out: list[tuple[str, pd.DataFrame]] = []
     if stream.empty:
         return out
     s = stream.sort_values(schema.TIMESTAMP, kind="stable")
     ts = s[schema.TIMESTAMP].to_numpy("datetime64[ns]")
-    t_span_s = max((ts[-1] - ts[0]) / np.timedelta64(1, "s"), 1e-9)
+    n = len(ts)
 
-    # internal cut times at the cumulative fractions (all but the last segment)
-    cum = np.cumsum(split)[:-1]
-    cut_times = [ts[0] + np.timedelta64(int(f * t_span_s * 1e9), "ns") for f in cum]
+    burst_id = _burst_ids(ts, cfg.burst_gap_seconds)
+    n_bursts = int(burst_id[-1]) + 1
+    burst_sizes = np.bincount(burst_id, minlength=n_bursts)
+    report.bursts_per_stream[tag] = {
+        "n_rows": int(n), "n_bursts": int(n_bursts),
+        "median_burst_size": float(np.median(burst_sizes)),
+        "max_burst_size": int(burst_sizes.max()),
+    }
 
+    # walk bursts in temporal order, advancing the target segment once the
+    # running row count (before this burst) has reached its cumulative target
+    targets = np.cumsum(split)[:-1] * n   # boundary row-count targets, len(route)-1
+    seg_of_burst = np.empty(n_bursts, dtype=np.int64)
+    seg_idx, running = 0, 0
+    for b in range(n_bursts):
+        while seg_idx < len(split) - 1 and running >= targets[seg_idx]:
+            seg_idx += 1
+        seg_of_burst[b] = seg_idx
+        running += burst_sizes[b]
+    row_seg = seg_of_burst[burst_id]
+
+    # guard (b), secondary check: measure the realized time gap at each
+    # internal boundary between adjacent segments actually present in route;
+    # if it is thinner than boundary_buffer_seconds, drop a band around it.
     band_ns = int(cfg.boundary_buffer_seconds * 1e9 / 2)
-    in_band = np.zeros(len(ts), dtype=bool)
-    # cap band so it never exceeds max_buffer_frac of the stream
+    in_band = np.zeros(n, dtype=bool)
     while band_ns > 0:
-        in_band = np.zeros(len(ts), dtype=bool)
-        for ct in cut_times:
-            in_band |= (ts >= ct - np.timedelta64(band_ns, "ns")) & (
-                ts < ct + np.timedelta64(band_ns, "ns")
-            )
+        in_band = np.zeros(n, dtype=bool)
+        for i in range(len(route) - 1):
+            rows_i = np.where(row_seg == i)[0]
+            rows_j = np.where(row_seg == i + 1)[0]
+            if len(rows_i) == 0 or len(rows_j) == 0:
+                continue
+            hi, lo = ts[rows_i].max(), ts[rows_j].min()
+            if (lo - hi) / np.timedelta64(1, "ns") < band_ns * 2:
+                mid = hi + (lo - hi) // 2
+                band_td = np.timedelta64(band_ns, "ns")
+                in_band |= (ts >= mid - band_td) & (ts < mid + band_td)
         if in_band.mean() <= cfg.max_buffer_frac:
             break
         band_ns //= 2
     if in_band.any():
         key = f"{tag}"
         report.buffer_rows_removed[key] = report.buffer_rows_removed.get(key, 0) + int(in_band.sum())
-        log.info("temporal guard band dropped rows", stream=tag, rows=int(in_band.sum()),
-                 band_seconds=round(band_ns / 5e8, 1))
+        log.info("boundary guard band dropped rows (secondary check)", stream=tag,
+                 rows=int(in_band.sum()), band_seconds=round(band_ns / 5e8, 1))
 
-    seg_idx = np.digitize(
-        ts.astype("int64"), [c.astype("datetime64[ns]").astype("int64") for c in cut_times]
-    )
     for i, part in enumerate(route):
         if part is None:
             continue
-        mask = (seg_idx == i) & ~in_band
+        mask = (row_seg == i) & ~in_band
         if mask.any():
             out.append((part, s.loc[mask]))
     return out

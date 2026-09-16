@@ -1,10 +1,13 @@
 model,family,arm,n_seed_train,n_honeypot_pool,n_trusted_eval,tpr_fixed,tpr_recalibrated
-rf,DDoS,seen_both,28670,21667,8075,0.9965,0.9958
-rf,DoS GoldenEye,seen_both,1086,3200,3172,0.9956,0.9931
-rf,DoS Hulk,seen_both,52520,35552,12002,0.9336,0.8897
-xgboost,DDoS,seen_both,28670,21667,8075,0.9969,0.9969
-xgboost,DoS GoldenEye,seen_both,1086,3200,3172,0.9328,0.9247
-xgboost,DoS Hulk,seen_both,52520,35552,12002,0.9717,0.9663
-autoencoder,DDoS,seen_both,28670,21667,8075,0.1325,0.098
-autoencoder,DoS GoldenEye,seen_both,1086,3200,3172,0.0028,0.0009
-autoencoder,DoS Hulk,seen_both,52520,35552,12002,0.0387,0.0029
+rf,DoS Hulk,honeypot_only,0,121528,30334,0.87,0.6951
+rf,DDoS,seed_only,70119,0,17383,0.9983,0.9961
+rf,DoS GoldenEye,seen_both,3159,3147,1579,1.0,0.9968
+rf,FTP-Patator,seen_both,2052,2038,1010,1.0,0.9921
+xgboost,DoS Hulk,honeypot_only,0,121528,30334,0.8222,0.7262
+xgboost,DDoS,seed_only,70119,0,17383,0.9982,0.9959
+xgboost,DoS GoldenEye,seen_both,3159,3147,1579,1.0,0.9981
+xgboost,FTP-Patator,seen_both,2052,2038,1010,1.0,0.9871
+autoencoder,DoS Hulk,honeypot_only,0,121528,30334,0.1261,0.0001
+autoencoder,DDoS,seed_only,70119,0,17383,0.1696,0.0586
+autoencoder,DoS GoldenEye,seen_both,3159,3147,1579,0.0025,0.0
+autoencoder,FTP-Patator,seen_both,2052,2038,1010,0.0,0.0
