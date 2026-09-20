@@ -649,6 +649,12 @@ above says why real data cannot carry it.
 
 ## 17. The loop, and what A1 actually shows
 
+> **Superseded in part by §19.** Every fixed-threshold FPR number in this section used the old
+> round-0 calibration, which put the control at FPR 0.046 against a 0.01 target. With an honest
+> baseline the poison ratio needed drops out of the 1-2% range (first clears at ~10%, catastrophic
+> from ~20%), and the flat RF effect beyond the cliff disappears (§19.1). The cliff, the
+> distribution analysis and the recalibrated-threshold TPR results stand.
+
 Built: `dloop.adversary` (`Adversary.generate_batch(round_idx, budget) ->
 (DataFrame, CostMetadata)`; `CleanAdversary` = S0, `MimicryAdversary` = A1 with a
 jitter knob), `dloop.loop` (`LoopConfig`, auto-labeler, round runner, compact
@@ -827,3 +833,395 @@ answers S0 and the three family arms (`seen_both`, `seed_only`, `honeypot_only`;
 `novel` is dropped: n=0 with no prospect of filling it). Leading with the
 measurement and *then* substituting is what makes synthetic-for-S0 defensible
 rather than convenient.
+
+## 19. Calibration baseline fixed; the two A1 mechanisms separated; timestamp check
+
+### 19.1 The round-0 threshold did not transfer — and fixing it changes the headline
+
+**Problem.** The control's fixed-threshold FPR was 0.046 (RF) / 0.039 (XGBoost) against a
+0.01 target. The round-0 threshold is calibrated on a validation split carved from
+seed_train, which on this data is full of near-copies of training rows, so calibration FPR
+is optimistic and the threshold too low.
+
+**Fix.** `ModelConfig.val_min_nn_distance` (`LoopConfig.val_min_nn_distance`): calibrate
+only on validation rows with no same-class training row within `tau` (per-feature RMS,
+normalized space, the guard-(c) metric). Off (0) is bit-identical to before (verified on four
+jobs, and the config hash is unchanged when off). This is the exact-distance form of "apply
+the near-dup grid to validation before calibration": the partition's guard (a) at grid 0.005
+already removes same-cell duplicates, so a grid-cell dedup of the validation split is a
+no-op at that resolution; the residual twins sit at 0.005-0.1 RMS.
+
+**Choosing tau (rule stated first: the smallest tau at which control fixed-FPR <= 1.5x the
+target).** Control arm, 5 seeds, rounds 11-20 (`cicids_recal/control_floor_by_tau.csv`):
+
+| tau | validation benign rows dropped | RF FPR (sigma) | XGB FPR (sigma) | RF TPR | XGB TPR |
+|---:|---:|---:|---:|---:|---:|
+| 0 (old) | 0% | 0.046 (0.015) | 0.039 (0.010) | 0.876 | 0.869 |
+| 0.005 | 10% | 0.051 (0.014) | 0.052 (0.013) | 0.878 | 0.877 |
+| 0.01 | 22% | 0.047 (0.014) | 0.049 (0.012) | 0.876 | 0.875 |
+| 0.02 | 42% | 0.041 (0.015) | 0.047 (0.014) | 0.874 | 0.875 |
+| 0.05 | 74% | 0.025 (0.011) | 0.031 (0.011) | 0.863 | 0.863 |
+| **0.1** | **94%** | **0.007 (0.005)** | **0.006 (0.006)** | 0.806 | 0.798 |
+
+`tau = 0.1` is the new baseline. AUROC is identical at every tau (the model does not
+change; only the threshold does). The shift is itself evidence for §16: **94% of benign
+validation rows have a training twin within 0.1 RMS** (42% within 0.02), and the operating
+point only becomes honest once they are discarded. The price is a coarse calibration set
+(~300 benign rows) and TPR falling by ~0.07-0.08. The recalibrated-threshold mode never uses
+the round-0 threshold, and its results are identical under both calibrations to every digit
+(a sanity check that only the fixed threshold changed).
+
+**Effect on A1 (raw benign fidelity, jitter 0; fixed-threshold FPR rise over control, mean
++/- sd over 5 seeds; 2 sigma_control old -> new: RF 0.030 -> 0.009, XGBoost 0.020 -> 0.012):**
+
+| ratio | RF old | RF new | XGB old | XGB new |
+|---:|---:|---:|---:|---:|
+| 0.005 | +0.011 +/- 0.006 | -0.002 +/- 0.003 | -0.005 +/- 0.007 | +0.001 +/- 0.002 |
+| 0.01 | +0.032 +/- 0.027 | -0.002 +/- 0.005 | -0.000 +/- 0.015 | -0.002 +/- 0.005 |
+| 0.02 | +0.055 +/- 0.023 | +0.003 +/- 0.004 | +0.114 +/- 0.113 | -0.002 +/- 0.006 |
+| 0.05 | **+0.468** +/- 0.049 | +0.009 +/- 0.006 | **+0.726** +/- 0.039 | +0.005 +/- 0.007 |
+| 0.1 | +0.787 +/- 0.025 | +0.025 +/- 0.005 | +0.902 +/- 0.028 | +0.014 +/- 0.023 |
+| 0.2 | +0.921 +/- 0.010 | **+0.337** +/- 0.139 | +0.944 +/- 0.018 | **+0.279** +/- 0.374 |
+| 0.5 | +0.954 +/- 0.011 | **+0.880** +/- 0.024 | +0.944 +/- 0.019 | **+0.563** +/- 0.457 |
+
+- The poison ratio at which A1 first clears control variance moves from **1% (RF) / 2%
+  (XGBoost) to 10%** (RF +0.025, XGBoost +0.014, both marginal), with catastrophic damage
+  from **20%**. §17's "1-2% poison suffices" was an artifact of the miscalibrated baseline:
+  a threshold set too low is hypersensitive to small score shifts. The damage is still
+  real, and still a cliff, but it needs 5-10x more poison than §17 said.
+- At 20% and 50% the seed spread is enormous (XGBoost sd 0.37-0.46): the outcome is
+  bimodal across seeds (some retrains collapse, some do not), so a single-seed run would
+  be misleading either way.
+- **Just past the cliff (jitter 0.01, realized NN 0.014) the flat RF effect §17 reported
+  (+0.03-0.05) disappears:** new-calibration RF +0.001 / +0.004 at 5% / 20%, XGBoost -0.002 /
+  -0.003. It was also a calibration artifact.
+- The cliff itself (§17, the distribution of near-exact twins) is unaffected: damage exists
+  only at copy-level fidelity.
+
+### 19.2 Two mechanisms, separated
+
+Test (`experiments/phase0_mechanism_report.py`): inject the same number of rows at the same
+realized distance (jitter 0.7, realized NN ~0.56, well right of the cliff), varying one thing
+at a time — **a1** benign+jitter stamped malicious; **a1truth** the same rows stamped with their
+true label; **s0j** genuine attack rows + the same jitter, stamped malicious (same class-prior
+shift and jitter texture, no benign-label conflict); **s0** genuine attack rows, no jitter.
+Same-seed paired deltas vs control, final round, 5 seeds (`results/phase0/mechanism/`).
+
+Fixed-threshold FPR rise, ratios 0.05 / 0.2:
+
+| | RF old cal | RF new cal | XGB old cal | XGB new cal |
+|---|---:|---:|---:|---:|
+| a1 (label conflict) | +0.038 / +0.054 | +0.004 / +0.011 | +0.003 / +0.021 | -0.003 / -0.003 |
+| s0j (prior shift + jitter) | +0.013 / +0.021 | +0.001 / +0.004 | -0.003 / +0.020 | -0.004 / -0.005 |
+| s0 (prior shift) | +0.009 / +0.026 | +0.002 / +0.002 | +0.028 / +0.029 | -0.002 / -0.002 |
+| a1truth (same rows, true label) | -0.010 / -0.016 | -0.005 / -0.005 | -0.018 / -0.014 | -0.004 / -0.005 |
+| a1 - s0j | +0.025 / +0.033 | +0.003 / +0.007 | +0.006 / +0.001 | +0.001 / +0.002 |
+| 2 sigma_control | 0.030 | 0.009 | 0.020 | 0.012 |
+
+Recalibrated-threshold TPR change (identical under both calibrations), ratios 0.05 / 0.2:
+
+| | RF | XGBoost |
+|---|---:|---:|
+| a1 | **-0.085 / -0.109** | +0.023 / +0.017 |
+| s0j | -0.003 / -0.002 | +0.054 / +0.049 |
+| a1truth | +0.015 / +0.014 | -0.041 / -0.097 |
+| s0 | +0.058 / +0.079 | +0.053 / +0.084 |
+| 2 sigma_control | 0.061 | 0.040 |
+
+**Verdict on the hypothesis "the flat effect is class-prior shift".** Not supported as
+stated.
+
+- Class-prior shift alone (s0, s0j: same row count, malicious label, no benign conflict)
+  reproduces only a fraction of the old-calibration RF FPR effect (+0.009..+0.026 against
+  +0.038/+0.054), and **none** of it under the honest calibration (+0.001..+0.004, inside
+  2 sigma). XGBoost shows a small prior-shift effect only under the old, too-low threshold
+  (+0.028 / +0.029).
+- The same rows stamped with their true label (a1truth) do not raise FPR (all <= 0). So the
+  jitter texture and the extra benign data are not the cause; the label is.
+- What remains is the label conflict acting at distance, and it is **small and RF-specific**:
+  FPR <= +0.011 (a1 - a1truth <= +0.016) under the honest calibration, at the edge of noise,
+  and a TPR drop of **0.09-0.11 for RF under the recalibrated threshold** where s0j and
+  a1truth show none (a1 - s0j = -0.083 / -0.107; XGBoost shows no drop). Mechanism: benign-like
+  rows stamped malicious lift scores across benign neighbourhoods slightly; a recalibrated
+  threshold rises to hold FPR at 1%, and TPR pays for it.
+
+So the two named mechanisms, with sizes under the honest calibration:
+
+| mechanism | needs | size | where it shows |
+|---|---|---|---|
+| **label conflict at copy fidelity** | near-exact reproduction of trusted benign rows (realized NN <~ 0.014) and >= 10-20% poison | catastrophic: FPR +0.34 to +0.88 (RF), bimodal for XGBoost | fixed threshold (FPR); also TPR collapse under recalibration (§17) |
+| **label conflict at a distance** (plus class-prior shift, which is ~0 here) | no fidelity | small; RF only: TPR -0.09..-0.11 (recalibrated), FPR <= +0.016 | recalibrated threshold (TPR); FPR only under a mis-set low threshold |
+
+The clean "prior shift" story (any distance, small, no fidelity) does not survive: prior
+shift is negligible once the baseline is honest.
+
+### 19.3 Timestamp check (no re-run, as instructed)
+
+Available, but not obtained. The timestamped release, `GeneratedLabelledFlows.zip` (the
+`TrafficLabelling` CSVs with `Timestamp`, Flow ID and IPs), is listed as "publicly available
+for researchers" on the UNB CIC page
+(https://www.unb.ca/cic/datasets/ids-2017.html). The download host it links
+(http://cicresearch.ca/CICDataset/CIC-IDS-2017/) currently gates the files behind a form asking
+for personal details, and returned a server error when checked, so nothing was downloaded
+(submitting personal details is for the user to do, not something to do on their behalf). A
+Hugging Face mirror's README does not state which variant or columns it carries, so it was not
+trusted. **Two caveats to verify on obtaining it, from memory and not confirmed here:** its
+`Timestamp` is reportedly in a 12-hour format without AM/PM (afternoon rows are ambiguous),
+and the release has documented flow-construction and labeling issues in the literature.
+Until then the §14 erratum and the shuffled-partition control (§16) stand as the honest
+answer.
+
+## 20. D1 — cost-of-influence weighting: the definition, fixed before any D1 result
+
+Written and committed to the log **before** `d1_cost_weighting.py` was implemented and
+before any defended run, so the parameters below are not tuned to the outcome.
+
+**Idea.** A honeypot sample's influence on the retrained model is its
+`sample_weight` (the single weight channel). D1 makes that influence *purchasable
+with attacker effort*: `w_i = W(cost_i)`, with `W` monotone and `W(0) = 0`. Cheap
+interactions get near-zero weight; only interactions that cost the attacker real
+effort get full weight. Poisoning is attractive only while it is cheap; D1 removes
+that.
+
+**Cost record (per flow).** `CostMetadata.per_flow`, the same record the batch
+totals are summed from: `x_i = (d_i, p_i, b_i, s_i)` = duration (seconds), packets
+(fwd + bwd), bytes (fwd + bwd), and protocol-state depth `s_i = min(fwd_packets,
+bwd_packets)`, the number of request/response exchanges the flow sustained. Depth is
+the flow-level stand-in for what a Phase 3 honeypot log would report as commands
+executed / protocol state reached / files transferred; nothing in D1 depends on the
+stand-in beyond "a per-sample non-negative effort vector".
+
+**Reference scale.** `r_k` = median of component `k` over the **benign rows of
+seed_train** (defender-owned, trusted, no eval data): one unit is "what a typical
+legitimate flow costs". A floor of 1e-9 guards a zero median.
+
+**Effort.**
+`e_i = prod_k (1 + x_ik / r_k)^alpha_k - 1`, `alpha_k = 1/4` (geometric mean).
+Properties: `e_i = 0` iff every component is 0; strictly increasing in every
+component; dimensionless and invariant to the units of each component (each is
+divided by its own reference); `e_i = 1` for a flow that costs a median benign flow's
+worth in every component.
+
+**Weight.** `w_i = min(1, (e_i / E*)^gamma)`. `E*` is the saturation effort in units
+of a typical benign flow; `gamma >= 1` sets how sharply weight grows below it.
+Properties (each unit-tested): `w in [0, 1]`; `w(0) = 0`; non-decreasing in every
+component; per-flow costs sum to the `CostMetadata` totals.
+
+**Pre-registered default: `E* = 8`, `gamma = 2`.** A median benign flow weighs
+`(1/8)^2 = 0.016`; full influence needs roughly an order of magnitude more effort
+than a typical legitimate flow. Chosen by that design principle, not by sweeping.
+
+**Effective poison mass.** `M_eff = sum_i w_i`. An attacker copying benign flows
+(`e ~ 1`) needs `N ~ M / w_bar` flows to buy mass `M`, i.e. cost scales with
+`1 / w_bar`. Raising the weight by padding the flow (more duration/packets/bytes)
+is possible, but the cost features are also model features, so padding moves the
+row *away* from the benign rows it copies; §17 showed A1's damage lives only at
+copy-level fidelity (realized NN <~0.014). The claim under test is that copy-level
+fidelity and high weight are in tension. It is tested directly with a padding
+adversary (`cost_padding = m` scales duration, packets and bytes) rather than
+asserted.
+
+**Known cost, stated in advance.** Genuine attacks that are themselves cheap
+per flow (floods, scans: one tiny flow each) also get low weight, so D1 will reduce
+what S0 can teach the detector about them. This utility cost is measured (S0 on
+synthetic, per arm) and reported next to the A1 recovery, not left out.
+
+**Sensitivity protocol (pre-registered).** (a) `E* in {2, 4, 8, 16, 32}` x `gamma in
+{1, 2, 3}`, XGBoost, CICIDS A1 at raw benign (jitter 0), ratios 0.05 and 0.2, 5
+seeds. (b) Component ablation at the default `(E*, gamma)`: duration-only,
+packets-only, bytes-only, depth-only. **"Not sensitive" is defined as: A1 FPR damage
+stays within 2 sigma_control over the whole region `E* >= 4, gamma >= 1`.** If it does
+not, the region where it fails is reported instead.
+
+**Generic baselines (fixed hyperparameters, not tuned on A1).**
+
+- *Loss-based filtering.* At each retrain, an auxiliary XGBoost (40 trees, depth 4)
+  produces 3-fold out-of-fold probabilities over the training set; honeypot rows whose
+  out-of-fold probability of their *stamped* label is below 0.1 get weight 0. Out-of-fold
+  because a memorizing model has low in-sample loss on everything it was fit to.
+- *kNN label sanitization.* `k = 10` neighbours in seed_train (the trusted labelled
+  set), normalizer fit on seed_train; a honeypot row is dropped when fewer than half
+  its neighbours carry its stamped label.
+
+**Expectations recorded in advance.** (i) kNN sanitization anchors to seed_train
+labels, so copy-level poison — sitting among benign seed neighbours but stamped
+malicious — should be caught; I expect it to **succeed** against A1 and to **hurt**
+S0's `honeypot_only` learning (a family with no seed twins has no agreeing
+neighbours). That would contradict the hypothesis that generic defenses fail
+*because* the poison is "correctly labelled by the defender's own policy": the
+policy's label is wrong, and a seed-anchored filter sees that. (ii) Loss-based
+filtering with out-of-fold loss may do better than in-sample loss but is weaker where
+poison is dense enough to be self-consistent. If the results say otherwise they are
+reported as such.
+
+**Evaluation.** Undefended, D1, loss filter, kNN filter on CICIDS A1 (jitter 0;
+ratios 0.02/0.05/0.2, D1 at all seven), both models, 5 seeds; FPR/TPR recovery
+(share of the undefended damage removed); S0 on synthetic per arm for utility;
+wall-clock overhead per round; and the attacker cost (flows, packets, bytes, flow
+time) at which the same FPR damage (>= +0.10) is first reached with and without D1.
+
+**Amendment to §20, recorded before any defended run.** §20's evaluation set (A1 ratios
+0.02/0.05/0.2) was written when the baseline threshold was miscalibrated. The calibration fix
+(§19) moved A1's damage to >=10-20% poison (raw benign fidelity, new calibration: RF +0.002 /
++0.003 / +0.009 at 1% / 2% / 5%, +0.025 at 10%, +0.34 at 20%, +0.88 at 50%; XGBoost
++0.014 at 10%, +0.28 / +0.56 at 20% / 50% with a very large seed spread). Ratios below 10% now
+show no undefended damage to recover, so the defended evaluation uses **ratios {0.05, 0.1, 0.2,
+0.5}** (0.05 as a no-damage placebo), and D1 additionally at 0.8 and 0.9 for the
+cost-to-damage measurement (XGBoost only; RF at those sizes is too slow). D1's parameters,
+the generic baselines' parameters, the sensitivity protocol and its "not sensitive" criterion
+are unchanged. The sensitivity grid and ablations run at ratio 0.5 (XGBoost), where the
+undefended damage is largest. No defended result had been seen when this was written.
+
+## 21. D1 and the generic baselines: results
+
+Setup as fixed in §20 and its amendment: CICIDS2017, A1 at raw benign fidelity (jitter 0, the
+regime where A1 works), new calibration (`val_min_nn_distance = 0.1`), 5 seeds, 20 rounds, RF and
+XGBoost, paired same-seed deltas against the control, final round. Code:
+`src/dloop/defense/{d1_cost_weighting,generic}.py`; sweeps: `experiments/run_defense_sweeps.sh`;
+report `experiments/phase0_defense_report.py` -> `results/phase0/defense/` (CSVs, `report.md`,
+figures). 3 workers, because the machine had ~400 MB free beyond them (earlier 4-worker sweeps
+crashed on memory).
+
+### 21.1 Recovery: what each defense does to A1
+
+Fixed-threshold FPR rise over control (recovery = share of the undefended damage removed;
+2 sigma_control: RF 0.009, XGBoost 0.012). No recovery is quoted at 5% poison: there is no
+undefended damage to recover.
+
+| ratio | model | undefended | D1 (E*=8, g=2) | kNN sanitize | loss filter |
+|---:|---|---:|---:|---:|---:|
+| 0.2 | RF | +0.337 +/- 0.139 | +0.003 (99%) | +0.000 (100%) | +0.329 (2%) |
+| 0.2 | XGB | +0.279 +/- 0.374 | -0.001 (100%) | +0.003 (99%) | +0.282 (-1%) |
+| 0.5 | RF | +0.880 +/- 0.024 | +0.067 +/- 0.009 (92%) | +0.004 (99%) | +0.880 (0%) |
+| 0.5 | XGB | +0.563 +/- 0.457 | +0.040 +/- 0.043 (93%) | +0.006 (99%) | +0.566 (0%) |
+| 0.8 | XGB | +0.923 +/- 0.058 | +0.095 +/- 0.046 (90%) | not run | not run |
+| 0.9 | XGB | +0.965 +/- 0.005 | +0.132 +/- 0.036 (86%) | not run | not run |
+
+TPR under the recalibrated threshold follows the same pattern (RF at 50%: undefended -0.282,
+D1 -0.036, kNN -0.087 +/- 0.128, loss -0.289; XGBoost at 90%: undefended -0.52, D1 -0.16).
+At 20% poison D1 is inside 2 sigma of the control for both models; at 50% it leaves a residual
+(+0.04 to +0.07) that is 7-8% of the undefended damage but larger than noise.
+
+**Generic defenses vs the hypothesis.** The hypothesis was that generic defenses underperform
+*because* the poison is "correctly labelled by the defender's own policy". It is half right:
+
+- **Loss-based filtering fails, and for the predicted reason.** Its zero-weight fraction falls
+  with poison density — 60% of poison dropped at 5%, 33% at 10%, 1.5% at 20%, 0% at 50% —
+  because a dense block of identically-stamped rows teaches the auxiliary model its own label,
+  so out-of-fold loss stops flagging it (unit-tested on toy blobs: `test_loss_filter_is_weaker...`).
+  It recovers ~0% wherever there is damage.
+- **kNN label sanitization does not fail — it is the strongest defense here (99-100%).** It
+  anchors to the trusted seed labels rather than to the loop's own labels, so it sees exactly
+  what the policy cannot: near-copy poison sits among *benign* seed neighbours but is stamped
+  malicious (98.5% of A1 poison rows are dropped). The policy's label is wrong, and a
+  seed-anchored filter can tell. §20 recorded this expectation before the run; the
+  "generic defenses fail because the labels are policy-consistent" claim is false as a blanket
+  statement and true only for defenses that learn from the poisoned data itself.
+
+### 21.2 What each defense costs the honest loop (utility)
+
+S0 (genuine attack rows), fixed threshold, final round: share of the undefended `honeypot_only`
+TPR gain over control that survives (`utility_s0.csv`). `honeypot_only` is the family the
+detector sees only through the decoy, i.e. the loop's whole point.
+
+| dataset | ratio | D1 | kNN | loss filter |
+|---|---:|---:|---:|---:|
+| synthetic, RF / XGB | 0.05 | 12% / 10% | 45% / 42% | 99% / 100% |
+| synthetic, RF / XGB | 0.2 | 45% / 58% | 74% / 78% | 100% / 100% |
+| CICIDS2017, RF / XGB | 0.05 | 65% / 83% | 65% / 83% | 92% / 98% |
+| CICIDS2017, RF / XGB | 0.2 | 52% / 66% | 51% / 66% | 100% / 97% |
+
+D1 and kNN both cost the honest loop roughly **half** of what it would learn about a family
+with no seed twins; the loss filter costs nothing and protects nothing. `seed_only` is
+untouched by every defense. D1's weights explain the synthetic numbers: genuine synthetic
+attack flows are cheap (mean D1 weight 0.10, vs 0.23 for benign and 0.84 for CICIDS attack rows),
+because the synthetic generator was never given an attacker-cost profile. **How much D1 costs S0
+therefore depends on whether real attacks are expensive relative to legitimate traffic; the
+simulator cannot say.** That is the trade-off §20 stated in advance; it is real, and it is large.
+
+### 21.3 Overhead
+
+Mean seconds per round over rounds with honeypot data, against the model fit+score time
+(`overhead.csv`): D1 **< 1 ms** (0%); kNN 0.07 s (4% RF, 6% XGBoost); loss filter 0.68 s
+(30% RF, 56% XGBoost). D1 needs no reference set and no auxiliary model; kNN needs the trusted
+labelled set at run time.
+
+### 21.4 Attacker cost to reach the same damage
+
+Damage target: fixed-threshold FPR rise >= 0.10 (`attacker_cost_to_damage.csv`).
+
+| | first ratio reaching it | flows | packets | bytes | flow-time (s) |
+|---|---:|---:|---:|---:|---:|
+| undefended (RF, XGB) | 0.2 | 7,500 | 149,313 | 84.9 MB | 131,937 |
+| D1, XGBoost | 0.9 | 270,000 (**36x**) | 5.18M (35x) | 2.84 GB (33x) | 4.78M (36x) |
+| D1, RF | not reached at 0.5 (max rise +0.067) | > 30,000 (**> 4x**) | > 3.9x | > 3.8x | > 4.0x |
+
+The multiplier is bracketed by the ratio grid, not a point: undefended crosses 0.10 between
+ratios 0.1 and 0.2, D1/XGBoost between 0.5 and 0.9, so the cost increase is **between 4x and
+~80x** in flows (36x at grid resolution); RF's is a lower bound (RF was not run beyond 0.5). D1
+therefore raises the attacker's required effort by at least a factor of four, and by roughly
+thirty-five for XGBoost at the resolution measured.
+
+### 21.5 Sensitivity to the parameterisation — the pre-registered criterion is NOT met
+
+Pre-registered (§20): D1 is "not sensitive" iff A1 FPR damage stays within 2 sigma_control
+(0.012) over `E* >= 4, gamma >= 1`. XGBoost, ratio 0.5, jitter 0 (undefended +0.563):
+
+| gamma \ E* | 2 | 4 | 8 | 16 | 32 |
+|---:|---:|---:|---:|---:|---:|
+| 1 | +0.340 | +0.081 | +0.053 | +0.030 | +0.015 |
+| 2 | +0.084 | +0.060 | +0.040 | +0.025 | **+0.005** |
+| 3 | +0.076 | +0.059 | +0.036 | +0.020 | **+0.003** |
+
+**Criterion met: False** (2 of 12 configurations in the region; bold = inside 2 sigma). D1's
+damage is monotone in both parameters — stronger with higher `E*` and `gamma` — and every
+configuration in the region still removes **>= 86%** of the undefended damage (E*=4,gamma=1 the
+weakest at 86%), but the residual at 50% poison is not negligible and scales with `E*`. The
+honest reading: **D1 is insensitive in direction and sensitive in magnitude.** (At 20% poison
+the default is already inside noise; this grid is deliberately at the largest ratio.) The
+E* = 2, gamma = 1 corner recovers only 40%. The default (E* = 8, gamma = 2) was fixed before
+any result and is not re-tuned.
+
+Component ablation at the default (`E*=8, gamma=2`): packets-only +0.011 (inside 2 sigma),
+depth-only +0.015, bytes-only +0.049, duration-only +0.066, all four +0.040. The equal-weight
+geometric mean is **not** the best choice on this data: heavy-tailed benign flows with large
+bytes or duration reach full weight under the combined effort, whereas packet count (and depth)
+separates them better. This is reported, not acted on (no post-hoc re-tuning of a pre-registered
+default). An earlier depth-only ablation silently never ran because two single-component tags
+collided (`_cd`), and the resume logic treated it as done; the tags are now distinct, a test
+guards it, and both single-component ablations were re-run.
+
+### 21.6 The adversary's counter-move: padding to buy weight
+
+`cost_padding = m` scales duration, packets and bytes before jitter; XGBoost, ratio 0.5:
+
+| m | realized NN | undefended: weight / FPR rise | D1: mean weight / FPR rise | attacker bytes |
+|---:|---:|---:|---:|---:|
+| 1 | 0.011 | 1.00 / +0.563 +/- 0.457 | 0.23 / +0.040 +/- 0.043 | 3.2e8 |
+| 2 | 0.135 | 1.00 / +0.021 +/- 0.020 | 0.31 / +0.007 +/- 0.004 | 6.4e8 |
+| 8 | 0.331 | 1.00 / -0.003 | 0.48 / -0.001 | 2.6e9 |
+| 32 | 0.532 | 1.00 / -0.005 | 0.90 / -0.004 | 1.0e10 |
+
+The tension §20 asserted holds: padding raises D1's weight (0.23 -> 0.90) but moves the poison
+away from copy fidelity (realized NN 0.011 -> 0.53) and the damage is gone. **But the padded
+attack also fails against the undefended loop** (+0.021 at m = 2), so padding is not evidence
+for D1 — the fidelity break does that on its own. The attacker's effective counter to D1 is
+not padding but *volume* (§21.4: 4x-80x more flows of copy-level traffic). Padding merely
+shows the cheaper evasion of D1 is not available.
+
+### 21.7 Verdict, and what is not shown
+
+- D1 removes 86-100% of A1's damage wherever there is damage, at ~zero overhead, using only
+  cost — no labelled reference set, no auxiliary model.
+- **It is not clearly better than kNN sanitization on this evaluation.** kNN is stronger at
+  50% poison (99% vs 92-93%) and costs about the same honest-loop utility; D1 is free to run,
+  independent of seed labels, and is the only one of the two with an attacker-cost account.
+  A fair summary is "comparable protection at comparable utility cost; different assumptions".
+- The **loss filter is not a serious baseline once poison is dense**, and that failure is the
+  predicted one.
+- Not shown: any adaptive attacker against kNN (an attacker placing poison near seed *attack*
+  neighbours would need attack-like traffic, so it would not obviously raise FPR, but this is
+  untested); the sensitivity grid is XGBoost at one ratio; RF was not run beyond 0.5;
+  everything is CICIDS2017 (degenerate, §16) at raw benign fidelity, the worst case for A1; the
+  cost features are flow-level, `depth` is a stand-in, and the simulator has no real honeypot
+  session logs, so D1's utility cost on a real deployment is unknown (§21.2).

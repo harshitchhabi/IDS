@@ -26,8 +26,12 @@ import numpy as np
 import pandas as pd
 
 from dloop.adversary.clean import CleanAdversary
-from dloop.adversary.mimicry import FidelityMeter, MimicryAdversary, assert_disjoint_from_eval
+from dloop.adversary.mimicry import (FidelityMeter, JitterAdversary, MimicryAdversary,
+                                     assert_disjoint_from_eval)
 from dloop.logging_config import configure, get_logger
+from dloop.defense.base import NoOpDefense
+from dloop.defense.d1_cost_weighting import COMPONENTS, D1Config, D1CostWeighting
+from dloop.defense.generic import KNNSanitize, LossFilter
 from dloop.loop.config import LoopConfig
 from dloop.loop.data import LoopData
 from dloop.loop.rounds import FAST_HYPERPARAMS, run_arm
@@ -54,11 +58,38 @@ def _init_worker(data_path: str, need_fidelity: bool) -> None:
 
 def _loop_config(j: dict) -> LoopConfig:
     return LoopConfig(rounds=j["rounds"], retention=j["retention"], window_rounds=j["window"],
-                      budget_mode=j["budget_mode"], poison_ratio=j["ratio"], batch_size=j["batch_size"])
+                      budget_mode=j["budget_mode"], poison_ratio=j["ratio"], batch_size=j["batch_size"],
+                      label_policy="ground_truth" if j["scenario"] == "a1truth" else "auto_malicious",
+                      val_min_nn_distance=j["val_tau"])
+
+
+def _d1_config(j: dict) -> D1Config:
+    keep = set(j["d1_components"].split(",")) if j["d1_components"] else set(COMPONENTS)
+    return D1Config(e_star=j["d1_estar"], gamma=j["d1_gamma"],
+                    alpha=tuple(1.0 if c in keep else 0.0 for c in COMPONENTS))
+
+
+def _defense_tag(j: dict) -> str:
+    return "" if j["defense"] == "none" else "_" + (_d1_config(j).tag() if j["defense"] == "d1" else j["defense"])
+
+
+def _make_defense(j: dict):
+    d = j["defense"]
+    if d == "none":
+        return NoOpDefense()
+    if d == "d1":
+        return D1CostWeighting(_DATA.seed_x, _DATA.seed_y, _d1_config(j))
+    if d == "knn":
+        return KNNSanitize(_DATA.seed_x, _DATA.seed_y)
+    if d == "loss":
+        return LossFilter()
+    raise ValueError(d)
 
 
 def _job_key(j: dict) -> str:
-    return f"{j['scenario']}_{j['model']}_s{j['seed']}_j{j['jitter']}_r{j['ratio']}{_loop_config(j).tag()}"
+    pad = f"_pad{j['pad']:g}" if j["pad"] != 1.0 else ""
+    return (f"{j['scenario']}_{j['model']}_s{j['seed']}_j{j['jitter']}_r{j['ratio']}{pad}"
+            f"{_loop_config(j).tag()}{_defense_tag(j)}")
 
 
 def _run_job(j: dict) -> tuple[str, list[dict]]:
@@ -69,14 +100,21 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
         adv = None
     elif sc == "s0":
         adv = CleanAdversary(_DATA.pool_attack_x, seed)
-    elif sc == "a1":
-        adv = MimicryAdversary(_DATA.pool_benign_x, _DATA.normalizer, j["jitter"], seed)
+    elif sc in ("a1", "a1truth"):
+        adv = MimicryAdversary(_DATA.pool_benign_x, _DATA.normalizer, j["jitter"], seed,
+                               cost_padding=j["pad"])
+    elif sc == "s0j":   # genuine attack rows, jittered like A1's poison, labelled malicious
+        adv = JitterAdversary(_DATA.pool_attack_x, _DATA.normalizer, j["jitter"], seed, true_label=1)
     else:
         raise ValueError(sc)
-    res = run_arm(_DATA, adv, scenario=sc, model_kind=j["model"], seed=seed, config=_loop_config(j))
-    extra: dict = {"jitter": j["jitter"] if sc == "a1" else float("nan"), "dataset": _DATA.name}
-    if sc == "a1" and res.poison_x is not None:
-        assert _FID is not None
+    res = run_arm(_DATA, adv, scenario=sc, model_kind=j["model"], seed=seed, config=_loop_config(j),
+                  defense=_make_defense(j))
+    extra: dict = {"jitter": j["jitter"] if sc in ("a1", "a1truth", "s0j") else float("nan"),
+                   "cost_padding": j["pad"], "dataset": _DATA.name,
+                   "d1_estar": j["d1_estar"] if j["defense"] == "d1" else float("nan"),
+                   "d1_gamma": j["d1_gamma"] if j["defense"] == "d1" else float("nan"),
+                   "d1_components": (j["d1_components"] or "all") if j["defense"] == "d1" else ""}
+    if sc in ("a1", "a1truth") and res.poison_x is not None and _FID is not None:
         d = _FID.distances(res.poison_x, max_rows=FIDELITY_ROWS, rng=np.random.default_rng(seed))
         extra.update(fidelity_median=float(np.median(d)), fidelity_p5=float(np.percentile(d, 5)),
                      fidelity_p95=float(np.percentile(d, 95)), fidelity_n=int(len(d)))
@@ -90,13 +128,22 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dataset", choices=["cicids", "synthetic"], required=True)
-    ap.add_argument("--scenarios", nargs="+", choices=["control", "s0", "a1"], required=True)
+    ap.add_argument("--scenarios", nargs="+", choices=["control", "s0", "a1", "s0j", "a1truth"], required=True)
     ap.add_argument("--models", nargs="+", default=["rf", "xgboost"])
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--rounds", type=int, default=20)
     ap.add_argument("--ratios", type=float, nargs="+", default=list(RATIOS))
     ap.add_argument("--jitters", type=float, nargs="+", default=list(JITTERS))
     ap.add_argument("--workers", type=int, default=MAX_WORKERS)
+    ap.add_argument("--defense", choices=["none", "d1", "knn", "loss"], default="none")
+    ap.add_argument("--d1-estar", type=float, default=8.0, help="D1 saturation effort E* (default fixed in DECISIONS 20)")
+    ap.add_argument("--d1-gamma", type=float, default=2.0)
+    ap.add_argument("--d1-components", default="", help="comma list from duration_s,packets,bytes,depth (ablation)")
+    ap.add_argument("--no-fidelity", action="store_true",
+                    help="skip the NN fidelity meter (saves ~100 MB per worker); not for cost-padding runs")
+    ap.add_argument("--val-nn-tau", type=float, default=0.0,
+                    help="calibrate only on validation rows with no same-class training twin closer than this")
+    ap.add_argument("--pad", type=float, default=1.0, help="A1 cost-padding factor (>= 1)")
     ap.add_argument("--retention", choices=["accumulate", "sliding_window"], default="accumulate")
     ap.add_argument("--window", type=int, default=None, help="rounds kept, for sliding_window")
     ap.add_argument("--budget-mode", choices=["fixed_ratio", "fixed_batch"], default="fixed_ratio")
@@ -132,11 +179,13 @@ def main(argv: list[str] | None = None) -> int:
                     jobs.append(dict(scenario=sc, model=model, seed=seed, jitter=0.0, ratio=0.0))
                     continue
                 for ratio in (args.ratios if args.budget_mode == "fixed_ratio" else (0.0,)):
-                    for jit in (args.jitters if sc == "a1" else (0.0,)):
+                    for jit in (args.jitters if sc in ("a1", "a1truth", "s0j") else (0.0,)):
                         jobs.append(dict(scenario=sc, model=model, seed=seed, jitter=jit, ratio=ratio))
     for j in jobs:
         j.update(rounds=args.rounds, retention=args.retention, window=args.window,
-                 budget_mode=args.budget_mode, batch_size=args.batch_size)
+                 budget_mode=args.budget_mode, batch_size=args.batch_size,
+                 val_tau=args.val_nn_tau, pad=args.pad, defense=args.defense,
+                 d1_estar=args.d1_estar, d1_gamma=args.d1_gamma, d1_components=args.d1_components)
         _loop_config(j)   # validate the combination up front
     jobs.sort(key=lambda j: (RATIO_PRIORITY.get(j["ratio"], 0), -j["ratio"], j["scenario"],
                              j["model"] != "rf", j["seed"], j["jitter"]))
@@ -145,7 +194,9 @@ def main(argv: list[str] | None = None) -> int:
               "seeds": args.seeds, "rounds": args.rounds, "ratios": args.ratios,
               "jitters": args.jitters, "hyperparams": FAST_HYPERPARAMS, "retention": args.retention,
               "window_rounds": args.window, "budget_mode": args.budget_mode,
-              "batch_size": args.batch_size,
+              "batch_size": args.batch_size, "val_min_nn_distance": args.val_nn_tau,
+              "cost_padding": args.pad, "defense": args.defense, "d1_estar": args.d1_estar,
+              "d1_gamma": args.d1_gamma, "d1_components": args.d1_components,
               "fidelity_rows": FIDELITY_ROWS, "arm_counts": data.arm_counts(),
               "seed_rows": int(len(data.seed_x)), "eval_rows": int(len(data.eval_x)),
               "a1_poison_source_rows_checked_disjoint_from_eval_benign": n_checked,
@@ -158,7 +209,7 @@ def main(argv: list[str] | None = None) -> int:
     todo = [j for j in jobs if not (out / "jobs" / f"{_job_key(j)}.csv").exists()]
     log.info("loop jobs", total=len(jobs), todo=len(todo), workers=args.workers,
              config_hash=config["config_hash"])
-    need_fid = "a1" in args.scenarios
+    need_fid = bool({"a1", "a1truth"} & set(args.scenarios)) and not args.no_fidelity
     t0, done = time.time(), 0
     with ProcessPoolExecutor(max_workers=args.workers, initializer=_init_worker,
                              initargs=(str(data_path), need_fid)) as ex:

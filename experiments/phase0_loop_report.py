@@ -42,7 +42,17 @@ def load(dataset: str, root: Path) -> pd.DataFrame:
     files = glob.glob(str(root / dataset / "jobs" / "*.csv"))
     if not files:
         return pd.DataFrame()
-    return pd.concat((pd.read_csv(f) for f in files), ignore_index=True)
+    df = pd.concat((pd.read_csv(f) for f in files), ignore_index=True)
+    # This report is the undefended, original-calibration loop. The same directory
+    # also holds defended runs, cost-padded runs and re-calibrated runs (see
+    # phase0_defense_report.py / phase0_mechanism_report.py); averaging them in
+    # would silently corrupt every table here.
+    for col, keep in (("defense", lambda c: c.fillna("none") == "none"),
+                      ("val_min_nn_distance", lambda c: c.fillna(0.0) == 0.0),
+                      ("cost_padding", lambda c: c.fillna(1.0) == 1.0)):
+        if col in df:
+            df = df[keep(df[col])]
+    return df
 
 
 def control_floor(df: pd.DataFrame) -> pd.DataFrame:

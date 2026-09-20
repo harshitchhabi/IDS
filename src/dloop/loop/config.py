@@ -25,6 +25,7 @@ from typing import Literal
 
 Retention = Literal["accumulate", "sliding_window"]
 BudgetMode = Literal["fixed_ratio", "fixed_batch"]
+LabelPolicy = Literal["auto_malicious", "ground_truth"]
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,14 @@ class LoopConfig:
     poison_ratio: float = 0.0     # fixed_ratio only
     batch_size: int = 0           # fixed_batch only
     target_fpr: float = 0.01
+    # The auto-labeler. ``auto_malicious`` is the public policy under attack
+    # ("everything the honeypot sees is malicious"). ``ground_truth`` stamps the
+    # true label and exists only for mechanism controls: it removes the
+    # label conflict while keeping the same rows.
+    label_policy: LabelPolicy = "auto_malicious"
+    # Calibrate on validation rows with no same-class training twin closer than
+    # this (see ModelConfig.val_min_nn_distance). 0 = original behaviour.
+    val_min_nn_distance: float = 0.0
 
     def __post_init__(self) -> None:
         if self.rounds < 1:
@@ -48,6 +57,8 @@ class LoopConfig:
             raise ValueError("poison_ratio must be in [0, 1)")
         if self.budget_mode == "fixed_batch" and self.batch_size < 0:
             raise ValueError("batch_size must be >= 0")
+        if self.val_min_nn_distance < 0:
+            raise ValueError("val_min_nn_distance must be >= 0")
 
     def budgets(self, n_seed: int) -> list[int]:
         """Flows the adversary generates in rounds 1..``rounds``."""
@@ -65,8 +76,13 @@ class LoopConfig:
 
     def tag(self) -> str:
         """Job-key suffix; empty for the default so earlier results keep their names."""
-        if self.retention == "accumulate" and self.budget_mode == "fixed_ratio":
-            return ""
-        w = f"w{self.window_rounds}" if self.retention == "sliding_window" else "acc"
-        b = f"b{self.batch_size}" if self.budget_mode == "fixed_batch" else "fr"
-        return f"_{w}_{b}"
+        parts = []
+        if not (self.retention == "accumulate" and self.budget_mode == "fixed_ratio"):
+            w = f"w{self.window_rounds}" if self.retention == "sliding_window" else "acc"
+            b = f"b{self.batch_size}" if self.budget_mode == "fixed_batch" else "fr"
+            parts += [w, b]
+        if self.label_policy != "auto_malicious":
+            parts.append("truth")
+        if self.val_min_nn_distance:
+            parts.append(f"vt{self.val_min_nn_distance:g}")
+        return "".join(f"_{p}" for p in parts)
