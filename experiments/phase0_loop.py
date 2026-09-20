@@ -1,0 +1,176 @@
+"""Run the loop: control, S0 (clean), A1 (benign mimicry), across seeds.
+
+Three arms share seeds (:mod:`dloop.loop.rounds`). Each job is one
+(scenario, model, seed, jitter, poison_ratio) run of ``rounds`` rounds; jobs run
+in parallel processes and each writes its own CSV under ``<out>/jobs/`` so a
+restart resumes instead of recomputing. Jobs are ordered so the most informative
+poison ratios finish first â€” if wall clock bites, stop early and cut ratios, not
+seeds.
+
+A1 rows carry the *realized* mimicry fidelity: the median nearest-neighbour
+distance (guard-(c) metric, normalized space) from the poison rows the run
+actually injected to the full trusted_eval benign set. That, not the jitter
+parameter, is the dataset-independent x-axis.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+from dloop.adversary.clean import CleanAdversary
+from dloop.adversary.mimicry import FidelityMeter, MimicryAdversary, assert_disjoint_from_eval
+from dloop.logging_config import configure, get_logger
+from dloop.loop.config import LoopConfig
+from dloop.loop.data import LoopData
+from dloop.loop.rounds import FAST_HYPERPARAMS, run_arm
+
+log = get_logger("experiments.phase0_loop")
+
+RATIOS = (0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5)
+RATIO_PRIORITY = {0.05: 0, 0.2: 0, 0.1: 1, 0.02: 1, 0.01: 2, 0.5: 2, 0.005: 3}
+JITTERS = (0.0, 0.1, 0.2, 0.3, 0.7, 1.5)   # realized NN ~ 0.01, 0.09, 0.17, 0.25, 0.56, 1.1 on CICIDS
+FIDELITY_ROWS = 2000
+MAX_WORKERS = 4   # 7.7 GB machine; two OOM crashes at 9-10 workers
+
+_DATA: LoopData | None = None
+_FID: FidelityMeter | None = None
+
+
+def _init_worker(data_path: str, need_fidelity: bool) -> None:
+    global _DATA, _FID
+    configure("WARNING")
+    _DATA = LoopData.load(data_path)
+    if need_fidelity:
+        _FID = FidelityMeter(_DATA.normalizer.transform(_DATA.eval_benign_full_x), _DATA.normalizer)
+
+
+def _loop_config(j: dict) -> LoopConfig:
+    return LoopConfig(rounds=j["rounds"], retention=j["retention"], window_rounds=j["window"],
+                      budget_mode=j["budget_mode"], poison_ratio=j["ratio"], batch_size=j["batch_size"])
+
+
+def _job_key(j: dict) -> str:
+    return f"{j['scenario']}_{j['model']}_s{j['seed']}_j{j['jitter']}_r{j['ratio']}{_loop_config(j).tag()}"
+
+
+def _run_job(j: dict) -> tuple[str, list[dict]]:
+    assert _DATA is not None
+    t0 = time.time()
+    sc, seed = j["scenario"], j["seed"]
+    if sc == "control":
+        adv = None
+    elif sc == "s0":
+        adv = CleanAdversary(_DATA.pool_attack_x, seed)
+    elif sc == "a1":
+        adv = MimicryAdversary(_DATA.pool_benign_x, _DATA.normalizer, j["jitter"], seed)
+    else:
+        raise ValueError(sc)
+    res = run_arm(_DATA, adv, scenario=sc, model_kind=j["model"], seed=seed, config=_loop_config(j))
+    extra: dict = {"jitter": j["jitter"] if sc == "a1" else float("nan"), "dataset": _DATA.name}
+    if sc == "a1" and res.poison_x is not None:
+        assert _FID is not None
+        d = _FID.distances(res.poison_x, max_rows=FIDELITY_ROWS, rng=np.random.default_rng(seed))
+        extra.update(fidelity_median=float(np.median(d)), fidelity_p5=float(np.percentile(d, 5)),
+                     fidelity_p95=float(np.percentile(d, 95)), fidelity_n=int(len(d)))
+        # ground truth: every injected row is benign
+        assert int(res.poison_true_label.sum()) == 0
+    for r in res.rows:
+        r.update(extra)
+    return _job_key(j), res.rows
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--dataset", choices=["cicids", "synthetic"], required=True)
+    ap.add_argument("--scenarios", nargs="+", choices=["control", "s0", "a1"], required=True)
+    ap.add_argument("--models", nargs="+", default=["rf", "xgboost"])
+    ap.add_argument("--seeds", type=int, default=5)
+    ap.add_argument("--rounds", type=int, default=20)
+    ap.add_argument("--ratios", type=float, nargs="+", default=list(RATIOS))
+    ap.add_argument("--jitters", type=float, nargs="+", default=list(JITTERS))
+    ap.add_argument("--workers", type=int, default=MAX_WORKERS)
+    ap.add_argument("--retention", choices=["accumulate", "sliding_window"], default="accumulate")
+    ap.add_argument("--window", type=int, default=None, help="rounds kept, for sliding_window")
+    ap.add_argument("--budget-mode", choices=["fixed_ratio", "fixed_batch"], default="fixed_ratio")
+    ap.add_argument("--batch-size", type=int, default=0, help="flows per round, for fixed_batch")
+    ap.add_argument("--out", type=Path, default=None)
+    args = ap.parse_args(argv)
+    configure()
+    if args.workers > MAX_WORKERS:
+        ap.error(f"--workers is capped at {MAX_WORKERS} (this machine has 7.7 GB and has OOM'd)")
+
+    data_path = Path("data/loop") / f"{args.dataset}.npz"
+    data = LoopData.load(data_path)
+    out = args.out or Path("results/phase0/loop") / args.dataset
+    (out / "jobs").mkdir(parents=True, exist_ok=True)
+
+    # the loop must never let poison source rows coincide with trusted_eval rows
+    # A1's channel: fatal. (Attack-side, used only by S0: identical feature rows can
+    # legitimately appear under two different family labels — the partition's
+    # per-label hash allows that — so it is recorded, not fatal.)
+    n_checked = assert_disjoint_from_eval(data.pool_benign_x, data.eval_benign_full_x)
+    try:
+        n_checked_atk = assert_disjoint_from_eval(data.pool_attack_x, data.eval_x[data.eval_y == 1])
+        atk_note = "disjoint"
+    except AssertionError as e:
+        n_checked_atk, atk_note = int(len(data.pool_attack_x)), str(e)
+        log.warning("attack-side pool/eval overlap (cross-family, non-fatal)", detail=atk_note)
+
+    jobs: list[dict] = []
+    for sc in args.scenarios:
+        for model in args.models:
+            for seed in range(1, args.seeds + 1):
+                if sc == "control":
+                    jobs.append(dict(scenario=sc, model=model, seed=seed, jitter=0.0, ratio=0.0))
+                    continue
+                for ratio in (args.ratios if args.budget_mode == "fixed_ratio" else (0.0,)):
+                    for jit in (args.jitters if sc == "a1" else (0.0,)):
+                        jobs.append(dict(scenario=sc, model=model, seed=seed, jitter=jit, ratio=ratio))
+    for j in jobs:
+        j.update(rounds=args.rounds, retention=args.retention, window=args.window,
+                 budget_mode=args.budget_mode, batch_size=args.batch_size)
+        _loop_config(j)   # validate the combination up front
+    jobs.sort(key=lambda j: (RATIO_PRIORITY.get(j["ratio"], 0), -j["ratio"], j["scenario"],
+                             j["model"] != "rf", j["seed"], j["jitter"]))
+
+    config = {"dataset": args.dataset, "scenarios": args.scenarios, "models": args.models,
+              "seeds": args.seeds, "rounds": args.rounds, "ratios": args.ratios,
+              "jitters": args.jitters, "hyperparams": FAST_HYPERPARAMS, "retention": args.retention,
+              "window_rounds": args.window, "budget_mode": args.budget_mode,
+              "batch_size": args.batch_size,
+              "fidelity_rows": FIDELITY_ROWS, "arm_counts": data.arm_counts(),
+              "seed_rows": int(len(data.seed_x)), "eval_rows": int(len(data.eval_x)),
+              "a1_poison_source_rows_checked_disjoint_from_eval_benign": n_checked,
+              "attack_pool_rows_checked_vs_eval_attack": n_checked_atk,
+              "attack_side_note": atk_note}
+    config["config_hash"] = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()[:16]
+    (out / f"config_{'_'.join(args.scenarios)}_{config['config_hash']}.json").write_text(
+        json.dumps(config, indent=2))
+
+    todo = [j for j in jobs if not (out / "jobs" / f"{_job_key(j)}.csv").exists()]
+    log.info("loop jobs", total=len(jobs), todo=len(todo), workers=args.workers,
+             config_hash=config["config_hash"])
+    need_fid = "a1" in args.scenarios
+    t0, done = time.time(), 0
+    with ProcessPoolExecutor(max_workers=args.workers, initializer=_init_worker,
+                             initargs=(str(data_path), need_fid)) as ex:
+        futs = {ex.submit(_run_job, j): j for j in todo}
+        for f in as_completed(futs):
+            key, rows = f.result()
+            pd.DataFrame(rows).to_csv(out / "jobs" / f"{key}.csv", index=False)
+            done += 1
+            if done % 10 == 0 or done == len(todo):
+                log.info("progress", done=done, of=len(todo), minutes=round((time.time() - t0) / 60, 1))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

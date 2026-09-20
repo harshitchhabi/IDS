@@ -117,6 +117,9 @@ class PartitionConfig:
     # at 1-2s (session/tool-retry boundaries); a couple of flood families
     # (DDoS, DoS Hulk) are near-continuous but still yield hundreds of bursts at
     # this threshold, which is enough resolution to fill the split fractions.
+    # NOTE: the MachineLearningCVE CICIDS2017 CSVs have no timestamp; the cleaner
+    # synthesizes 1 row = 1 s in file order, so on that data these "seconds" are
+    # file-order row counts (DECISIONS.md §14 erratum).
     burst_gap_seconds: float = 2.0
 
     # Secondary check on the burst assignment: if two adjacent bursts assigned
