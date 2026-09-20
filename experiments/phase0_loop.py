@@ -26,7 +26,7 @@ import numpy as np
 import pandas as pd
 
 from dloop.adversary.clean import CleanAdversary
-from dloop.adversary.mimicry import (FidelityMeter, JitterAdversary, MimicryAdversary,
+from dloop.adversary.mimicry import (FidelityMeter, JitterAdversary, JunkAdversary, MimicryAdversary,
                                      assert_disjoint_from_eval)
 from dloop.logging_config import configure, get_logger
 from dloop.defense.base import NoOpDefense
@@ -103,6 +103,8 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
     elif sc in ("a1", "a1truth"):
         adv = MimicryAdversary(_DATA.pool_benign_x, _DATA.normalizer, j["jitter"], seed,
                                cost_padding=j["pad"])
+    elif sc == "junk":  # marginal-shuffled bulk rows stamped malicious (volume with no fidelity)
+        adv = JunkAdversary(np.vstack([_DATA.pool_benign_x[::4], _DATA.pool_attack_x[::2]]), seed)
     elif sc == "s0j":   # genuine attack rows, jittered like A1's poison, labelled malicious
         adv = JitterAdversary(_DATA.pool_attack_x, _DATA.normalizer, j["jitter"], seed, true_label=1)
     else:
@@ -128,7 +130,7 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dataset", choices=["cicids", "synthetic"], required=True)
-    ap.add_argument("--scenarios", nargs="+", choices=["control", "s0", "a1", "s0j", "a1truth"], required=True)
+    ap.add_argument("--scenarios", nargs="+", choices=["control", "s0", "a1", "s0j", "a1truth", "junk"], required=True)
     ap.add_argument("--models", nargs="+", default=["rf", "xgboost"])
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--rounds", type=int, default=20)
