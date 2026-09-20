@@ -1,0 +1,42 @@
+{
+  "dataset": "synthetic",
+  "scenarios": [
+    "a1"
+  ],
+  "models": [
+    "rf",
+    "xgboost"
+  ],
+  "seeds": 5,
+  "rounds": 20,
+  "ratios": [
+    0.05,
+    0.2
+  ],
+  "jitters": [
+    0.0,
+    0.3,
+    1.5
+  ],
+  "hyperparams": {
+    "rf": {
+      "n_estimators": 25,
+      "max_depth": 16
+    },
+    "xgboost": {
+      "n_estimators": 60
+    }
+  },
+  "fidelity_rows": 2000,
+  "arm_counts": {
+    "seen_both": 2805,
+    "seed_only": 576,
+    "honeypot_only": 596
+  },
+  "seed_rows": 28515,
+  "eval_rows": 17396,
+  "a1_poison_source_rows_checked_disjoint_from_eval_benign": 19945,
+  "attack_pool_rows_checked_vs_eval_attack": 8056,
+  "attack_side_note": "disjoint",
+  "config_hash": "8ad1e628f1c8907a"
+}

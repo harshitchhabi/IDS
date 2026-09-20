@@ -374,6 +374,20 @@ synthetic.
 
 ## 14. Burst-level splitting — tried, does not fix the leak
 
+> **Erratum (found while building the loop; see §16).** The CICIDS2017 CSVs used
+> here (`MachineLearningCVE`) have **no `Timestamp` column**. `clean_flows`
+> synthesizes one — 1 row = 1 second, in file order (`synthesized_timestamps`,
+> logged as a warning on every run). So on real data every "second" in this
+> section, the 2.0 s `burst_gap_seconds`, the 300 s guard band, and the
+> "inter-flow gap distribution" in `burst_gap_distribution.csv` are measured on
+> that file-order clock: a "gap" is the number of rows of *other* labels between
+> two rows of a family, and a "burst" is a run of one family broken by two or more
+> other-label rows. That is still a legitimate contiguity split, but it is not a
+> time-gap split, and the text below that reads as real inter-arrival time should
+> be read as file-order run length. The measured degeneracy does not depend on
+> this (§16 shows a uniformly shuffled split gives the same distances); whether a
+> split on *real* timestamps changes anything cannot be tested with these files.
+
 §13 left an open question: would replacing the row-level temporal cut with a
 burst-aware cut close the gap? A row-level cut through a flood tool's output
 seemed like the obvious culprit — Hulk/PortScan/DDoS emit long runs of
@@ -566,3 +580,250 @@ explicitly measuring worst-case/memorization behavior rather than the
 generalization claim, with the degeneracy disclosed up front as this section
 does. This is a decision for the next session, not one to make silently by
 picking whichever option makes the loop runnable.
+
+## 16. CICIDS2017 degeneracy, measured — and what each dataset can answer
+
+**Claim.** Under CICFlowMeter flow-summary features, CICIDS2017 is low-entropy in
+*both* classes: for every attack family with usable volume, and for benign, a
+held-out row has a near-identical twin in the training-side pool no matter how
+the data is split. It therefore cannot support a *learning* claim for any class
+with usable volume. S0's learning claim is not measurable on this dataset — not
+"hard", not measurable. (This is the likely reason the literature reports ~99% on
+it.) This section is the measurement behind that claim; it replaces the
+"blocker" framing of §14–15.
+
+**Table** (`results/phase0/cicids/nn_degeneracy_by_grid.csv`, figure
+`degeneracy.png`; burst-level split, every family exposed to `honeypot_pool`,
+median per-feature-RMS NN distance from `trusted_eval` to `honeypot_pool` in
+normalized space; the guard-(c) "clean" bar is 0.25):
+
+| | n_eval @0.005 | grid 0.005 | 0.01 | 0.02 | 0.05 |
+|---|---:|---:|---:|---:|---:|
+| BENIGN | 229,695 | 0.0065 | 0.0086 | 0.0108 | 0.0171 |
+| DoS Hulk | 30,334 | 0.0055 | 0.0069 | 0.0113 | 0.0161 |
+| DDoS | 17,383 | 0.0050 | 0.0063 | 0.0082 | 0.0131 |
+| DoS GoldenEye | 1,579 | 0.0130 | 0.0132 | 0.0136 | 0.0177 |
+| FTP-Patator | 1,010 | 0.0030 | 0.0036 | 0.0051 | 0.0142 |
+
+Benign 5th percentile: 0.0007 / 0.0014 / 0.0024 / 0.0058 across the four grids.
+Every family with >=500 eval rows sits at least 14x below the 0.25 bar at every
+grid. Coarser dedup raises the distances only mechanically, by deleting rows
+(1.08M rows removed at 0.05), and never approaches the bar. The tier by *minimum*
+distance (`nn_by_family.csv`) is grid-sensitive at the margin (DoS GoldenEye flips
+to "structured" at 0.05 on a min of 0.002 with a median of 0.018); the **median**
+is the robust statistic and is what the figure shows.
+
+**The split is not the cause — a shuffled-partition control.**
+`experiments/phase0_degeneracy_control.py` pools each family's rows across
+seed_train / honeypot_pool / trusted_eval, shuffles them uniformly, re-splits at
+the same sizes, and measures the same statistic against same-family rows only
+(`nn_degeneracy_control.csv`). A uniformly random split has no temporal or burst
+structure. Median NN, real vs shuffled: BENIGN 0.0067 vs 0.0078, DDoS 0.0049 vs
+0.0038, DoS Hulk 0.0054 vs 0.0040, DoS GoldenEye 0.0131 vs 0.0155, FTP-Patator
+0.0030 vs 0.0021, SSH-Patator 0.0030 vs 0.0017, Web Attack (XSS, Brute Force) ~0.0014
+vs ~0.0014. Real and shuffled agree to within a factor of ~1.5 for benign and
+every high-volume family, so no partition of any kind — a split on real
+timestamps included, which these files cannot provide (§14 erratum) — can
+separate train from eval, because the distances are set by the feature
+distribution rather than by where the cut falls.
+
+**What the control also shows.** For the small "structured" families the two
+disagree sharply: Bot 1.44 real vs 0.003 shuffled, PortScan 0.44 vs 0.004,
+DoS slowloris 1.19 vs 0.003. Under a shuffle they are as degenerate as the rest.
+Their apparent separation comes from *session-to-session shift* in file order —
+the early and late sessions of one campaign occupy different regions — not from
+high per-flow entropy. That is a real, usable kind of held-out-ness (a genuinely
+new session), but it exists only for families with <500 eval rows, so it cannot be
+reported on. "Structured" in `nn_by_family.csv` should be read as "clustered by
+session", not "high entropy".
+
+**Consequence — what each dataset answers.**
+
+| dataset | answers | why |
+|---|---|---|
+| CICIDS2017 | the degeneracy measurement itself; the A1 damage-vs-distance curve | A1's poison is benign rows stamped malicious; its damage is a function of how far the poison sits from trusted benign, which we can *set* and *measure* on any data. Degeneracy gives the near end of the curve for free (raw benign is the leftmost point). |
+| synthetic | S0, A4, all three arms | entropy is controlled by construction (`nn_benign_p5`/`nn_attack_p5` clean, guard (c) passes); S0's learning claim needs held-out signal that real CICIDS does not have. |
+
+Both are real results; synthetic-for-S0 is defensible *because* the measurement
+above says why real data cannot carry it.
+
+## 17. The loop, and what A1 actually shows
+
+Built: `dloop.adversary` (`Adversary.generate_batch(round_idx, budget) ->
+(DataFrame, CostMetadata)`; `CleanAdversary` = S0, `MimicryAdversary` = A1 with a
+jitter knob), `dloop.loop` (`LoopConfig`, auto-labeler, round runner, compact
+seeded dataset), `dloop.defense.base` (no-op hook, the real interface; §18).
+Runner `experiments/phase0_loop.py` (hard-capped at 4 workers), realized-fidelity
+recorder `experiments/phase0_fidelity.py`, report `experiments/phase0_loop_report.py`.
+Results: `results/phase0/loop/{cicids,synthetic}/` (per-job CSVs, `config_*.json`
+with a config hash, `report.md`, figures, CSVs). Tests: `tests/test_loop.py`.
+
+**Design that matters for reading the numbers.** Control = no ingestion, cold
+retrain each round. The model seed varies by round (same across arms) — identical
+data + identical seed would make the control bit-identical every round and its
+variance exactly zero, so it would not be a noise floor. `sigma_control` = std of
+the control metric over seeds x rounds 11-20 (one measurement, so conservative);
+"clears control variance" = mean paired final-round delta > 2 sigma_control.
+Round 0 is shared by every arm. The x-axis is the **realized** median NN distance
+from the injected poison to the full trusted_eval benign set (guard-(c) metric),
+not the jitter knob; the full distribution per jitter is in
+`mimicry_fidelity_distribution.csv`, and post-jitter poison rows were asserted
+disjoint from trusted_eval benign by row content (0 overlaps at every jitter).
+
+**What was run.** 5 seeds, 20 rounds, RF (25 trees, depth <=16) and XGBoost (60
+trees), both threshold modes, <=4 workers. RF was cut from a larger config because
+one full-size arm cost ~11 min and the grid ~7 h. CICIDS A1 at all seven ratios
+{0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5}; jitter {0, 0.01, 0.02, 0.03, 0.05, 0.07,
+0.1, 0.2, 0.3, 0.7, 1.5} (realized median 0.011 -> 1.06, roughly log-spaced) at
+0.02/0.05/0.1/0.2, and the 6-point subset {0, 0.01, 0.03, 0.1, 0.3, 1.5} at
+0.005/0.01/0.5. S0 on CICIDS at all seven ratios (a class-prior *reference*, not a
+learning claim). Earlier runs were produced under a superseded `Batch` API; the
+refactor to the `generate_batch` API was verified **bit-identical** on four
+representative jobs (CICIDS A1, CICIDS control, synthetic S0, synthetic A1: max
+abs diff 0.0 over every numeric column), then those runs were reused.
+
+**1. Control noise floor (CICIDS).** Fixed-threshold FPR: RF 0.046, sigma 0.015
+(round-to-round 0.013, across seeds 0.007); XGBoost 0.039, sigma 0.010. That is ~4x
+the 0.01 target: round-0 calibration uses a validation split carved from a
+seed_train full of near-duplicates (§10.5). Recalibrated TPR is noisier (sigma
+0.030 RF, 0.020 XGBoost). Synthetic: FPR 0.0085 (sigma 0.0014).
+
+**2-3. A1 on CICIDS: a cliff at copy-level fidelity.** Fixed-threshold FPR
+increase over the same-seed control, final round, mean +/- sd over 5 seeds
+(2 sigma_control: RF 0.030, XGBoost 0.020; full table in `report.md`):
+
+| ratio | RF, realized 0.011 (raw) | RF, 0.014 | RF, 0.25 | RF, 1.06 | XGB, 0.011 (raw) | XGB, 0.014 | XGB, 0.25 | XGB, 1.06 |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0.005 | +0.011 | +0.021 | +0.020 | +0.016 | -0.005 | -0.002 | -0.011 | -0.014 |
+| 0.01 | +0.032 | +0.007 | +0.019 | +0.012 | -0.000 | -0.006 | -0.009 | -0.008 |
+| 0.02 | +0.055 | +0.018 | +0.040 | +0.022 | +0.114 (sd 0.113) | +0.006 | +0.001 | +0.003 |
+| 0.05 | **+0.468** | +0.034 | +0.047 | +0.031 | **+0.726** | -0.008 | -0.004 | -0.002 |
+| 0.1 | **+0.787** | +0.028 | +0.042 | +0.031 | **+0.902** | +0.003 | -0.004 | +0.003 |
+| 0.2 | **+0.921** | +0.042 | +0.052 | +0.037 | **+0.944** | +0.003 | +0.010 | +0.024 |
+| 0.5 | **+0.954** | +0.056 | +0.050 | +0.042 | **+0.944** | +0.025 | +0.022 | +0.035 |
+
+Damage falls from catastrophic to the noise floor between realized 0.0111 and
+0.0139 — a factor of ~1.3 in distance, **18-25x to the left of the 0.25 mark**.
+There is no gradient to read a threshold from: it does not fall off *after* 0.25,
+it is already gone by 0.014. The distribution explains the sharpness. Raw poison
+has NN percentiles p5 = 0.0009, p25 = 0.0037, median = 0.0102; jitter 0.01 moves
+p5 to 0.0079 and p25 to 0.0101. The cliff is the removal of the lower tail of
+near-exact twins of trusted_eval benign rows — memorization of near-copies, which
+§16 shows exist because CICIDS benign is itself degenerate.
+
+**4. Poison ratio at which A1 first clears control variance** (fixed threshold, FPR;
+`a1_first_clears_control_variance.csv`):
+
+- **Raw benign (realized 0.011): RF at 1% (+0.032), XGBoost at 2% (+0.114 but sd
+  0.113 — some seeds collapse, some do not). At 5% both are at +0.47/+0.73.** The
+  ratio-to-damage relation is sharply nonlinear: 2% -> 5% multiplies RF damage ~9x.
+- **Any jitter >= 0.01 (realized >= 0.014): XGBoost never clears below 0.5**, and
+  there it is +0.02 to +0.035, below the S0 reference at 0.5 (+0.041). Nothing
+  distance-dependent.
+- **RF clears at 2-10% for every jitter, but with a flat, distance-independent
+  size (+0.02 to +0.056 from 0.014 to 1.06)** — not a mimicry signature. S0 at the
+  same ratios raises RF fixed FPR by only -0.003 to +0.029, so class-prior shift
+  explains only part of it; A1's excess over S0 is ~+0.02 to +0.04 at ratios <=0.1
+  (`first_clears_beyond_s0_ratio`, borderline: S0's own sd is 0.01-0.02). Its
+  origin (benign-labeled-malicious noise perturbing a depth-limited forest) is not
+  established and it is not claimed as a distance effect.
+- **Recalibrated threshold (TPR collapse):** at raw benign both models first clear at
+  20% (RF -0.14, XGBoost -0.06); at 50% RF -0.28, XGBoost -0.22. Beyond the cliff
+  XGBoost shows no drop; RF drops -0.05 to -0.10 at high ratios far from benign
+  (again distance-*increasing*, so again not mimicry).
+
+**A1's damage clears control variance at exactly one place: copy-level fidelity.**
+That is not the stop condition (damage does clear), but it bounds the claim: on
+CICIDS an attacker who replays benign-like traffic sits there for free, because
+the dataset's own benign flows are that repetitive, and 1-2% poison then suffices.
+It says nothing about how much a mimic needs against traffic that is not this
+degenerate.
+
+**Does the curve travel? Not established.** On synthetic, raw benign sits at
+realized NN 0.49 (already right of the cliff), and A1 there does little: RF fixed
+FPR +0.001 / +0.011 at 5% / 20%, XGBoost +0.001 / +0.046 (the +0.046 is one seed
+spiking, sd 0.084). That is consistent with a cliff near 0.01, but it is one
+location inferred from CICIDS plus points on the far side: synthetic cannot reach
+the left of the cliff (jitter only adds distance), so where the cliff sits on
+other data is untested. A dataset with graded entropy, or a copy-level adversary on
+synthetic, would test it.
+
+**5. S0 on synthetic (learning claim, entropy controlled).** Per arm, fixed
+threshold, 20% ratio: `honeypot_only` TPR 0.39 (control) -> 0.997 (RF) and 0.34 ->
+0.994 (XGBoost), within 1-2 rounds; `seen_both` 0.946 -> 0.961 (RF), 0.950 -> 0.963
+(XGBoost), above the control band; `seed_only` flat at ~0.997 (ceiling; A4's arm,
+untouched by S0 as intended). Cost: fixed FPR at 50% rises to 0.024 — the same
+prior-shift effect. S0 on CICIDS also raises TPR (+0.03 to +0.09) but that is
+memorization of degenerate families (§16), not a learning result.
+
+**Not established.** (i) Position of the cliff inside 0.0111-0.0139; (ii) whether the
+cliff location is dataset-independent; (iii) the cause of RF's flat sub-cliff
+effect; (iv) any defense (D1/D2 not built); (v) `sliding_window` and `fixed_batch`
+were implemented and unit-tested but not swept; (vi) RF hyperparameters are the
+reduced config above, and only XGBoost jobs were used in the bit-identical
+regression (RF runs through identical code).
+
+## 18. Loop configuration: retention and budget mode; why the datasets are split the way they are
+
+The loop's two adversary/defender knobs are **config** (`dloop.loop.config.
+LoopConfig`, CLI `--retention/--window/--budget-mode/--batch-size`), not
+constants, and each is validated (`sliding_window` needs `window_rounds`;
+`window_rounds` without a window is rejected; ratio in [0, 1)).
+
+**Retention.** `accumulate` (default) keeps every admitted honeypot batch for the
+rest of the run; `sliding_window` keeps the last `window_rounds` rounds of
+batches (seed_train is always kept). Default is `accumulate` because that is the
+design the literature proposes ("continuous adaptation") and the worst case for
+the defender — influence only ever grows — so it is the setting under which the
+paper's claim ("the labeling loop is an attacker-controlled write channel") is
+made. The window is the obvious mitigation to test *against* it and is available
+for the defense phase; **no sweep in this checkpoint uses it** (unit-tested:
+old batches are dropped, cumulative attacker cost is not).
+
+**Budget mode.** `fixed_ratio` sizes the per-round batch so the honeypot share of
+the training set reaches `poison_ratio` at the final round (`accumulate`, cumulative
+rounding so the final count is exact) or once the window fills (`sliding_window`,
+constant per-round budget). Damage curves use it: every point has a known,
+comparable poison share. `fixed_batch` gives a constant `batch_size` flows per
+round regardless of ratio; the share then *evolves* (linear growth under
+`accumulate`, a plateau under a window). Temporal-dynamics experiments use it. All
+checkpoint results are `accumulate` + `fixed_ratio`; `fixed_batch` is implemented
+and tested but not swept. The recorded `poison_ratio` is retained honeypot rows /
+total training rows each round; cumulative attacker cost counts everything the
+adversary generated, retained or not (a window forgets data, not effort).
+
+**Adversary API.** `Adversary.generate_batch(round_idx, budget) ->
+(pd.DataFrame, CostMetadata)`. `CostMetadata` (flows, packets, bytes, flow-time
+seconds) is emitted per batch and passed to the defense hook alongside the batch
+and the stamped label, because D1 prices influence by exactly those quantities.
+`DefenseHook.apply(batch, cost, stamped_label) -> DefenseDecision(weights, admit)`
+is the real interface; the no-op returns weight 1 and admit. D1 supplies weights,
+D2 supplies `admit=False`; `sample_weight` remains the only channel, so the round
+runner needs no change.
+
+**Realized fidelity, not the knob.** A1's x-axis is the median nearest-neighbour
+distance from the injected poison to the full trusted_eval benign set, in the
+guard-(c) metric and normalized space. `experiments/phase0_fidelity.py` records
+the whole distribution per jitter (p0-p100), not only the median, and asserts by
+row content that the *post-jitter* poison rows are disjoint from trusted_eval
+benign (the pre-jitter source rows are asserted in the runner). Jitter is roughly
+log-spaced in realized distance. Raw benign is the leftmost point and jitter can
+only move poison further away, so the sweep cannot go below the dataset's own
+duplicate scale: on CICIDS raw poison has p5 = 0.0009, median = 0.0102. (The
+"~0.0007" figure quoted for raw benign is a 5th-percentile-type number; the
+median, which is what the damage curves use, is 0.0102.)
+
+**Why the datasets are split.** Real CICIDS2017 cannot carry an S0 learning claim
+(§16): every family with >=500 eval rows has a median held-out-to-train NN
+distance of 0.003-0.013, >=14x below the 0.25 bar at every dedup grid, benign
+included (5th percentile 0.0007), and a shuffled split reproduces the same
+distances, so no partition can fix it. S0's "improvement" there is memorization
+of near-copies. A1, by contrast, does not need held-out attack structure: its
+poison is benign rows stamped malicious, its damage is a function of a quantity we
+*set and measure* (distance to trusted benign), and degeneracy hands us the
+near end of the curve for free. So CICIDS answers the A1 damage-vs-distance curve
+and the degeneracy measurement; synthetic — entropy controlled, guard (c) clean —
+answers S0 and the three family arms (`seen_both`, `seed_only`, `honeypot_only`;
+`novel` is dropped: n=0 with no prospect of filling it). Leading with the
+measurement and *then* substituting is what makes synthetic-for-S0 defensible
+rather than convenient.
