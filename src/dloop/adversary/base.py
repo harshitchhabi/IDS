@@ -14,7 +14,7 @@ to sustain, not measured wall-clock — the simulator has no wall-clock.
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
@@ -29,21 +29,45 @@ _DURATION_COL = _IDX["flow_duration"]
 TRUE_LABEL = "true_label"   # ground truth 0/1; the defender never sees this column
 
 
+PER_FLOW_COLUMNS = ("duration_s", "packets", "bytes", "depth")   # column order of CostMetadata.per_flow
+_FWD_PKT, _BWD_PKT = _IDX["fwd_packets"], _IDX["bwd_packets"]
+
+
+def per_flow_cost(x: np.ndarray) -> np.ndarray:
+    """(n, 4) attacker-cost record per flow: duration (s), packets, bytes, and
+    protocol-state depth. Depth is the number of request/response exchanges the
+    flow sustained — min(fwd, bwd) packets — the flow-level stand-in for what a
+    honeypot log would report as commands executed / protocol state reached."""
+    x = np.asarray(x, dtype="float64")
+    return np.column_stack([
+        x[:, _DURATION_COL] / 1e6,
+        x[:, _PACKET_COLS].sum(axis=1),
+        x[:, _BYTE_COLS].sum(axis=1),
+        np.minimum(x[:, _FWD_PKT], x[:, _BWD_PKT]),
+    ])
+
+
 @dataclass(frozen=True)
 class CostMetadata:
+    """What a batch cost the attacker: batch totals, plus the per-flow record the
+    totals were summed from (D1 weights individual samples by their own cost)."""
+
     flows: int
     packets: float
     bytes: float
     duration_s: float
+    per_flow: np.ndarray | None = field(default=None, compare=False, repr=False)
 
 
 def cost_metadata(x: np.ndarray) -> CostMetadata:
     x = np.asarray(x, dtype="float64")
+    pf = per_flow_cost(x)
     return CostMetadata(
         flows=int(len(x)),
         packets=float(x[:, _PACKET_COLS].sum()),
         bytes=float(x[:, _BYTE_COLS].sum()),
         duration_s=float(x[:, _DURATION_COL].sum() / 1e6),
+        per_flow=pf,
     )
 
 

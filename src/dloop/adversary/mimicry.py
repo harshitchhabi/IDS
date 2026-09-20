@@ -17,20 +17,41 @@ import numpy as np
 import pandas as pd
 
 from dloop.adversary.base import Adversary, CostMetadata, batch_frame, cost_metadata
+from dloop.features import schema
 from dloop.features.normalize import _CLIP, Normalizer
 
 
-class MimicryAdversary(Adversary):
-    def __init__(self, pool_benign: np.ndarray, normalizer: Normalizer, jitter: float,
-                 seed: int) -> None:
-        super().__init__(pool_benign, seed)
+_COST_FEATURES = ("flow_duration", "fwd_packets", "bwd_packets", "fwd_bytes", "bwd_bytes")
+_COST_IDX = [schema.CANONICAL_FEATURES.index(f) for f in _COST_FEATURES]
+
+
+class JitterAdversary(Adversary):
+    """Rows from ``pool`` with per-feature Gaussian jitter in normalized space.
+
+    ``true_label`` is the ground truth of the pool (0 = benign, 1 = attack).
+    ``cost_padding`` (>= 1) scales the attacker-cost features (duration, packets,
+    bytes) *before* jitter: the adversary's move against a cost-weighted defense
+    (it makes the interaction look more expensive, and moves the row away from
+    the benign it was copying). 1.0 leaves rows untouched.
+    """
+
+    def __init__(self, pool: np.ndarray, normalizer: Normalizer, jitter: float, seed: int,
+                 *, true_label: int, cost_padding: float = 1.0) -> None:
+        super().__init__(pool, seed)
         if jitter < 0:
             raise ValueError("jitter must be >= 0")
+        if cost_padding < 1.0:
+            raise ValueError("cost_padding must be >= 1")
         self.jitter = float(jitter)
+        self.cost_padding = float(cost_padding)
+        self._label = int(true_label)
         self._norm = normalizer
 
     def generate_batch(self, round_idx: int, budget: int) -> tuple[pd.DataFrame, CostMetadata]:
         x, resampled = self._take(budget)
+        if self.cost_padding != 1.0 and len(x):
+            x = x.copy()
+            x[:, _COST_IDX] *= self.cost_padding
         if self.jitter > 0 and len(x):
             z = self._norm.transform(x).astype("float64")
             rng = np.random.default_rng([self._seed, round_idx, 7919])
@@ -39,7 +60,15 @@ class MimicryAdversary(Adversary):
             # normalizer (and make attacker cost inf) without changing which side
             # of the +-25 clip the row lands on
             x = np.clip(np.expm1(np.minimum(z * self._norm.scale + self._norm.center, 25.0)), 0.0, 1e10)
-        return batch_frame(x, 0, resampled=resampled), cost_metadata(x)
+        return batch_frame(x, self._label, resampled=resampled), cost_metadata(x)
+
+
+class MimicryAdversary(JitterAdversary):
+    """A1: benign rows (true label 0) that the auto-labeler will stamp malicious."""
+
+    def __init__(self, pool_benign: np.ndarray, normalizer: Normalizer, jitter: float, seed: int,
+                 *, cost_padding: float = 1.0) -> None:
+        super().__init__(pool_benign, normalizer, jitter, seed, true_label=0, cost_padding=cost_padding)
 
 
 class FidelityMeter:

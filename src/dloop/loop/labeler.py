@@ -13,3 +13,8 @@ import pandas as pd
 
 def auto_label(batch: pd.DataFrame) -> np.ndarray:
     return np.ones(len(batch), dtype=np.int64)
+
+
+def ground_truth_label(batch: pd.DataFrame) -> np.ndarray:
+    """Mechanism-control policy: stamp the *true* label. Never a defender policy."""
+    return batch["true_label"].to_numpy().astype(np.int64)

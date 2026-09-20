@@ -1,0 +1,3 @@
+model,target_FPR_rise,undefended_first_ratio,D1_first_ratio,D1_max_ratio_tested,D1_max_FPR_rise,cum_flows_undef,cum_flows_D1,cum_flows_x,cum_packets_undef,cum_packets_D1,cum_packets_x,cum_bytes_undef,cum_bytes_D1,cum_bytes_x,cum_duration_s_undef,cum_duration_s_D1,cum_duration_s_x
+rf,0.1,0.2,,0.5,0.067,7500.0,>3e+04,>4.0,149313.4,>5.8e+05,>3.9,84889593.6,>3.21e+08,>3.8,131937.0163472,>5.34e+05,>4.0
+xgboost,0.1,0.2,0.9,0.9,0.132,7500.0,270000.0,36.0,149313.4,5178989.0,34.68535978686441,84889593.6,2839830487.0,33.45322278701544,131937.0163472,4779333.086743999,36.22435324872668

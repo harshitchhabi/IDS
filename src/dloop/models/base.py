@@ -55,9 +55,18 @@ class ModelConfig:
     val_fraction: float = 0.2          # carved from the training set, benign-stratified
     warm_start: bool = False           # cold-start by default; A2 will want warm
     hyperparams: dict[str, Any] = field(default_factory=dict)
+    # Calibrate only on validation rows that have no same-class training twin
+    # closer than this (per-feature RMS, normalized space; the guard-(c) metric).
+    # On near-degenerate data the validation split is full of near-copies of
+    # training rows, so calibration FPR is optimistic and the threshold too low
+    # (DECISIONS.md 19). 0 = off (the original behaviour, bit-identical).
+    val_min_nn_distance: float = 0.0
 
     def hash(self) -> str:
-        blob = json.dumps(dataclasses.asdict(self), sort_keys=True, default=str)
+        d = dataclasses.asdict(self)
+        if not d["val_min_nn_distance"]:
+            d.pop("val_min_nn_distance")     # keep hashes of pre-existing configs stable
+        blob = json.dumps(d, sort_keys=True, default=str)
         return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
@@ -138,6 +147,7 @@ class Model(abc.ABC):
         self.threshold_: float | None = None
         self.fingerprint_: TrainingFingerprint | None = None
         self.calibration_metrics_: dict = {}
+        self.val_benign_dropped_frac_: float = 0.0
         self._fitted = False
 
     # ---- subclass hooks --------------------------------------------------
@@ -180,15 +190,43 @@ class Model(abc.ABC):
         self._fit_impl(self.scaler_.transform(x_tr), y_tr, w_tr)
         self._fitted = True
 
-        self.threshold_ = self._calibrate_on_scores(self._score_impl(self.scaler_.transform(x_val)), y_val)
-        self.calibration_metrics_ = binary_metrics(
-            y_val, self._score_impl(self.scaler_.transform(x_val)), self.threshold_
-        )
+        x_val_s = self.scaler_.transform(x_val)
+        val_scores = self._score_impl(x_val_s)
+        keep = self._val_rows_without_twins(x_tr, x_val_s, y_tr, y_val)
+        self.threshold_ = self._calibrate_on_scores(val_scores[keep], y_val[keep])
+        self.calibration_metrics_ = binary_metrics(y_val[keep], val_scores[keep], self.threshold_)
         log.info("model fitted", kind=self.config.kind, config_hash=self.config.hash(),
                  threshold=round(self.threshold_, 6),
                  val_fpr=round(self.calibration_metrics_["fpr"], 4),
                  val_tpr=round(self.calibration_metrics_["tpr"], 4))
         return self
+
+    def _val_rows_without_twins(self, x_tr: np.ndarray, x_val_s: np.ndarray,
+                                y_tr: np.ndarray, y_val: np.ndarray) -> np.ndarray:
+        """Mask of validation rows to calibrate on. With ``val_min_nn_distance`` = 0
+        every row (unchanged behaviour); otherwise only rows whose nearest
+        same-class training row is at least that far away. Falls back to all rows
+        (and records nothing dropped) if fewer than 100 benign rows would remain."""
+        tau = self.config.val_min_nn_distance
+        keep = np.ones(len(y_val), dtype=bool)
+        if tau <= 0:
+            return keep
+        from sklearn.neighbors import NearestNeighbors
+
+        x_tr_s = self.scaler_.transform(x_tr)
+        for cls in (0, 1):
+            tr, va = x_tr_s[y_tr == cls], np.where(y_val == cls)[0]
+            if len(tr) == 0 or len(va) == 0:
+                continue
+            d, _ = NearestNeighbors(n_neighbors=1).fit(tr).kneighbors(x_val_s[va])
+            keep[va] = (d.ravel() / np.sqrt(x_val_s.shape[1])) >= tau
+        if int(np.sum(keep & (y_val == 0))) < 100:
+            log.warning("too few twin-free benign validation rows; calibrating on all",
+                        tau=tau, kept=int(np.sum(keep & (y_val == 0))))
+            return np.ones(len(y_val), dtype=bool)
+        n_ben = int(np.sum(y_val == 0))
+        self.val_benign_dropped_frac_ = 1.0 - float(np.sum(keep & (y_val == 0))) / max(n_ben, 1)
+        return keep
 
     def _require_fitted(self) -> None:
         if not self._fitted or self.scaler_ is None:
