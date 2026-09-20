@@ -101,3 +101,25 @@ def assert_disjoint_from_eval(source_rows: np.ndarray, eval_rows: np.ndarray) ->
     if overlap:
         raise AssertionError(f"{len(overlap)} poison source rows are identical to trusted_eval rows")
     return int(len(source_rows))
+
+
+class JunkAdversary(Adversary):
+    """Arbitrary junk: each feature drawn independently from the pooled marginal of
+    ``pool`` (benign + attack rows together), so per-feature ranges and shapes are
+    realistic but every correlation between features is destroyed. The rows resemble
+    neither benign nor attack traffic; stamped malicious by the auto-labeler. This is
+    the "send the honeypot arbitrary bulk volume" adversary: it tests whether volume
+    alone, with no fidelity to anything, degrades the detector (DECISIONS.md 22).
+    ``true_label`` is 0 only by convention: junk is not an attack.
+    """
+
+    def __init__(self, pool: np.ndarray, seed: int) -> None:
+        super().__init__(pool, seed)
+
+    def generate_batch(self, round_idx: int, budget: int) -> tuple[pd.DataFrame, CostMetadata]:
+        rng = np.random.default_rng([self._seed, round_idx, 4242])
+        n_pool, n_feat = self._pool.shape
+        x = np.empty((budget, n_feat), dtype="float64")
+        for j in range(n_feat):
+            x[:, j] = self._pool[rng.integers(0, n_pool, size=budget), j]
+        return batch_frame(x, 0, resampled=False), cost_metadata(x)

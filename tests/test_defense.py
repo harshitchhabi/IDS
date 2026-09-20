@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from dloop.adversary.base import PER_FLOW_COLUMNS, cost_metadata, features_of, per_flow_cost
-from dloop.adversary.mimicry import JitterAdversary, MimicryAdversary
+from dloop.adversary.mimicry import JitterAdversary, JunkAdversary, MimicryAdversary
 from dloop.defense.base import DefenseDecision, NoOpDefense, TrainingView
 from dloop.defense.d1_cost_weighting import COMPONENTS, CostFunction, D1Config, D1CostWeighting
 from dloop.defense.generic import KNNSanitize, LossFilter
@@ -228,3 +228,19 @@ def test_validation_filter_off_is_the_original_behaviour():
     b = make_model(ModelConfig(kind="rf", seed=1, hyperparams={"n_estimators": 5}, val_min_nn_distance=0.0)).fit(x, y)
     assert a.threshold_ == b.threshold_ and a.val_benign_dropped_frac_ == 0.0
     assert a.config.hash() == make_model(ModelConfig(kind="rf", seed=1, hyperparams={"n_estimators": 5})).config.hash()
+
+
+def test_junk_keeps_marginals_but_destroys_correlations():
+    rng = np.random.default_rng(0)
+    a = rng.normal(50, 5, size=4000)
+    pool = np.ones((4000, _F))
+    pool[:, _IDX["flow_duration"]] = a
+    pool[:, _IDX["fwd_packets"]] = a * 2 + rng.normal(0, 0.5, size=4000)      # strongly correlated with duration
+    b, cost = JunkAdversary(pool, seed=3).generate_batch(1, 3000)
+    x = features_of(b)
+    assert x.shape == (3000, _F) and cost.flows == 3000 and (x >= 0).all()
+    assert abs(x[:, _IDX["flow_duration"]].mean() - a.mean()) < 0.5           # marginal preserved
+    assert np.corrcoef(pool[:, _IDX["flow_duration"]], pool[:, _IDX["fwd_packets"]])[0, 1] > 0.95
+    assert abs(np.corrcoef(x[:, _IDX["flow_duration"]], x[:, _IDX["fwd_packets"]])[0, 1]) < 0.1
+    again, _ = JunkAdversary(pool, seed=3).generate_batch(1, 3000)
+    assert np.array_equal(features_of(again), x)                               # deterministic in (seed, round)

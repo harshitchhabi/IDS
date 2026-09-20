@@ -51,6 +51,13 @@ def load(cal: str) -> pd.DataFrame:
     df["val_min_nn_distance"] = df["val_min_nn_distance"].fillna(0.0)
     tau = 0.0 if cal == "old" else TAU_NEW
     df = df[np.isclose(df["val_min_nn_distance"], tau)]
+    # the recalibrated directory also holds defended, cost-padded and ablation runs;
+    # this report compares undefended arms only (a defended S0 averaged into "s0"
+    # silently changed its numbers once)
+    if "defense" in df:
+        df = df[df["defense"].fillna("none") == "none"]
+    if "cost_padding" in df:
+        df = df[df["cost_padding"].fillna(1.0) == 1.0]
     return df[df["round"] == df["round"].max()]
 
 

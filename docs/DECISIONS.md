@@ -928,6 +928,12 @@ Recalibrated-threshold TPR change (identical under both calibrations), ratios 0.
 | s0 | +0.058 / +0.079 | +0.053 / +0.084 |
 | 2 sigma_control | 0.061 | 0.040 |
 
+> **Erratum (§22).** The verdict below was too strong for the *FPR* half. It rested on `s0`/`s0j`, which
+> place their rows in attack regions. A `junk` arm (bulk rows resembling neither class) reproduces the
+> old-calibration flat FPR effect at A1's size, so that effect is volume-driven ("prior shift"); it is
+> gated by calibration and vanishes under the honest threshold (§22.1). The verdict stands for the RF
+> recalibrated-TPR channel, which `junk` does not reproduce (§22.2).
+
 **Verdict on the hypothesis "the flat effect is class-prior shift".** Not supported as
 stated.
 
@@ -1225,3 +1231,127 @@ shows the cheaper evasion of D1 is not available.
   everything is CICIDS2017 (degenerate, §16) at raw benign fidelity, the worst case for A1; the
   cost features are flow-level, `depth` is a stand-in, and the simulator has no real honeypot
   session logs, so D1's utility cost on a real deployment is unknown (§21.2).
+
+## 22. The second A1 mechanism, at a distance: what it is, and what it is not
+
+Prompted by a correction from review, checked against the data. **Correction to earlier text:**
+a chat summary of §17 said TPR under the recalibrated threshold collapses "only at copy-level
+fidelity". That is wrong for RF: at ratio 0.2 (old-calibration control 0.810 +/- 0.028) TPR is
+0.670 at jitter 0 and 0.706 at jitter 1.5 (realized NN 1.05, -0.103, ~3.7 sigma), and 0.736 /
+0.749 / 0.756 / 0.759 at realized 0.25 / 0.17 / 0.014 / 0.09. §17 recorded the far drop but the
+summary contradicted it. Also confirmed: XGBoost fixed-threshold FPR *rises* with distance under the
+old calibration (0.046 at jitter 0.01 -> 0.067 at 1.5, control 0.044).
+
+**Method.** Same-seed paired deltas against the control, CICIDS2017, 5 seeds, final round.
+Far-distance arms at jitter 1.5 (realized NN ~1.06), poison ratios 0.02 / 0.05 / 0.2 / 0.5, run under
+both calibrations: `a1` (benign rows + jitter, stamped malicious), `a1truth` (the same rows, true
+label), `s0j` (attack rows + the same jitter, stamped malicious), `s0` (attack rows), and **`junk`**
+(each feature drawn independently from the pooled benign + attack marginals: realistic per-feature
+ranges, no correlations, resembling neither class; realized NN to trusted benign: median 0.64, p5
+0.44, p95 0.90), stamped malicious. `junk` is the direct test of "send the honeypot arbitrary bulk
+volume". Code `experiments/phase0_far_report.py`, results `results/phase0/far/`.
+
+**On the test design.** A matched arm that injects the same row count from the attack
+distribution has the *same* class-prior shift as `a1` and no benign-label conflict. If an effect
+appears in `a1` but not in the matched arm, the difference is the benign-label conflict and it is
+*not* prior shift; prior shift predicts the effect in both. (Earlier wording of this test had the
+inference reversed; the conclusions below use the correct direction.)
+
+### 22.1 Fixed-threshold FPR: a volume effect, gated by the threshold
+
+Old calibration (control FPR 0.046; 2 sigma: RF 0.030, XGBoost 0.020), FPR rise, ratios 0.02 /
+0.05 / 0.2 / 0.5:
+
+| arm | RF | XGBoost |
+|---|---|---|
+| a1 (far) | +0.022 / +0.031 / +0.037 / +0.042 | +0.003 / -0.002 / +0.024 / +0.035 |
+| **junk** | **+0.030 / +0.031 / +0.045 / +0.047** | +0.015 / +0.017 / +0.018 / +0.025 |
+| s0j | +0.003 / +0.020 / +0.031 / +0.035 | -0.005 / -0.004 / +0.004 / +0.019 |
+| s0 (attack rows) | -0.003 / +0.009 / +0.027 / +0.029 | +0.021 / +0.028 / +0.029 / +0.040 |
+
+The old-calibration flat effect **is** volume: `junk` — rows that resemble neither class —
+reproduces it at the same size as `a1` (RF +0.045 vs +0.037 at 20%), it grows with the poison
+*ratio* (rank correlation with ratio 0.5 RF / 0.7 XGBoost at fixed distance) and not with distance,
+and `s0` (attack rows, no benign conflict) shows it too. This is the reviewer's "prior shift", and
+**§19.2's verdict that the flat FPR effect is "not class-prior shift" was too strong**: it rested on
+`s0`/`s0j` at one jitter, and `s0` places its rows in attack regions, so it understates the intrusion
+of malicious-stamped mass into benign-populated regions that `junk` and `a1` produce.
+
+**But it is gated by calibration.** Under the honest calibration (tau = 0.1; 2 sigma RF 0.009,
+XGBoost 0.012) every arm is inside noise: `a1` +0.002 / -0.001 / +0.004 / +0.011 (RF; the +0.011 is
+barely over 2 sigma), `junk` +0.002 / +0.001 / +0.004 / +0.003, XGBoost within +/- 0.006 for all
+arms. A threshold set too low turns any small score shift into FPR; a threshold set honestly does
+not. On the non-degenerate synthetic data, where the control is already at target (FPR 0.0085) and
+the arm is genuine attack rows, the same volume effect is small but real: S0 raises fixed FPR to
+0.0161 at 20% and 0.0239 at 50% (RF), i.e. about 1.6x and 2.4x the 0.01 target. So bulk volume is a real
+channel even with a well-set threshold, at a few times the target FPR, and it is exposed
+catastrophically only when calibration is naive; on degenerate data, naive calibration is the
+default (§19.1: 94% of validation rows had a training twin).
+
+### 22.2 Recalibrated-threshold TPR: not volume — this is the RF-only channel
+
+RF (2 sigma 0.061), TPR change, ratios 0.02 / 0.05 / 0.2 / 0.5 (identical under both calibrations):
+
+| arm | RF |
+|---|---|
+| **a1 (far)** | **-0.045 / -0.064 / -0.103 / -0.095** |
+| **junk** | **+0.024 / +0.024 / +0.015 / +0.013** |
+| s0j | -0.002 / -0.017 / -0.056 / -0.043 |
+| s0 | n/a / +0.058 / +0.079 / n/a |
+| a1truth | +0.028 / +0.014 / -0.008 / -0.118 +/- 0.085 |
+
+The effect scales with the poison ratio (rank correlation 0.54, saturating near -0.10 from 20%),
+not with distance (0.28, weakly positive). It is **not** reproduced by pure volume: `junk` at up to
+50% of the training set leaves TPR unchanged. It needs the poison to sit near benign mass:
+benign-origin rows at any distance (`a1`), and attack rows only when the jitter is large enough
+(1.5) to throw a fraction of them into benign-populated regions (`s0j` about half of `a1`;
+essentially zero at jitter 0.7, §19.2). Mechanism: malicious-stamped rows inside benign-populated
+regions lift benign scores slightly; a recalibrated threshold rises to hold FPR at 1%, and TPR pays.
+XGBoost is immune (`a1` +0.002 to -0.007 at every ratio): RF's leaf probabilities respond to the
+local label mix; XGBoost's regularised additive output does not. **This model dependence is a
+finding in its own right and is not averaged away.** (One caution: benign-labelled noisy bulk
+(`a1truth`) can *also* lower recalibrated TPR at high ratio (RF -0.118, XGBoost -0.180 / -0.190),
+so recalibrated TPR is sensitive to diluting the training set with noisy rows generally.)
+
+### 22.3 The mechanisms, named and sized
+
+| | needs | size | shows in | models |
+|---|---|---|---|---|
+| **M1 label conflict at copy fidelity** | near-exact reproduction of trusted benign (realized NN <~ 0.011-0.014); >= 10-20% poison (honest calibration) | catastrophic: FPR +0.34..+0.88 (RF), bimodal for XGBoost (§19.1) | fixed FPR; TPR under recalibration (RF -0.14 at 20%, -0.28 at 50%) | RF, XGBoost |
+| **M2a malicious-stamped bulk volume** ("prior shift") | no fidelity; volume; any rows | +0.02..+0.05 FPR under a mis-set low threshold (both models); ~0 under an honest one; 1.6x / 2.4x the target FPR at 20% / 50% on well-calibrated synthetic | fixed-threshold FPR | RF, XGBoost |
+| **M2b benign-origin label conflict at a distance** | rows near benign mass (not reproduced by junk); scales with ratio | RF TPR -0.05..-0.10 (saturating from 20%) | recalibrated TPR | **RF only** |
+
+### 22.4 Defenses, per mechanism (honest calibration; recovery of the undefended damage)
+
+| mechanism | undefended | D1 (E*=8, g=2) | kNN sanitize | loss filter |
+|---|---|---|---|---|
+| M1, FPR (§21.1) | +0.34 / +0.88 (RF, 20% / 50%) | 99% / 92% | 100% / 99% | 2% / 0% |
+| **M2b, RF TPR drop, 20% / 50%** | -0.103 / -0.095 | **-0.085 / -0.104 (17% / -9%)** | **-0.010 / -0.027 (90% / 72%)** | -0.100 / -0.099 (3% / -4%) |
+| M2a (junk), honest calibration | none to recover (FPR ~0, TPR +0.01..+0.03) | n/a | n/a | n/a |
+
+- **kNN catches both label-conflict regimes** (98.6% of copy-level poison dropped, 93% at jitter 1.5,
+  85% of junk).
+- **The loss filter misses both**, because dense poison is self-consistent (§21.1).
+- **D1 does not suppress M2b.** The hypothesis that both mechanisms are cheap and cost weighting should
+  kill both fails for the second: jitter and junk *inflate* the very cost features D1 reads
+  (packets, bytes, duration), so far poison gets **more** weight than copy-level poison (mean weight
+  0.44 vs 0.23; junk 0.41; effective ratio 0.31 at nominal 0.5), and it is D1's residual +0.085 /
+  +0.104 TPR drop. The cost features are also model features (§20), so the same padding that raises
+  weight also moves the row, and here it moves it into the noise cloud that M2b exploits, not away
+  from it. D1 protects against M1 only. Clean negative.
+- Not run: defenses under the old calibration (where M2a's FPR effect lives), and any defense
+  against M2b other than these three.
+
+### 22.5 Corrections and artifacts
+
+- The reviewer's "TPR collapses far from benign" and "XGBoost FPR rises with distance" are right
+  and are recorded above. The reviewer's "prior shift" is right for FPR under a mis-set threshold
+  and wrong for the RF TPR channel, where `junk` (pure volume) has no effect.
+- `results/phase0/mechanism/` was regenerated: its loader had averaged defended S0 jobs into the `s0`
+  arm (the §19.2 text used the correct values; the committed CSV/figure did not). The loop report's
+  loader had the same bug; both now select undefended, default-calibration runs only.
+- The consolidated artifacts requested for reproducibility are `results/phase0/export/rounds.csv.gz`
+  (every per-round row of all 1,850 jobs), `summary.csv` (final-round mean/sd per configuration and
+  paired delta) and `damage_curve.csv` (A1 damage vs realized distance, both calibrations),
+  generated by `experiments/phase0_export.py`. Files under those names did not exist before; the raw
+  per-round rows were already committed as per-job CSVs.

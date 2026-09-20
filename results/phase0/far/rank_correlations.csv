@@ -1,0 +1,9 @@
+calibration,model,threshold_mode,rank_corr_vs_ratio (fixed distance),"rank_corr_vs_distance (ratio 0.2, jitter>0)"
+old calibration,rf,fixed,0.49636270997086807,0.1353453632265944
+old calibration,rf,recalibrated,0.5428967140306369,0.41086123631887755
+old calibration,xgboost,fixed,0.6980100608965332,0.38891615694595455
+old calibration,xgboost,recalibrated,0.0,0.7037814331501461
+new calibration (tau=0.1),rf,fixed,0.5971863854337006,-0.17008401285415223
+new calibration (tau=0.1),rf,recalibrated,0.5428967140306369,0.28347335475692037
+new calibration (tau=0.1),xgboost,fixed,-0.33800748010032794,0.264575131106459
+new calibration (tau=0.1),xgboost,recalibrated,0.0,0.850420064270761
