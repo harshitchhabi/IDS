@@ -1665,3 +1665,11 @@ D1fixed needs no trusted data. (c) Its advantage over a fixed uniform weight app
 insufficient on CICIDS. (f) Hypothesis, not established: honeypot session logs (commands, auth attempts,
 downloads, protocol depth) carry the effort signal flow summaries lose, which is a research reason for the
 live Cowrie testbed.
+
+### 25.6 Parked: session-level D1 (future work)
+
+Not run. Reasons: (a) any session-level D1 would have to beat ShareCap (§25.3), which already recovers ~100%
+at both ratios and retains 0.74-0.83 on CICIDS, so the headroom is small; (b) the dataset that carries source
+IPs and timestamps (GeneratedLabelledFlows) is form-gated and unavailable. The per-flow diagnostic in §25.4
+motivates the idea but does not test it. **No experiments follow the cap curve (§25.5).**
+
