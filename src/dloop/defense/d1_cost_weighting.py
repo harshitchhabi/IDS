@@ -27,10 +27,21 @@ COMPONENTS = PER_FLOW_COLUMNS   # ("duration_s", "packets", "bytes", "depth")
 _FLOOR = 1e-9
 
 
+# Generic fixed units (1 s, 10 packets, 1000 bytes, 3 exchanges): within a factor of ~2-3 of the
+# benign medians of both datasets used here, and needing no trusted data (DECISIONS.md 24).
+FIXED_REFERENCE = (1.0, 10.0, 1000.0, 3.0)
+
+
 @dataclass(frozen=True)
 class D1Config:
     e_star: float = 8.0
     gamma: float = 2.0
+    # If set, E* is the q-quantile of the effort of the trusted benign rows (normalises the
+    # benign *tail* per dataset) and ``e_star`` is ignored.
+    e_star_quantile: float | None = None
+    # "median": per-component reference = median over trusted benign rows (the pre-registered
+    # form). "fixed": FIXED_REFERENCE, no trusted data needed.
+    reference: str = "median"
     # weights over (duration, packets, bytes, depth); geometric-mean effort. Zero
     # drops a component (ablation); they are renormalized to sum to 1.
     alpha: tuple[float, float, float, float] = (0.25, 0.25, 0.25, 0.25)
@@ -38,6 +49,12 @@ class D1Config:
     def __post_init__(self) -> None:
         if self.e_star <= 0:
             raise ValueError("e_star must be > 0")
+        if self.e_star_quantile is not None and not (0.0 < self.e_star_quantile < 1.0):
+            raise ValueError("e_star_quantile must be in (0, 1)")
+        if self.reference not in ("median", "fixed"):
+            raise ValueError("reference must be 'median' or 'fixed'")
+        if self.reference == "fixed" and self.e_star_quantile is not None:
+            raise ValueError("a quantile E* needs trusted benign rows; use reference='median'")
         if self.gamma < 1:
             raise ValueError("gamma must be >= 1")
         if len(self.alpha) != 4 or min(self.alpha) < 0 or sum(self.alpha) <= 0:
@@ -52,14 +69,28 @@ class D1Config:
         short = {"duration_s": "dur", "packets": "pkt", "bytes": "byt", "depth": "dep"}
         comp = "" if len(set(self.alpha)) == 1 else "_c" + "".join(
             short[n] for n, a in zip(COMPONENTS, self.alpha) if a > 0)
-        return f"d1_E{self.e_star:g}_g{self.gamma:g}{comp}"
+        head = (f"d1q_q{self.e_star_quantile:g}" if self.e_star_quantile is not None
+                else f"d1fixed_E{self.e_star:g}" if self.reference == "fixed"
+                else f"d1_E{self.e_star:g}")
+        return f"{head}_g{self.gamma:g}{comp}"
 
 
 class CostFunction:
-    def __init__(self, reference_per_flow: np.ndarray, config: D1Config) -> None:
-        ref = np.asarray(reference_per_flow, dtype="float64")
-        self.reference = np.maximum(np.median(ref, axis=0), _FLOOR)
+    def __init__(self, reference_per_flow: np.ndarray | None, config: D1Config) -> None:
+        """``reference_per_flow``: per-flow cost rows of the trusted benign flows (unused for
+        ``reference='fixed'``, where no trusted data is needed)."""
         self.config = config
+        if config.reference == "fixed":
+            self.reference = np.asarray(FIXED_REFERENCE, dtype="float64")
+        else:
+            ref = np.asarray(reference_per_flow, dtype="float64")
+            self.reference = np.maximum(np.median(ref, axis=0), _FLOOR)
+        self.e_star = config.e_star
+        if config.e_star_quantile is not None:
+            self.e_star = float(np.quantile(self.effort(np.asarray(reference_per_flow, dtype="float64")),
+                                            config.e_star_quantile))
+            if self.e_star <= 0:
+                raise ValueError("quantile E* is not positive: benign effort is degenerate")
 
     def effort(self, per_flow: np.ndarray) -> np.ndarray:
         x = np.asarray(per_flow, dtype="float64")
@@ -70,7 +101,7 @@ class CostFunction:
 
     def weight(self, per_flow: np.ndarray) -> np.ndarray:
         e = self.effort(per_flow)
-        return np.minimum(1.0, (e / self.config.e_star) ** self.config.gamma)
+        return np.minimum(1.0, (e / self.e_star) ** self.config.gamma)
 
 
 class D1CostWeighting:
@@ -79,6 +110,7 @@ class D1CostWeighting:
         self.name = self.config.tag()
         benign = np.asarray(seed_x)[np.asarray(seed_y) == 0]
         self.cost_function = CostFunction(per_flow_cost(benign), self.config)
+        self.e_star_effective = self.cost_function.e_star
 
     def apply(self, batch: pd.DataFrame, cost: CostMetadata, stamped_label: np.ndarray) -> DefenseDecision:
         if cost.per_flow is None:

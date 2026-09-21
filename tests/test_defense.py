@@ -8,7 +8,7 @@ from dloop.adversary.base import PER_FLOW_COLUMNS, cost_metadata, features_of, p
 from dloop.adversary.mimicry import JitterAdversary, JunkAdversary, MimicryAdversary
 from dloop.defense.base import DefenseDecision, NoOpDefense, TrainingView
 from dloop.defense.d1_cost_weighting import COMPONENTS, CostFunction, D1Config, D1CostWeighting
-from dloop.defense.generic import KNNSanitize, LossFilter
+from dloop.defense.generic import KNNSanitize, LossFilter, UniformWeight
 from dloop.features import schema
 from dloop.features.normalize import Normalizer
 from dloop.loop.config import LoopConfig
@@ -244,3 +244,36 @@ def test_junk_keeps_marginals_but_destroys_correlations():
     assert abs(np.corrcoef(x[:, _IDX["flow_duration"]], x[:, _IDX["fwd_packets"]])[0, 1]) < 0.1
     again, _ = JunkAdversary(pool, seed=3).generate_batch(1, 3000)
     assert np.array_equal(features_of(again), x)                               # deterministic in (seed, round)
+
+
+def test_d1_variant_tags_are_distinct_and_default_is_unchanged():
+    tags = {D1Config().tag(), D1Config(e_star_quantile=0.9).tag(), D1Config(e_star_quantile=0.99).tag(),
+            D1Config(reference="fixed").tag(), D1Config(reference="fixed", e_star=16).tag()}
+    assert len(tags) == 5 and D1Config().tag() == "d1_E8_g2"
+    with pytest.raises(ValueError):
+        D1Config(e_star_quantile=1.0)
+    with pytest.raises(ValueError):
+        D1Config(reference="fixed", e_star_quantile=0.9)      # a quantile needs trusted benign rows
+
+
+def test_quantile_estar_puts_the_requested_share_of_benign_flows_at_full_weight():
+    rng = np.random.default_rng(0)
+    benign = np.abs(rng.lognormal(mean=0.0, sigma=1.2, size=(4000, 4))) + 0.1
+    for q in (0.5, 0.9, 0.99):
+        cf = CostFunction(benign, D1Config(e_star_quantile=q, gamma=1.0))
+        frac_full = float((cf.weight(benign) >= 1.0 - 1e-12).mean())
+        assert frac_full == pytest.approx(1.0 - q, abs=0.01)     # the tail share saturates
+
+
+def test_fixed_reference_needs_no_trusted_data_and_reference_flow_weight_is_known():
+    cf = CostFunction(None, D1Config(reference="fixed", e_star=8.0, gamma=2.0))
+    assert cf.weight(cf.reference[None, :])[0] == pytest.approx((1 / 8) ** 2)
+
+
+def test_uniform_weight_is_the_no_skill_baseline():
+    u = UniformWeight(0.1)
+    dec = u.apply(pd.DataFrame(np.zeros((5, _F)), columns=list(schema.CANONICAL_FEATURES)), cost_metadata(np.zeros((5, _F))),
+                  np.ones(5, dtype=int))
+    assert np.allclose(dec.weights, 0.1) and u.name == "uniform_w0.1"
+    with pytest.raises(ValueError):
+        UniformWeight(1.5)

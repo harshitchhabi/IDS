@@ -31,7 +31,7 @@ from dloop.adversary.mimicry import (FidelityMeter, JitterAdversary, JunkAdversa
 from dloop.logging_config import configure, get_logger
 from dloop.defense.base import NoOpDefense
 from dloop.defense.d1_cost_weighting import COMPONENTS, D1Config, D1CostWeighting
-from dloop.defense.generic import KNNSanitize, LossFilter
+from dloop.defense.generic import KNNSanitize, LossFilter, UniformWeight
 from dloop.loop.config import LoopConfig
 from dloop.loop.data import LoopData
 from dloop.loop.rounds import FAST_HYPERPARAMS, run_arm
@@ -66,11 +66,18 @@ def _loop_config(j: dict) -> LoopConfig:
 def _d1_config(j: dict) -> D1Config:
     keep = set(j["d1_components"].split(",")) if j["d1_components"] else set(COMPONENTS)
     return D1Config(e_star=j["d1_estar"], gamma=j["d1_gamma"],
-                    alpha=tuple(1.0 if c in keep else 0.0 for c in COMPONENTS))
+                    alpha=tuple(1.0 if c in keep else 0.0 for c in COMPONENTS),
+                    e_star_quantile=j["d1_quantile"] or None, reference=j["d1_ref"])
 
 
 def _defense_tag(j: dict) -> str:
-    return "" if j["defense"] == "none" else "_" + (_d1_config(j).tag() if j["defense"] == "d1" else j["defense"])
+    if j["defense"] == "none":
+        return ""
+    if j["defense"] == "d1":
+        return "_" + _d1_config(j).tag()
+    if j["defense"] == "uniform":
+        return f"_uniform_w{j['uniform_w']:g}"
+    return "_" + j["defense"]
 
 
 def _make_defense(j: dict):
@@ -83,6 +90,8 @@ def _make_defense(j: dict):
         return KNNSanitize(_DATA.seed_x, _DATA.seed_y)
     if d == "loss":
         return LossFilter()
+    if d == "uniform":
+        return UniformWeight(j["uniform_w"])
     raise ValueError(d)
 
 
@@ -109,13 +118,18 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
         adv = JitterAdversary(_DATA.pool_attack_x, _DATA.normalizer, j["jitter"], seed, true_label=1)
     else:
         raise ValueError(sc)
+    defense = _make_defense(j)
     res = run_arm(_DATA, adv, scenario=sc, model_kind=j["model"], seed=seed, config=_loop_config(j),
-                  defense=_make_defense(j))
+                  defense=defense)
     extra: dict = {"jitter": j["jitter"] if sc in ("a1", "a1truth", "s0j") else float("nan"),
                    "cost_padding": j["pad"], "dataset": _DATA.name,
                    "d1_estar": j["d1_estar"] if j["defense"] == "d1" else float("nan"),
                    "d1_gamma": j["d1_gamma"] if j["defense"] == "d1" else float("nan"),
-                   "d1_components": (j["d1_components"] or "all") if j["defense"] == "d1" else ""}
+                   "d1_components": (j["d1_components"] or "all") if j["defense"] == "d1" else "",
+                   "d1_quantile": j["d1_quantile"] if j["defense"] == "d1" else float("nan"),
+                   "d1_reference": j["d1_ref"] if j["defense"] == "d1" else "",
+                   "d1_estar_effective": getattr(defense, "e_star_effective", float("nan")),
+                   "uniform_w": j["uniform_w"] if j["defense"] == "uniform" else float("nan")}
     if sc in ("a1", "a1truth") and res.poison_x is not None and _FID is not None:
         d = _FID.distances(res.poison_x, max_rows=FIDELITY_ROWS, rng=np.random.default_rng(seed))
         extra.update(fidelity_median=float(np.median(d)), fidelity_p5=float(np.percentile(d, 5)),
@@ -137,9 +151,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ratios", type=float, nargs="+", default=list(RATIOS))
     ap.add_argument("--jitters", type=float, nargs="+", default=list(JITTERS))
     ap.add_argument("--workers", type=int, default=MAX_WORKERS)
-    ap.add_argument("--defense", choices=["none", "d1", "knn", "loss"], default="none")
+    ap.add_argument("--defense", choices=["none", "d1", "knn", "loss", "uniform"], default="none")
     ap.add_argument("--d1-estar", type=float, default=8.0, help="D1 saturation effort E* (default fixed in DECISIONS 20)")
     ap.add_argument("--d1-gamma", type=float, default=2.0)
+    ap.add_argument("--d1-quantile", type=float, default=0.0, help="D1q: E* = this quantile of benign effort (0 = off)")
+    ap.add_argument("--d1-reference", choices=["median", "fixed"], default="median",
+                    help="fixed = generic unit reference, needs no trusted data")
+    ap.add_argument("--uniform-w", type=float, default=0.1, help="weight for --defense uniform")
     ap.add_argument("--d1-components", default="", help="comma list from duration_s,packets,bytes,depth (ablation)")
     ap.add_argument("--no-fidelity", action="store_true",
                     help="skip the NN fidelity meter (saves ~100 MB per worker); not for cost-padding runs")
@@ -187,7 +205,8 @@ def main(argv: list[str] | None = None) -> int:
         j.update(rounds=args.rounds, retention=args.retention, window=args.window,
                  budget_mode=args.budget_mode, batch_size=args.batch_size,
                  val_tau=args.val_nn_tau, pad=args.pad, defense=args.defense,
-                 d1_estar=args.d1_estar, d1_gamma=args.d1_gamma, d1_components=args.d1_components)
+                 d1_estar=args.d1_estar, d1_gamma=args.d1_gamma, d1_components=args.d1_components,
+                 d1_quantile=args.d1_quantile, d1_ref=args.d1_reference, uniform_w=args.uniform_w)
         _loop_config(j)   # validate the combination up front
     jobs.sort(key=lambda j: (RATIO_PRIORITY.get(j["ratio"], 0), -j["ratio"], j["scenario"],
                              j["model"] != "rf", j["seed"], j["jitter"]))
@@ -199,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
               "batch_size": args.batch_size, "val_min_nn_distance": args.val_nn_tau,
               "cost_padding": args.pad, "defense": args.defense, "d1_estar": args.d1_estar,
               "d1_gamma": args.d1_gamma, "d1_components": args.d1_components,
+              "d1_quantile": args.d1_quantile, "d1_reference": args.d1_reference, "uniform_w": args.uniform_w,
               "fidelity_rows": FIDELITY_ROWS, "arm_counts": data.arm_counts(),
               "seed_rows": int(len(data.seed_x)), "eval_rows": int(len(data.eval_x)),
               "a1_poison_source_rows_checked_disjoint_from_eval_benign": n_checked,

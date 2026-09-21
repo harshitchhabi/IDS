@@ -71,3 +71,21 @@ class LossFilter:
         w = view.w.copy()
         w[view.is_honeypot & (p_label < self.min_prob)] = 0.0
         return w
+
+
+class UniformWeight:
+    """No-skill baseline: every honeypot row at the same weight ``w``. Any defense that
+    only trades recovery for retention along this line has learned nothing about which
+    rows are poison (DECISIONS.md 24)."""
+
+    def __init__(self, w: float) -> None:
+        if not 0.0 <= w <= 1.0:
+            raise ValueError("w must be in [0, 1]")
+        self.w = float(w)
+        self.name = f"uniform_w{w:g}"
+
+    def apply(self, batch: pd.DataFrame, cost: CostMetadata, stamped_label: np.ndarray) -> DefenseDecision:
+        return DefenseDecision(weights=np.full(len(stamped_label), self.w), admit=True)
+
+    def sanitize(self, view: TrainingView) -> np.ndarray:
+        return view.w
