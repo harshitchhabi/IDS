@@ -90,6 +90,14 @@ def create_app(service: DemoService) -> FastAPI:
         await service.reset()
         return _ok()
 
+    @app.post("/api/source/{name}")
+    async def source(name: str):
+        try:
+            service.switch_source(name)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        return _ok()
+
     @app.post("/api/rate/{rate}")
     async def rate(rate: int):
         if service.driver is not None:

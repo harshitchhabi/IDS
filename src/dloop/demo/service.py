@@ -28,10 +28,16 @@ BUCKETS = 90            # seconds of traffic history kept
 
 
 class DemoService:
-    def __init__(self, *, loop, registry, detector, driver: ReplayDriver | None, store, honeypot=None,
-                 recorded: bool = False) -> None:
-        self.loop, self.registry, self.detector, self.driver = loop, registry, detector, driver
-        self.store, self.honeypot, self.recorded = store, honeypot, recorded
+    """``sources``: {"live": (loop, registry, detector), "recorded": (loop, registry, detector)}, at least one
+    entry. The replay driver is shared across sources (both score the same streamed traffic); only which loop
+    trains/replays rounds and which detector scores flows changes on :meth:`switch_source`."""
+
+    def __init__(self, *, sources: dict[str, tuple], active: str, driver: ReplayDriver | None, store,
+                 honeypot=None) -> None:
+        self.sources, self.store, self.honeypot = sources, store, honeypot
+        self.driver = driver
+        self.loop = self.registry = self.detector = None   # set by switch_source
+        self.active = active
         self.feed = "off"                    # s0 | a1 | off
         self.defense = "off"
         self.auto = True
@@ -41,6 +47,7 @@ class DemoService:
         self._pending_round = False
         self._buckets: deque[dict] = deque(maxlen=BUCKETS)
         self._window: deque[tuple[bool, bool]] = deque(maxlen=WINDOW_FLOWS)   # (is_attack, alerted)
+        self._false_alert_times: deque[float] = deque()   # timestamps of alerts on benign flows, last 60s
         self._alerts: deque[dict] = deque(maxlen=60)
         self._new_alerts: list[dict] = []
         self.class_stats: dict[str, list[int]] = {}      # family -> [flows, alerted]
@@ -48,6 +55,34 @@ class DemoService:
         self.total_alerts = 0
         self._tasks: list[asyncio.Task] = []
         self.subscribers: set[Callable[[dict], Any]] = set()
+        self._apply_source(active)
+
+    @property
+    def recorded(self) -> bool:
+        return self.active == "recorded"
+
+    def _apply_source(self, name: str) -> None:
+        if name not in self.sources:
+            raise ValueError(f"no such source: {name!r} (have {list(self.sources)})")
+        self.active = name
+        self.loop, self.registry, self.detector = self.sources[name]
+
+    def switch_source(self, name: str) -> None:
+        """Swap which loop/detector is live. Resets round and stream state so old and new numbers never mix."""
+        if name == self.active:
+            return
+        self._apply_source(name)
+        self.loop.reset()
+        self.feed, self.defense = "off", "off"
+        self._buckets.clear()
+        self._window.clear()
+        self._false_alert_times.clear()
+        self._alerts.clear()
+        self._new_alerts.clear()
+        self.class_stats.clear()
+        self.total_flows = self.total_alerts = 0
+        self.store.reset(("alerts",))
+        self.detector.refresh()
 
     # ---- lifecycle --------------------------------------------------
     async def start(self) -> None:
@@ -97,6 +132,7 @@ class DemoService:
             self.busy = False
         self.feed, self.defense = "off", "off"
         self._window.clear()
+        self._false_alert_times.clear()
         self._alerts.clear()
         self._new_alerts.clear()
         self.class_stats.clear()
@@ -140,6 +176,9 @@ class DemoService:
             s[0] += int(m.sum())
             s[1] += int((alerted & m).sum())
         self._window.extend(zip(is_atk.tolist(), alerted.tolist()))
+        self._false_alert_times.extend([ts] * int((alerted & ~is_atk).sum()))
+        while self._false_alert_times and ts - self._false_alert_times[0] > 60:
+            self._false_alert_times.popleft()
         rows = []
         v = self.detector.version
         for i in np.flatnonzero(alerted):
@@ -185,7 +224,11 @@ class DemoService:
         w = list(self._window)
         ben = [a for atk, a in w if not atk]
         atk = [a for atk_, a in w if atk_]
+        tp = sum(1 for atk_, a in w if atk_ and a)
+        fp = sum(1 for atk_, a in w if not atk_ and a)
         return {"fpr": (sum(ben) / len(ben)) if ben else None, "tpr": (sum(atk) / len(atk)) if atk else None,
+                "precision": (tp / (tp + fp)) if (tp + fp) else None,
+                "false_alerts_per_min": len(self._false_alert_times),
                 "n_benign": len(ben), "n_attack": len(atk)}
 
     def defense_table(self) -> list[dict]:
@@ -197,7 +240,7 @@ class DemoService:
             d["rounds"] += 1
             d["sec"] += h["defense_seconds"]
             d.update(last_fpr=h["fixed_fpr"], last_tpr=h["fixed_tpr"], last_recal_tpr=h["recal_tpr"],
-                     last_eff=h["hp_effective_ratio"])
+                     last_precision=h["fixed_precision"], last_eff=h["hp_effective_ratio"])
         out = []
         for k in DEFENSES:
             if k in rows:
@@ -208,8 +251,8 @@ class DemoService:
 
     def rounds_summary(self) -> list[dict]:
         keys = ("round", "version", "scenario", "defense_key", "poison_ratio", "hp_effective_ratio", "fixed_fpr",
-                "fixed_tpr", "recal_fpr", "recal_tpr", "defense_seconds", "fit_seconds", "n_honeypot", "s0_rows",
-                "a1_rows")
+                "fixed_tpr", "fixed_precision", "recal_fpr", "recal_tpr", "recal_precision", "defense_seconds",
+                "fit_seconds", "n_honeypot", "s0_rows", "a1_rows")
         return [{k: h.get(k) for k in keys} for h in self.loop.history]
 
     def snapshot(self) -> dict:
@@ -232,7 +275,8 @@ class DemoService:
                         "interval": self.interval, "round": self.loop.round,
                         "rate": self.driver.rate if self.driver else 0,
                         "burst_backlog": self.driver.burst_backlog if self.driver else 0,
-                        "burst_families": list(BURST_FAMILIES)},
+                        "burst_families": list(BURST_FAMILIES),
+                        "source": self.active, "sources": list(self.sources)},
             "rounds": self.rounds_summary(),
             "defenses": self.defense_table(),
             "models": [{"version": m["version"], "scenario": m["scenario"], "defense": m["defense"],
@@ -240,6 +284,6 @@ class DemoService:
                         "fixed_fpr": m["metrics"]["fixed_fpr"], "fixed_tpr": m["metrics"]["fixed_tpr"],
                         "recal_fpr": m["metrics"]["recal_fpr"], "recal_tpr": m["metrics"]["recal_tpr"],
                         "poison": m["metrics"]["poison_ratio"], "eff": m["metrics"]["hp_effective_ratio"]}
-                       for m in self.store.models()],
+                       for m in self.registry.store.models()],
             "honeypot": self.honeypot.snapshot() if self.honeypot is not None else {"enabled": False},
         }
