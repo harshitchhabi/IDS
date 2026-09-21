@@ -31,7 +31,7 @@ from dloop.adversary.mimicry import (FidelityMeter, JitterAdversary, JunkAdversa
 from dloop.logging_config import configure, get_logger
 from dloop.defense.base import NoOpDefense
 from dloop.defense.d1_cost_weighting import COMPONENTS, D1Config, D1CostWeighting
-from dloop.defense.generic import KNNSanitize, LossFilter, UniformWeight
+from dloop.defense.generic import KNNSanitize, LossFilter, ShareCap, UniformWeight
 from dloop.loop.config import LoopConfig
 from dloop.loop.data import LoopData
 from dloop.loop.rounds import FAST_HYPERPARAMS, run_arm
@@ -77,6 +77,8 @@ def _defense_tag(j: dict) -> str:
         return "_" + _d1_config(j).tag()
     if j["defense"] == "uniform":
         return f"_uniform_w{j['uniform_w']:g}"
+    if j["defense"] == "sharecap":
+        return f"_sharecap_c{j['share_cap']:g}"
     return "_" + j["defense"]
 
 
@@ -92,6 +94,8 @@ def _make_defense(j: dict):
         return LossFilter()
     if d == "uniform":
         return UniformWeight(j["uniform_w"])
+    if d == "sharecap":
+        return ShareCap(j["share_cap"])
     raise ValueError(d)
 
 
@@ -151,12 +155,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--ratios", type=float, nargs="+", default=list(RATIOS))
     ap.add_argument("--jitters", type=float, nargs="+", default=list(JITTERS))
     ap.add_argument("--workers", type=int, default=MAX_WORKERS)
-    ap.add_argument("--defense", choices=["none", "d1", "knn", "loss", "uniform"], default="none")
+    ap.add_argument("--defense", choices=["none", "d1", "knn", "loss", "uniform", "sharecap"], default="none")
     ap.add_argument("--d1-estar", type=float, default=8.0, help="D1 saturation effort E* (default fixed in DECISIONS 20)")
     ap.add_argument("--d1-gamma", type=float, default=2.0)
     ap.add_argument("--d1-quantile", type=float, default=0.0, help="D1q: E* = this quantile of benign effort (0 = off)")
     ap.add_argument("--d1-reference", choices=["median", "fixed"], default="median",
                     help="fixed = generic unit reference, needs no trusted data")
+    ap.add_argument("--share-cap", type=float, default=0.05,
+                    help="effective honeypot share cap for --defense sharecap")
     ap.add_argument("--uniform-w", type=float, default=0.1, help="weight for --defense uniform")
     ap.add_argument("--d1-components", default="", help="comma list from duration_s,packets,bytes,depth (ablation)")
     ap.add_argument("--no-fidelity", action="store_true",
@@ -206,7 +212,7 @@ def main(argv: list[str] | None = None) -> int:
                  budget_mode=args.budget_mode, batch_size=args.batch_size,
                  val_tau=args.val_nn_tau, pad=args.pad, defense=args.defense,
                  d1_estar=args.d1_estar, d1_gamma=args.d1_gamma, d1_components=args.d1_components,
-                 d1_quantile=args.d1_quantile, d1_ref=args.d1_reference, uniform_w=args.uniform_w)
+                 d1_quantile=args.d1_quantile, d1_ref=args.d1_reference, uniform_w=args.uniform_w, share_cap=args.share_cap)
         _loop_config(j)   # validate the combination up front
     jobs.sort(key=lambda j: (RATIO_PRIORITY.get(j["ratio"], 0), -j["ratio"], j["scenario"],
                              j["model"] != "rf", j["seed"], j["jitter"]))
@@ -218,7 +224,7 @@ def main(argv: list[str] | None = None) -> int:
               "batch_size": args.batch_size, "val_min_nn_distance": args.val_nn_tau,
               "cost_padding": args.pad, "defense": args.defense, "d1_estar": args.d1_estar,
               "d1_gamma": args.d1_gamma, "d1_components": args.d1_components,
-              "d1_quantile": args.d1_quantile, "d1_reference": args.d1_reference, "uniform_w": args.uniform_w,
+              "d1_quantile": args.d1_quantile, "d1_reference": args.d1_reference, "uniform_w": args.uniform_w, "share_cap": args.share_cap,
               "fidelity_rows": FIDELITY_ROWS, "arm_counts": data.arm_counts(),
               "seed_rows": int(len(data.seed_x)), "eval_rows": int(len(data.eval_x)),
               "a1_poison_source_rows_checked_disjoint_from_eval_benign": n_checked,

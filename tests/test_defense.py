@@ -8,7 +8,7 @@ from dloop.adversary.base import PER_FLOW_COLUMNS, cost_metadata, features_of, p
 from dloop.adversary.mimicry import JitterAdversary, JunkAdversary, MimicryAdversary
 from dloop.defense.base import DefenseDecision, NoOpDefense, TrainingView
 from dloop.defense.d1_cost_weighting import COMPONENTS, CostFunction, D1Config, D1CostWeighting
-from dloop.defense.generic import KNNSanitize, LossFilter, UniformWeight
+from dloop.defense.generic import KNNSanitize, LossFilter, ShareCap, UniformWeight
 from dloop.features import schema
 from dloop.features.normalize import Normalizer
 from dloop.loop.config import LoopConfig
@@ -277,3 +277,21 @@ def test_uniform_weight_is_the_no_skill_baseline():
     assert np.allclose(dec.weights, 0.1) and u.name == "uniform_w0.1"
     with pytest.raises(ValueError):
         UniformWeight(1.5)
+
+
+def test_share_cap_caps_the_effective_share_at_any_ratio_and_does_not_bind_below_it():
+    cap = 0.05
+    for n_hp, n_seed in ((100, 1000), (4000, 1000), (270000, 30000)):
+        is_hp = np.r_[np.zeros(n_seed, bool), np.ones(n_hp, bool)]
+        view = TrainingView(np.zeros((len(is_hp), _F)), np.zeros(len(is_hp), int), np.ones(len(is_hp)), is_hp, 1, 1)
+        w = ShareCap(cap).sanitize(view)
+        share = w[is_hp].sum() / w.sum()
+        assert share <= cap + 1e-9                                  # never above the cap
+        if n_hp / (n_hp + n_seed) > cap:
+            assert share == pytest.approx(cap, abs=1e-6)            # binds exactly when it must
+        else:
+            assert np.array_equal(w, view.w)                        # otherwise leaves everything alone
+    none = TrainingView(np.zeros((3, _F)), np.zeros(3, int), np.ones(3), np.zeros(3, bool), 1, 1)
+    assert np.array_equal(ShareCap(0.05).sanitize(none), np.ones(3))
+    with pytest.raises(ValueError):
+        ShareCap(1.0)

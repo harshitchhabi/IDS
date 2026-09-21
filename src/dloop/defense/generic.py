@@ -89,3 +89,29 @@ class UniformWeight:
 
     def sanitize(self, view: TrainingView) -> np.ndarray:
         return view.w
+
+
+class ShareCap:
+    """The right no-skill baseline for a poison ratio the defender does not control: give every
+    honeypot row the same weight, chosen so the honeypot's *effective share* of the training set is
+    at most ``cap`` (DECISIONS.md 25.2). Uses no cost, label or feature information. Binds only when
+    the honeypot share would exceed ``cap``."""
+
+    def __init__(self, cap: float) -> None:
+        if not 0.0 < cap < 1.0:
+            raise ValueError("cap must be in (0, 1)")
+        self.cap = float(cap)
+        self.name = f"sharecap_c{cap:g}"
+
+    def apply(self, batch: pd.DataFrame, cost: CostMetadata, stamped_label: np.ndarray) -> DefenseDecision:
+        return DefenseDecision(weights=np.ones(len(stamped_label)), admit=True)
+
+    def sanitize(self, view: TrainingView) -> np.ndarray:
+        n_hp = int(view.is_honeypot.sum())
+        n_seed = len(view.is_honeypot) - n_hp
+        if n_hp == 0:
+            return view.w
+        w = view.w.copy()
+        factor = min(1.0, self.cap / (1.0 - self.cap) * n_seed / n_hp)
+        w[view.is_honeypot] *= factor
+        return w

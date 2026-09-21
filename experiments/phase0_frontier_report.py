@@ -89,6 +89,8 @@ def family(d: str) -> str:
         return "D1fixed"
     if d.startswith("d1_") and d.count("_") == 2:
         return "D1"
+    if d.startswith("sharecap"):
+        return "ShareCap"
     return {"knn": "kNN sanitize", "loss": "loss filter"}.get(d, "uniform" if d.startswith("uniform") else d)
 
 
@@ -154,10 +156,17 @@ def main(argv: list[str] | None = None) -> int:
                 "challenger_recovery": rec(a, i0), "ref_recovery": rec(b, i0),
                 "challenger_retention": ret(ga, j0), "ref_retention": ret(gb, j0),
                 "dominates_by_mean": bool(rec(a, i0) >= rec(b, i0) and ret(ga, j0) >= ret(gb, j0)),
+                "challenger_recovery_r0.9": _rec_hi(challenger), "ref_recovery_r0.9": _rec_hi(ref),
                 "P_dominates_bootstrap": hit / N_BOOT}
 
+    def _rec_hi(d: str) -> float:
+        hi_ = _paired(cic, "a1", d, HIGH_RATIO, "fpr", 0.0)
+        sh_ = sorted(set(hi_.index) & set(dmg_und_hi.index))
+        return float(1 - hi_.loc[sh_].mean() / dmg_und_hi.loc[sh_].mean()) if len(sh_) >= 3 else float("nan")
+
     dom = []
-    refs = [d for d in ("knn", "uniform_w0.1", "uniform_w0.05") if d in set(tab.defense)]
+    refs = [d for d in ("knn", "uniform_w0.1", "uniform_w0.05", "sharecap_c0.03", "sharecap_c0.05", "sharecap_c0.08")
+            if d in set(tab.defense)]
     for c in tab[tab.family.isin(["D1", "D1q", "D1fixed"])].defense:
         for ref in refs:
             for label, k, r in UTIL:
@@ -165,6 +174,10 @@ def main(argv: list[str] | None = None) -> int:
                 if x:
                     dom.append(x)
     td = pd.DataFrame(dom)
+    if len(td):
+        # both poison ratios: a challenger must also match the reference at 0.9 wherever both were run
+        both = td["challenger_recovery_r0.9"].notna() & td["ref_recovery_r0.9"].notna()
+        td["dominates_at_both_ratios"] = td["dominates_by_mean"] & (~both | (td["challenger_recovery_r0.9"] >= td["ref_recovery_r0.9"]))
     td.to_csv(args.out / "dominance.csv", index=False)
 
     # ---- cost separability ------------------------------------------------------------------
@@ -206,7 +219,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # ---- figure: three retention axes ---------------------------------------------------------
     col = {"D1": "#08519c", "D1q": "#2a9d8f", "D1fixed": "#8e44ad", "kNN sanitize": "#d62728", "loss filter": "#d98c1f",
-           "uniform": "#888888"}
+           "uniform": "#888888", "ShareCap": "#e377c2"}
     fig, axes = plt.subplots(1, 3, figsize=(17, 5.2), dpi=140, sharey=True)
     for ax, (label, _, _) in zip(axes, UTIL):
         c = f"retention_{label}"
@@ -214,9 +227,10 @@ def main(argv: list[str] | None = None) -> int:
             s = sub.dropna(subset=[c]) if c in sub else sub.iloc[0:0]
             if s.empty:
                 continue
-            big = fam in ("kNN sanitize", "loss filter")
+            big = fam in ("kNN sanitize", "loss filter", "ShareCap")
             ax.scatter(100 * s[c], 100 * s["recovery_r0.5"], s=75 if big else 20, color=col.get(fam, "#333333"),
-                       marker="D" if fam == "kNN sanitize" else "o", edgecolor="white", linewidth=0.5, label=fam, zorder=3)
+                       marker={"kNN sanitize": "D", "ShareCap": "s"}.get(fam, "o"), edgecolor="white", linewidth=0.5,
+                       label=fam, zorder=3)
         u = tab[tab.family == "uniform"].dropna(subset=[c]).sort_values(c) if c in tab else tab.iloc[0:0]
         if len(u) > 1:
             ax.plot(100 * u[c], 100 * u["recovery_r0.5"], color=col["uniform"], lw=1.2, ls=":", zorder=2)
@@ -244,8 +258,9 @@ def main(argv: list[str] | None = None) -> int:
                "probability of that joint event (clear if >= 0.9).", ""]
         for ref in refs:
             t = td[td.vs == ref]
-            md += [f"### against `{ref}`: dominates by mean in {int(t.dominates_by_mean.sum())} of {len(t)} cases; "
-                   f"clearly (P >= 0.9) in {int((t.P_dominates_bootstrap >= 0.9).sum())}", "",
+            md += [f"### against `{ref}`: dominates by mean in {int(t.dominates_by_mean.sum())} of {len(t)} cases "
+                   f"({int(t.dominates_at_both_ratios.sum())} also at ratio 0.9); clearly (P >= 0.9) in "
+                   f"{int((t.P_dominates_bootstrap >= 0.9).sum())}", "",
                    t.sort_values("P_dominates_bootstrap", ascending=False).head(12).round(3).to_markdown(index=False), ""]
     md += ["## Cost separability of benign vs attack flows", "", ts.round(3).to_markdown(index=False), ""]
     if g is not None:
