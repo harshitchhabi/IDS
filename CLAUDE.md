@@ -51,11 +51,16 @@ must fight for; it is the entire honeypot-derived share of the training set.
 
 ### Defenses
 
-| ID | Name | Description |
-|----|------|-------------|
-| **D1** | Cost-of-influence weighting | **The novel contribution.** Weight each honeypot sample by how much the interaction cost the attacker (session duration, protocol state depth, commands executed, bytes, files transferred). Cheap interactions get near-zero weight. Poisoning is only attractive while it is cheap; make influence over the model purchasable only with real attack effort. A1 should collapse under this. |
-| **D2** | Do-no-harm admission gate | Before a honeypot batch enters training, test whether it moves the decision boundary on a small trusted benign holdout beyond a threshold. Quarantine batches that raise FPR on known-good traffic. |
-| **D3** | Persona randomization | Vary decoy fingerprints so A4 degrades. *(Phase 5, optional.)* |
+Status reflects the Phase 0 results (docs/DECISIONS.md §20-25). The original plan cast D1 as the novel
+contribution; the measurements did not support that.
+
+| ID | Name | Status |
+|----|------|--------|
+| **ShareCap** | Cap the honeypot's effective share of the training set at `c` (uniform weight `min(1, c/(1-c) * n_seed/n_honeypot)`, recomputed each retrain). No cost, label or feature information, no trusted data, no knowledge of the poison ratio. | **Recommended defense.** At c=0.05 it recovers ~100% of A1 damage at poison ratios 0.5 and 0.9 and keeps 0.81 (CICIDS) to 0.99 (synthetic) of the honest loop's gain. No D1 variant, kNN or fixed uniform weight dominates it (0 of 87 cases). The cap depends on where damage starts for a given model and dataset (DECISIONS §25.5). |
+| **D1** | Cost-of-influence weighting (per-flow effort from duration, packets, bytes, protocol depth) | **Measured negative result.** It does not beat a no-skill baseline: uniform w=0.05 matches its recovery at ratio 0.5, ShareCap beats it at every ratio, and on CICIDS (effort AUROC 0.81) no variant dominates kNN. The pre-registered insensitivity criterion (§20) failed, 2 of 12. What stands: protection comparable to kNN at ~781x lower overhead (0.000216 vs 0.168 s/round). Per-flow cost proxies are insufficient; session-level effort is untested (future work, §25.6). |
+| **kNN sanitize / loss filter** | Generic label-cleaning baselines | kNN against the trusted seed set works but is ~781x costlier than D1. **Loss filtering fails structurally** (recovery -0.005): the poison carries the defender's *own* labelling policy, so it looks consistent to a label-consistency filter. References anchored outside the loop work; filters inside it do not (§23, "policy-consistency blind spot"). |
+| **D2** | Do-no-harm admission gate | Not built. |
+| **D3** | Persona randomization | Not built. |
 
 **Nice property to exploit in the demo:** A1 is literally "point the benign
 traffic generator at the honeypot instead of production." Reuse the generator
@@ -181,6 +186,14 @@ and attacker cost (flows, packets, bytes, wall-clock).
 ---
 
 ## Phases
+
+> **Revised plan.** The research (Phase 0, plus the defenses of Phase 5) ran entirely offline; its results
+> are final and no further experiments are planned beyond the ShareCap cap curve (DECISIONS §25.5). The
+> **replay-driven live demo (branch `phase2/demo`) replaces the Phase 1-2 compose testbed** and is the
+> course deliverable: CICIDS flows replayed through the detector, the real loop code driven from a control
+> panel, and a real Cowrie honeypot shown as a separate telemetry panel. Phases 1, 3, 4 below are the
+> original plan, kept for reference and not scheduled. Cowrie sessions are not CICFlowMeter flows and do not
+> feed the model.
 
 Build in order. Stop at each checkpoint and report before moving on.
 
