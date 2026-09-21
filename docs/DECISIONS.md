@@ -1666,7 +1666,66 @@ insufficient on CICIDS. (f) Hypothesis, not established: honeypot session logs (
 downloads, protocol depth) carry the effort signal flow summaries lose, which is a research reason for the
 live Cowrie testbed.
 
-### 25.6 Parked: session-level D1 (future work)
+### 25.5 The ShareCap cap-sensitivity curve, reported whole
+
+The safe cap used in §25.2-25.3 (0.03-0.08) was picked from the A1 damage-onset results, which is circular as
+a design justification even though the results themselves are not circular. The fix is to report the whole
+curve rather than a chosen range. Full sweep, `c in {0.01, 0.02, 0.03, 0.05, 0.08, 0.1, 0.15, 0.2, 0.3, 0.5}`,
+XGBoost, 5 seeds, paired last-round (round 20) FPR/TPR against the matched undefended run per seed:
+
+| cap | recovery r0.5 (n) | recovery r0.9 (n) | retention CICIDS 0.2 | retention synthetic 0.05 | retention synthetic 0.2 |
+|---|---|---|---|---|---|
+| 0.01 | 0.991 (5) | 0.995 (5) | 0.657 | 0.945 | 0.884 |
+| 0.02 | 0.989 (5) | 0.995 (5) | 0.671 | 0.977 | 0.913 |
+| 0.03 | 0.991 (5) | 0.994 (5) | 0.653 | 0.987 | 0.922 |
+| 0.05 | 0.988 (5) | 0.993 (5) | 0.752 | 0.996 | 0.937 |
+| 0.08 | 0.981 (5) | 0.989 (5) | 0.781 | 1.000 | 0.957 |
+| 0.10 | 0.965 (5) | 0.982 (5) | 0.830 | 1.000 | 0.969 |
+| 0.15 | 0.610 (5) | 0.778 (5) | 0.911 | 1.000 | 0.980 |
+| 0.20 | 0.483 (5) | 0.696 (5) | 1.000 | 1.000 | 1.002 |
+| 0.30 | 0.197 (5) | 0.525 (5) | 1.000 | 1.000 | 1.000 |
+| 0.50 | 0.000 (5) | 0.402 (5) | 1.000 | 1.000 | 1.000 |
+
+Retention rises monotonically with the cap (an undefended, un-capped loop is the limit), as it must: a looser
+cap lets more honest honeypot signal through. Recovery holds essentially flat (0.96-0.99) through c=0.10 and
+then falls off a cliff between 0.10 and 0.20, reaching zero protection at c=0.50 for ratio 0.5 (the cap no
+longer binds once it is at or above the actual poison share, so ShareCap degenerates to the undefended loop
+by construction, not by failure of the mechanism). **The right cap depends on where damage onset is for the
+given model and dataset — there is no cap that is simultaneously maximally protective and maximally
+retentive, and this curve is what a deployer would need to tune against, not a single default.** The values
+used in §25.2-25.3 (0.03-0.08) sit inside the flat, near-total-recovery region for this model and dataset;
+that is a post-hoc justification of the earlier choice, not evidence that the same range is safe elsewhere
+(e.g. under XGBoost, whose FPR response to A1 is itself seed-dependent — see §25.6).
+
+### 25.6 XGBoost's FPR response to A1 is seed-dependent (5 seeds is too few to characterize it)
+
+Building the demo (`docs/DEMO.md`) surfaced a finding that the archived Phase 0 runs already contained but
+the mean-over-seeds tables did not show. Per-seed fixed-threshold FPR at ratio 0.5, CICIDS, rounds
+2/4/6/8/10/12/15/20:
+
+| model | seed | r2 | r4 | r6 | r8 | r10 | r12 | r15 | r20 |
+|---|---|---|---|---|---|---|---|---|---|
+| xgboost | 1 | 0.005 | 0.005 | 0.004 | 0.006 | 0.006 | 0.006 | 0.007 | 0.019 |
+| xgboost | 2 | 0.016 | 0.503 | 0.737 | 0.782 | 0.823 | 0.878 | 0.924 | 0.955 |
+| xgboost | 3 | 0.006 | 0.007 | 0.053 | 0.538 | 0.693 | 0.714 | 0.734 | 0.800 |
+| xgboost | 4 | 0.046 | 0.707 | 0.776 | 0.839 | 0.908 | 0.949 | 0.948 | 0.958 |
+| xgboost | 5 | 0.005 | 0.004 | 0.004 | 0.006 | 0.007 | 0.008 | 0.010 | 0.117 |
+| rf | 1 | 0.048 | 0.232 | 0.618 | 0.721 | 0.767 | 0.804 | 0.858 | 0.911 |
+| rf | 2 | 0.032 | 0.153 | 0.503 | 0.700 | 0.735 | 0.776 | 0.840 | 0.894 |
+| rf | 3 | 0.021 | 0.088 | 0.362 | 0.612 | 0.706 | 0.743 | 0.776 | 0.853 |
+| rf | 4 | 0.015 | 0.095 | 0.383 | 0.615 | 0.728 | 0.740 | 0.788 | 0.869 |
+| rf | 5 | 0.042 | 0.284 | 0.647 | 0.729 | 0.779 | 0.836 | 0.880 | 0.917 |
+
+XGBoost is bimodal: seeds 2 and 4 reach 70-84% FPR by round 8-10; seeds 1 and 5 stay below 2% through round
+10 and only seed 5 climbs at all by round 20 (to 12%); seed 3 sits in between, jumping late (round 6-8). RF
+climbs on all 5 seeds, with no seed staying flat. The mean-over-seeds tables used everywhere else in §21-25
+hide this: the XGBoost mean at round 10 is dragged up by two seeds while three show no effect at all, which
+is a bimodal outcome, not a noisy estimate of one common trajectory. **5 seeds is too few to characterize
+XGBoost's response to A1 under the fixed threshold; report the per-seed trajectories alongside the mean, not
+mean +/- std alone, until more seeds are run.** RF's channel does not show this problem here. The live demo
+(`docs/DEMO.md`) uses RF for this reason: a demo needs the effect to reproduce on every run, and only RF does.
+
+### 25.7 Parked: session-level D1 (future work)
 
 Not run. Reasons: (a) any session-level D1 would have to beat ShareCap (§25.3), which already recovers ~100%
 at both ratios and retains 0.74-0.83 on CICIDS, so the headroom is small; (b) the dataset that carries source
