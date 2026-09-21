@@ -1542,7 +1542,9 @@ recovers 99% and D1q (q = 0.99, g = 2) 99%. A defense that has to work at a pois
 ratio the defender does not control cannot be a blanket cap; it has to be selective.
 
 **4. Same-dataset verdict.** On CICIDS, where both axes come from one dataset, kNN and every
-D1q / D1fixed point keep ~65-66% of the honest gain (uniform keeps more only by giving up recovery),
+D1q / D1fixed point keep ~65-66% of the honest gain. (An earlier version of this sentence said uniform
+keeps more only by giving up recovery. That is wrong at ratio 0.5: uniform w=0.05 / 0.1 keep 71% / 74%
+*and* recover 99.8% / 98.9%; it gives up recovery only at ratio 0.9. See §25.1(2).)
 and recover 94-100%. D1q (q = 0.99) at ratio 0.9 recovers 94% (g = 1) / 99% (g = 2) against kNN's 99%.
 **Cost weighting reaches comparable protection and comparable retention to kNN sanitization on CICIDS;
 it does not dominate it.** The RF check agrees (recovery r0.5: kNN 99.5%, D1q 98.9%, uniform 95.7%,
@@ -1571,3 +1573,95 @@ re-checked out of grid on RF and at ratio 0.9, but a selection bias remains. D1f
 The retention axes are S0 on synthetic (learning claim, but cost carries no class signal there) and
 CICIDS (memorization, §16); no dataset has both a learning claim and a cost signal. kNN and the loss
 filter were not run at the same grid of ratios as D1. The synthetic generator has no attacker-cost profile.
+
+## 25. What the frontier establishes, and the stronger no-skill baseline
+
+### 25.1 Three findings, stated plainly
+
+**(1) Most of D1's protection at ratio 0.5 comes from down-weighting honeypot data at all, not from
+cost discrimination.** A defense that uses no cost information at all — uniform weight 0.05 on every
+honeypot row — recovers 99.8% of A1's damage at ratio 0.5; D1 dominates it in **0 of 87** (setting,
+retention-axis) cases. D1 does retain more of the honest loop on the synthetic axes (D1q q=0.99 g=1:
+0.961 vs 0.711 at S0 ratio 0.05), so it is not worthless there, but that retention is not evidence of
+discrimination: see (2).
+*Caveat this finding needs, added on review of the data:* the dominance test used recovery at ratio 0.5
+only. At ratio 0.9 the fixed uniform weights fail (recovery 52% at w=0.05, 43% at w=0.1) while D1q
+(q=0.99, g=2) recovers 99%, D1q g=1 94%, and kNN 99%. A fixed uniform weight is a no-skill baseline only
+*at one poison ratio*; the correct no-skill comparator is the one defined in 25.2.
+
+**(2) D1's clean win over kNN is on the dataset where its signal does not exist.** Effort separates
+attack from benign flows with AUROC **0.461 on synthetic** (below chance: attack flows are slightly
+cheaper than benign) and 0.809 on CICIDS. D1q dominates kNN (P = 1.0) only on the synthetic retention
+axes; on CICIDS, where effort does carry signal, **no D1 variant dominates kNN**, and every D1 variant
+sits at 0.64-0.67 retention regardless of E* or gamma, **worse than uniform w=0.05 / 0.1 (0.705 / 0.741)**
+at the ratio-0.5 operating point. (§24.1 said uniform keeps more "only by giving up recovery"; that was
+wrong at ratio 0.5, where uniform keeps more *and* recovers 99.8% / 98.9%. It gives up recovery only at
+ratio 0.9 or at larger weights.)
+
+**(3) The pre-registered insensitivity criterion of §20 failed.** "Not sensitive iff A1 FPR damage stays
+within 2 sigma_control over E* >= 4, gamma >= 1": **2 of 12 configurations** met it (E*=32, gamma=2,3).
+Reported as a failed pre-registered test. The criterion is not revised. (§21.5 records the grid; damage
+falls monotonically with E* and gamma and every configuration in the region still removed >= 86%, but
+that is a description of how it failed, not a redefinition of the test.)
+
+### 25.2 A stronger no-skill baseline, fixed before it is run
+
+Fixed uniform weights protect only at the poison ratio they were tuned for. The bar D1 has to clear is a
+no-skill defense that works at *any* ratio: **`ShareCap(c)`** caps the honeypot's *effective share* of the
+training set at `c` by giving every honeypot row the same weight
+`w = min(1, c/(1-c) * n_seed / n_honeypot)`, recomputed at each retrain, so it needs no knowledge of the
+poison ratio and uses no cost or label information. With `c` below the ~10% damage onset it should
+protect at every ratio; and when the honest honeypot share is below `c` it does not bind at all
+(retention 100%), so it is expected to **retain more than any fixed-weight defense**.
+
+**Prediction, recorded before the runs:** ShareCap protects at ratios 0.5 and 0.9 and dominates the
+pre-registered D1 and probably every D1 variant on retention; the only thing D1 could still contribute is
+selectivity that ShareCap lacks. Caps `c in {0.03, 0.05, 0.08}`; A1 at ratios 0.5 and 0.9 (CICIDS,
+XGBoost), S0 on synthetic (0.05 / 0.2) and CICIDS (0.2), 5 seeds, same axes as §24.
+
+### 25.3 ShareCap result: the prediction held
+
+Recorded prediction (25.2): ShareCap protects at ratios 0.5 and 0.9 and dominates D1 on retention. Result
+(XGBoost, 5 seeds, `results/phase0/frontier/`):
+
+| defense | recovery r0.5 | recovery r0.9 | retention syn 0.05 | retention syn 0.2 | retention CICIDS 0.2 |
+|---|---|---|---|---|---|
+| ShareCap c=0.03 | 1.003 | 1.001 | 0.993 | 0.979 | 0.737 |
+| ShareCap c=0.05 | 0.999 | 1.000 | 0.998 | 0.986 | 0.807 |
+| ShareCap c=0.08 | 0.992 | 0.995 | 1.000 | 0.994 | 0.834 |
+| uniform w=0.05 | 0.998 | 0.522 | 0.711 | 0.960 | 0.705 |
+| kNN | 0.989 | 0.991 | 0.423 | 0.784 | 0.658 |
+| D1 (E*=8, g=2) | 0.929 | 0.863 | 0.101 | 0.580 | 0.660 |
+| D1q q=0.99 g=1 | 0.997 | 0.938 | 0.961 | 0.983 | 0.645 |
+
+Dominance over each ShareCap cap, by mean and at both ratios: **0 of 87** cases for every D1 variant, kNN and
+uniform w=0.05; only uniform w=0.1 shows 2 of 87 against kNN. ShareCap needs no cost, label or feature
+information, no trusted data, and no knowledge of the poison ratio. It beats every D1 variant on CICIDS
+retention (0.74-0.83 vs 0.645-0.66) and on synthetic retention, and matches recovery at both ratios.
+
+**Consequence: D1 does not earn its claim over the right no-skill baseline.** Cost discrimination is not
+shown to add anything beyond capping the honeypot's effective share. Caveat: ShareCap's CICIDS retention
+depends on the cap (0.74-0.83), and a cap is a tuning knob whose safe range (below the ~10% damage onset) was
+taken from the A1 results themselves; it is not a free lunch against an adversary that also knows the cap
+(under a cap the attacker's influence is bounded, but so is the honest loop's).
+
+### 25.4 Step 1 (data check) and the honest D1 statement
+
+**Data.** The local CICIDS2017 files (MachineLearningCVE) carry 79 columns, of which only `Destination Port`
+is identifier-like: no source/destination IP, Flow ID or timestamp. Sessions cannot be built and are not
+faked from file order. The timestamped `GeneratedLabelledFlows` release is form-gated and was unreachable
+when checked; obtaining it is the user's action. Step 2 (session-level D1) is therefore not run.
+
+**Flow-level diagnostic (motivates, does not test, the session hypothesis).** Under D1's default, 25% of DoS
+Hulk flows have weight < 0.05, and DDoS/PortScan/FTP-Patator are mostly cheap per flow, but Hulk's mean weight
+is 0.74. CICIDS retention stays ~0.64-0.66 while mean attack weight ranges 0.04-0.87, whereas uniform's
+retention scales with weight; at equal mean weight D1 keeps ~6 points less. The ceiling seems to come from
+*which* flows are discarded. Whether per-session aggregation fixes this is a hypothesis, untested.
+
+**Statement of D1 as it stands.** (a) Protection comparable to kNN sanitization at ~781x lower overhead
+(0.000216 vs 0.168 s/round; bootstrap 735-837x). (b) D1/D1q need only four benign summary medians; only
+D1fixed needs no trusted data. (c) Its advantage over a fixed uniform weight appears at high poison ratios
+(0.9), not low ones, but (d) it does not beat ShareCap at any ratio. (e) Flow-level cost proxies are
+insufficient on CICIDS. (f) Hypothesis, not established: honeypot session logs (commands, auth attempts,
+downloads, protocol depth) carry the effort signal flow summaries lose, which is a research reason for the
+live Cowrie testbed.
