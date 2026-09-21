@@ -79,6 +79,26 @@ If both fail, the backup screen recording is at `docs/demo/walkthrough.mp4` (or 
 `docs/demo/day1_burst.png`, `day2_a1_poisoned.png`, `day2_sharecap.png`, `precision_check.png` and
 `day3_cowrie.png` tell the same story as still images.
 
+## Likely questions
+
+- **Why do the "live TPR" card and the TPR round chart show different numbers?** The card is the last 1,500
+  *streamed* flows, which include families the model barely detects (e.g. Bot). The round chart is
+  `trusted_eval`, a fixed set balanced by family. They are not measuring the same population, so they don't
+  have to agree.
+- **Why does Bot show ~0% in per-class detection?** It's a tiny family (~2,000 rows in CICIDS2017) that the
+  model barely learns from that little data. Say so plainly rather than explaining it away.
+- **Why does TPR rise while the detector is being poisoned?** Because the model is flagging almost everything,
+  attacks included — that's not improvement. The precision chart next to it shows the same rounds collapsing
+  toward 0.3, which is the real signal.
+- **Does the Cowrie honeypot feed the model?** No. The loop trains on replayed CICIDS `honeypot_pool` flows;
+  Cowrie sessions are not CICFlowMeter flows and aren't compatible with the feature schema. The panel is
+  telemetry only, and the label under it says so.
+- **Why ShareCap and not D1, if D1 is "the novel contribution"?** It isn't, any more — that line in an earlier
+  version of `CLAUDE.md` is corrected. ShareCap is undominated by every D1 variant, kNN and fixed uniform
+  weighting at both poison ratios tested (0 of 87 cases beat it), at ~1/80th kNN's per-round cost, with no
+  cost model or trusted reference beyond the cap itself. D1 is a measured negative result: comparable
+  protection to kNN, but it does not beat the simpler baseline. See `docs/DECISIONS.md` §24-25.
+
 ## What NOT to click
 
 - Don't leave A1 running past ~15 rounds before switching defenses — the fixed threshold FPR can approach 100%,
