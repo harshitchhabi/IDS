@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deception Loop — live demo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/dashboard.css">
+<script src="/static/htmx.min.js"></script>
+<script src="/static/chart.umd.min.js"></script>
+</head>
+<body hx-swap="none">
+<header>
+  <div class="title">Deception Loop <span class="sub">honeypot-fed retraining under attack</span></div>
+  <div class="badges">
+    {% if recorded %}<span class="badge rec">RECORDED MODE — replaying precomputed loop rounds</span>{% else %}<span class="badge live">LIVE — real loop, real retrains</span>{% endif %}
+    <span class="badge" id="b-version">model v—</span>
+    <span class="badge" id="b-conn">connecting…</span>
+  </div>
+</header>
+
+<section class="kpis">
+  <div class="kpi"><div class="k">flows / s</div><div class="v" id="k-rate">—</div></div>
+  <div class="kpi"><div class="k">total flows</div><div class="v" id="k-flows">—</div></div>
+  <div class="kpi"><div class="k">alerts</div><div class="v" id="k-alerts">—</div></div>
+  <div class="kpi"><div class="k">live FPR <small>(last 1500 flows)</small></div><div class="v" id="k-fpr">—</div></div>
+  <div class="kpi"><div class="k">live TPR</div><div class="v" id="k-tpr">—</div></div>
+  <div class="kpi"><div class="k">alert threshold</div>
+    <div class="v small" id="k-thr">—</div>
+    <div class="seg" id="mode-seg">
+      <button hx-post="/api/mode/fixed" data-mode="fixed">fixed</button><button hx-post="/api/mode/recalibrated" data-mode="recalibrated">recalibrated</button>
+    </div></div>
+</section>
+
+<main>
+  <section class="card span2">
+    <h2>Network traffic <small>replayed CICIDS2017 flows, benign and attack stacked · line = alerts</small></h2>
+    <div class="chart"><canvas id="c-traffic"></canvas></div>
+    <div class="row gap">
+      <label>replay rate <input type="range" id="rate" min="50" max="200" step="10" value="100"> <b id="rate-v">100</b> flows/s</label>
+      <span class="grow"></span>
+      <label>launch attack burst
+        <select id="atk-family"><option>DDoS</option><option>PortScan</option><option>SSH-Patator</option></select></label>
+      <button class="danger" id="btn-attack">Launch attack (500 flows)</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Alert stream <small>current model, newest first</small></h2>
+    <table class="alerts"><thead><tr><th>time</th><th>predicted</th><th>flow is</th><th>score</th></tr></thead><tbody id="alerts"></tbody></table>
+  </section>
+
+  <section class="card span3 control">
+    <h2>Loop control <small>each round: honeypot batch → auto-label malicious → defense → retrain → evaluate on trusted_eval</small></h2>
+    <div class="ctl">
+      <div class="grp"><div class="lbl">Honeypot feed</div>
+        <button class="feed" data-feed="s0" hx-post="/api/feed/s0">① Clean honeypot feed (S0)</button>
+        <button class="feed" data-feed="a1" hx-post="/api/feed/a1">② Poison attack (A1)</button>
+        <button class="feed" data-feed="off" hx-post="/api/feed/off">Pause feed</button>
+      </div>
+      <div class="grp"><div class="lbl">Defense</div>
+        <button class="def" data-def="off" hx-post="/api/defense/off">off</button>
+        <button class="def" data-def="sharecap" hx-post="/api/defense/sharecap">③ ShareCap (c=0.05)</button>
+        <button class="def" data-def="d1" hx-post="/api/defense/d1">D1 (cost weighting)</button>
+        <button class="def" data-def="knn" hx-post="/api/defense/knn">kNN sanitize</button>
+      </div>
+      <div class="grp"><div class="lbl">Loop</div>
+        <button hx-post="/api/step">Step one round</button>
+        <button class="warn" id="btn-reset">Reset</button>
+      </div>
+      <div class="status" id="loop-status">—</div>
+    </div>
+    <div class="rounds">
+      <div><h3>False-positive rate per round <small>on trusted_eval benign</small></h3><div class="chart sm"><canvas id="c-fpr"></canvas></div></div>
+      <div><h3>True-positive rate per round <small>on trusted_eval attacks</small></h3><div class="chart sm"><canvas id="c-tpr"></canvas></div></div>
+      <div><h3>Defense comparison <small>rounds with honeypot data</small></h3>
+        <table class="mini"><thead><tr><th>defense</th><th>rounds</th><th>FPR fixed</th><th>TPR fixed</th><th>TPR recal</th><th>honeypot share</th><th>defense cost / round</th></tr></thead><tbody id="defs"></tbody></table>
+        <p class="note" id="defs-note"></p></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Per-class detection <small>share of streamed flows alerted</small></h2>
+    <div class="chart tall"><canvas id="c-classes"></canvas></div>
+  </section>
+
+  <section class="card span2">
+    <h2>Model version history <small>every retrain is a registered version · metrics on trusted_eval</small></h2>
+    <div class="scroll"><table class="mini"><thead><tr><th>ver</th><th>round</th><th>feed</th><th>defense</th><th>honeypot rows</th><th>effective share</th><th>FPR fixed</th><th>TPR fixed</th><th>FPR recal</th><th>TPR recal</th></tr></thead><tbody id="models"></tbody></table></div>
+  </section>
+
+  <section class="card span3 hp">
+    <h2>Honeypot activity <small>real Cowrie SSH honeypot on 127.0.0.1:2222 — telemetry only</small></h2>
+    <p class="note strong">Separate from the loop above: the loop runs on replayed CICIDS honeypot_pool flows. Cowrie sessions are not CICFlowMeter flows and do <b>not</b> feed the model. This panel shows the session-level effort signal that flow data cannot give D1.</p>
+    <div id="hp-body"><p class="note">Cowrie not running. Start it with <code>python scripts/run.py cowrie</code>, then <code>python scripts/attack_honeypot.py</code>.</p></div>
+  </section>
+</main>
+<script src="/static/dashboard.js"></script>
+</body>
+</html>
