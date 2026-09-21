@@ -154,7 +154,9 @@ class LiveLoop:
                "a1_rows": sum(len(b.x) for b in self.batches if b.scenario == "a1"),
                "defense_seconds": defense_s, "fit_seconds": fit_s, "cum_flows": self.cum_flows,
                "fixed_fpr": modes["fixed"]["fpr"], "fixed_tpr": modes["fixed"]["tpr"],
+               "fixed_precision": modes["fixed"]["precision"],
                "recal_fpr": modes["recalibrated"]["fpr"], "recal_tpr": modes["recalibrated"]["tpr"],
+               "recal_precision": modes["recalibrated"]["precision"],
                "modes": modes}
         row["version"] = self.registry.register(
             model, scenario=scenario, defense=defense_name, round_=k, threshold_fixed=self.thr_fixed,

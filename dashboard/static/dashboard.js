@@ -27,8 +27,11 @@ function roundChart(id, keyFixed, keyRecal, max) {
                plugins: { tooltip: { callbacks: { title: (i) => "round " + i[0].label, label: (c) => `${c.dataset.label}: ${(100 * c.parsed.y).toFixed(1)}%` } } } },
   });
 }
-const cFpr = roundChart("c-fpr"), cTpr = roundChart("c-tpr", null, null, 1);
+const cFpr = roundChart("c-fpr"), cTpr = roundChart("c-tpr", null, null, 1), cPrec = roundChart("c-prec", null, null, 1);
 cFpr.options.scales.y.max = undefined; cFpr.options.scales.y.suggestedMax = 0.1;
+cPrec.data.datasets[0].borderColor = ORANGE; cPrec.data.datasets[0].backgroundColor = ORANGE;
+cPrec.data.datasets[0].label = "precision (fixed)";
+cPrec.data.datasets[1].label = "precision (recalibrated)"; cPrec.data.datasets[1].hidden = true;
 
 const classes = new Chart($("c-classes"), {
   type: "bar",
@@ -59,7 +62,8 @@ function renderAlerts(s) {
 function renderRounds(s) {
   const r = s.rounds;
   const lab = r.map((x) => x.round);
-  for (const [chart, kf, kr] of [[cFpr, "fixed_fpr", "recal_fpr"], [cTpr, "fixed_tpr", "recal_tpr"]]) {
+  for (const [chart, kf, kr] of [[cFpr, "fixed_fpr", "recal_fpr"], [cTpr, "fixed_tpr", "recal_tpr"],
+                                  [cPrec, "fixed_precision", "recal_precision"]]) {
     chart.data.labels = lab;
     chart.data.datasets[0].data = r.map((x) => x[kf]);
     chart.data.datasets[1].data = r.map((x) => x[kr]);
@@ -68,7 +72,8 @@ function renderRounds(s) {
   }
   $("defs").innerHTML = s.defenses.map((d) =>
     `<tr><td><b>${defName[d.defense]}</b></td><td>${d.rounds}</td><td>${fmtPct(d.last_fpr)}</td><td>${fmtPct(d.last_tpr)}</td>` +
-    `<td>${fmtPct(d.last_recal_tpr)}</td><td>${fmtPct(d.last_eff)}</td><td>${d.ms_per_round < 1 ? d.ms_per_round.toFixed(2) : d.ms_per_round.toFixed(0)} ms</td></tr>`).join("");
+    `<td>${fmtPct(d.last_precision)}</td><td>${fmtPct(d.last_recal_tpr)}</td><td>${fmtPct(d.last_eff)}</td>` +
+    `<td>${d.ms_per_round < 1 ? d.ms_per_round.toFixed(2) : d.ms_per_round.toFixed(0)} ms</td></tr>`).join("");
   const dd = Object.fromEntries(s.defenses.map((d) => [d.defense, d]));
   $("defs-note").textContent = (dd.knn && dd.sharecap)
     ? `kNN costs ${(dd.knn.ms_per_round / Math.max(dd.sharecap.ms_per_round, 0.001)).toFixed(0)}× ShareCap per round; the cap needs no reference data, no cost model, and does not know the poison ratio.`
@@ -99,9 +104,17 @@ function renderControl(s) {
   const last = s.rounds[s.rounds.length - 1];
   $("loop-status").innerHTML = `round <b>${c.round}</b> · feed <b>${feedName[c.feed]}</b> · defense <b>${defName[c.defense]}</b>` +
     (c.busy ? ` · <span class="good">retraining…</span>` : "") +
-    (last ? `<br>honeypot share of training set: <b>${fmtPct(last.poison_ratio)}</b> → effective <b>${fmtPct(last.hp_effective_ratio)}</b>` : "") +
-    (s.recorded ? `<br><b>recorded</b>` : "");
+    (last ? `<br>honeypot share of training set: <b>${fmtPct(last.poison_ratio)}</b> → effective <b>${fmtPct(last.hp_effective_ratio)}</b>` : "");
   $("b-version").textContent = `model v${s.detector.version}`;
+  const src = c.source;
+  const bm = $("b-mode");
+  bm.textContent = src === "recorded" ? "RECORDED — replaying precomputed loop rounds" : "LIVE — real loop, real retrains";
+  bm.className = "badge " + (src === "recorded" ? "rec" : "live");
+  const other = src === "recorded" ? "live" : "recorded";
+  const btn = $("btn-source");
+  btn.textContent = "switch to " + other;
+  btn.disabled = !c.sources.includes(other);
+  btn.onclick = () => fetch("/api/source/" + other, { method: "POST" });
   $("k-thr").textContent = s.detector.threshold === null ? "—" : s.detector.threshold.toFixed(3);
   if (document.activeElement !== $("rate")) { $("rate").value = c.rate; $("rate-v").textContent = c.rate; }
 }
@@ -133,6 +146,9 @@ function render(s) {
   $("k-fpr").textContent = fmtPct(s.live.fpr);
   $("k-fpr").className = "v " + (s.live.fpr > 0.05 ? "bad" : "good");
   $("k-tpr").textContent = fmtPct(s.live.tpr);
+  $("k-prec").textContent = fmtPct(s.live.precision);
+  $("k-prec").className = "v " + (s.live.precision !== null && s.live.precision < 0.5 ? "bad" : "good");
+  $("k-fam").textContent = fmtN(s.live.false_alerts_per_min);
   renderTraffic(s); renderAlerts(s); renderRounds(s); renderModels(s); renderClasses(s); renderControl(s); renderHoneypot(s);
 }
 

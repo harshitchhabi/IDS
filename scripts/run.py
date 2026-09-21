@@ -43,31 +43,49 @@ def _build(recorded: bool, with_cowrie: bool):
     from dloop.store.sqlite import Store
 
     DEMO_DIR.mkdir(parents=True, exist_ok=True)
-    store = Store(DEMO_DIR / "demo.sqlite")
-    store.reset(("alerts", "models"))
-    registry = ModelRegistry(DEMO_DIR / "registry", store)
-    if recorded:
-        loop = RecordedLoop(RECORDED, registry)
-        fams = json.loads(RECORDED.read_text())["meta"]["stream_families"]
-        driver = ReplayDriver(np.zeros((1, 24)), np.zeros((60 * len(fams), 24)), np.repeat(fams, 60), seed=0)
-        detector = RecordedDetector(registry)
-    else:
-        from dloop.adversary.mimicry import assert_disjoint_from_eval
-        data = load_demo_data(DATA_NPZ)
-        # A1's poison source must never coincide with the trusted evaluation set (CLAUDE.md: leakage invalidates all)
-        n = assert_disjoint_from_eval(data.pool_benign_x, data.eval_benign_full_x)
-        log.warning("loop data ready", seed_rows=len(data.seed_x), eval_rows=len(data.eval_x), disjoint_checked=n)
-        loop = LiveLoop(data, registry)
-        atk = data.eval_y == 1
-        driver = ReplayDriver(data.eval_benign_full_x, data.eval_x[atk], data.eval_family[atk], seed=0)
-        detector = LiveDetector(registry)
+    # Alerts and Cowrie telemetry are shared state, independent of which loop is driving the rounds. Each
+    # source gets its OWN model store/registry (version numbers are per-registry primary keys, and live vs
+    # recorded must never collide in the model-version-history table).
+    alert_store = Store(DEMO_DIR / "demo.sqlite")
+    alert_store.reset(("alerts",))
+
+    sources: dict[str, tuple] = {}
+    driver = None
+    data = None
+    if DATA_NPZ.exists():
+        try:
+            from dloop.adversary.mimicry import assert_disjoint_from_eval
+            data = load_demo_data(DATA_NPZ)
+            # A1's poison source must never coincide with trusted_eval (CLAUDE.md: leakage invalidates everything)
+            n = assert_disjoint_from_eval(data.pool_benign_x, data.eval_benign_full_x)
+            log.warning("loop data ready", seed_rows=len(data.seed_x), eval_rows=len(data.eval_x),
+                       disjoint_checked=n)
+            live_store = Store(DEMO_DIR / "registry_live.sqlite")
+            live_store.reset(("models",))
+            live_reg = ModelRegistry(DEMO_DIR / "registry_live", live_store)
+            sources["live"] = (LiveLoop(data, live_reg), live_reg, LiveDetector(live_reg))
+            atk = data.eval_y == 1
+            driver = ReplayDriver(data.eval_benign_full_x, data.eval_x[atk], data.eval_family[atk], seed=0)
+        except Exception:
+            log.exception("could not build the live source; recorded mode only")
+    if RECORDED.exists():
+        rec_store = Store(DEMO_DIR / "registry_recorded.sqlite")
+        rec_store.reset(("models",))
+        rec_reg = ModelRegistry(DEMO_DIR / "registry_recorded", rec_store)
+        rec_loop = RecordedLoop(RECORDED, rec_reg)
+        sources["recorded"] = (rec_loop, rec_reg, RecordedDetector(rec_reg))
+        if driver is None:
+            fams = json.loads(RECORDED.read_text())["meta"]["stream_families"]
+            driver = ReplayDriver(np.zeros((1, 24)), np.zeros((60 * len(fams), 24)), np.repeat(fams, 60), seed=0)
+    if not sources:
+        raise SystemExit("no source available: need data/loop/cicids.npz or results/demo/recorded.json")
+
+    active = "recorded" if (recorded or "live" not in sources) else "live"
     honeypot = None
     if with_cowrie:
         from dloop.honeypot.cowrie import CowrieTailer
-        honeypot = CowrieTailer(store)
-    from dloop.demo.service import DemoService
-    return DemoService(loop=loop, registry=registry, detector=detector, driver=driver, store=store,
-                       honeypot=honeypot, recorded=recorded)
+        honeypot = CowrieTailer(alert_store)
+    return DemoService(sources=sources, active=active, driver=driver, store=alert_store, honeypot=honeypot)
 
 
 def cmd_demo(a) -> int:

@@ -12,7 +12,8 @@
 <header>
   <div class="title">Deception Loop <span class="sub">honeypot-fed retraining under attack</span></div>
   <div class="badges">
-    {% if recorded %}<span class="badge rec">RECORDED MODE — replaying precomputed loop rounds</span>{% else %}<span class="badge live">LIVE — real loop, real retrains</span>{% endif %}
+    <span class="badge" id="b-mode">—</span>
+    <button class="seg-btn" id="btn-source">switch to recorded</button>
     <span class="badge" id="b-version">model v—</span>
     <span class="badge" id="b-conn">connecting…</span>
   </div>
@@ -24,6 +25,7 @@
   <div class="kpi"><div class="k">alerts</div><div class="v" id="k-alerts">—</div></div>
   <div class="kpi"><div class="k">live FPR <small>(last 1500 flows)</small></div><div class="v" id="k-fpr">—</div></div>
   <div class="kpi"><div class="k">live TPR</div><div class="v" id="k-tpr">—</div></div>
+  <div class="kpi"><div class="k">live precision <small>false alerts/min: <span id="k-fam">—</span></small></div><div class="v" id="k-prec">—</div></div>
   <div class="kpi"><div class="k">alert threshold</div>
     <div class="v small" id="k-thr">—</div>
     <div class="seg" id="mode-seg">
@@ -72,8 +74,9 @@
     <div class="rounds">
       <div><h3>False-positive rate per round <small>on trusted_eval benign</small></h3><div class="chart sm"><canvas id="c-fpr"></canvas></div></div>
       <div><h3>True-positive rate per round <small>on trusted_eval attacks</small></h3><div class="chart sm"><canvas id="c-tpr"></canvas></div></div>
+      <div><h3>Precision per round <small>share of alerts that are real attacks — catches TPR-rises-under-attack</small></h3><div class="chart sm"><canvas id="c-prec"></canvas></div></div>
       <div><h3>Defense comparison <small>rounds with honeypot data</small></h3>
-        <table class="mini"><thead><tr><th>defense</th><th>rounds</th><th>FPR fixed</th><th>TPR fixed</th><th>TPR recal</th><th>honeypot share</th><th>defense cost / round</th></tr></thead><tbody id="defs"></tbody></table>
+        <table class="mini"><thead><tr><th>defense</th><th>rounds</th><th>FPR fixed</th><th>TPR fixed</th><th>precision</th><th>TPR recal</th><th>honeypot share</th><th>defense cost / round</th></tr></thead><tbody id="defs"></tbody></table>
         <p class="note" id="defs-note"></p></div>
     </div>
   </section>
