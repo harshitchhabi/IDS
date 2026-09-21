@@ -1,0 +1,56 @@
+{
+  "dataset": "cicids",
+  "scenarios": [
+    "s0"
+  ],
+  "models": [
+    "xgboost"
+  ],
+  "seeds": 5,
+  "rounds": 20,
+  "ratios": [
+    0.2
+  ],
+  "jitters": [
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.7,
+    1.5
+  ],
+  "hyperparams": {
+    "rf": {
+      "n_estimators": 25,
+      "max_depth": 16
+    },
+    "xgboost": {
+      "n_estimators": 60
+    }
+  },
+  "retention": "accumulate",
+  "window_rounds": null,
+  "budget_mode": "fixed_ratio",
+  "batch_size": 0,
+  "val_min_nn_distance": 0.1,
+  "cost_padding": 1.0,
+  "defense": "d1",
+  "d1_estar": 2.0,
+  "d1_gamma": 2.0,
+  "d1_components": "",
+  "d1_quantile": 0.0,
+  "d1_reference": "median",
+  "uniform_w": 0.1,
+  "fidelity_rows": 2000,
+  "arm_counts": {
+    "seen_both": 4337,
+    "seed_only": 4000,
+    "honeypot_only": 4000
+  },
+  "seed_rows": 30000,
+  "eval_rows": 52337,
+  "a1_poison_source_rows_checked_disjoint_from_eval_benign": 344221,
+  "attack_pool_rows_checked_vs_eval_attack": 130166,
+  "attack_side_note": "5 poison source rows are identical to trusted_eval rows",
+  "config_hash": "27995b5c7b540ff1"
+}
