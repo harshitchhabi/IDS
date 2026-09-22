@@ -2167,3 +2167,14 @@ jitter 0.01-0.10 (realized 0.014-0.10), which sits in the original 36-cell sweep
 and did not individually clear even an uncorrected threshold there (s26.1's raw table) -- there
 is no seed count at which that range's damage status (damaging, null, or something else) is
 established, and no dip, trend, or monotonicity claim is made about it.
+
+### 26.10 Experiment freeze
+
+No more experiments after this point. The results this paper reports are final as of commit
+`ec15e22a4b75e9ce7b9620674f362f31b6032b2c` (s26.9: double-dipping check and effect sizes for the
+RF at-distance follow-up). Anything a later draft pass turns up -- a gap, an untested condition,
+a question the data cannot answer -- goes into Section 8 (limitations / future work), not into a
+new run. This includes the explicitly-noted open questions already on record: jitter 0.01-0.10's
+damage status at higher seed count, XGBoost's at-distance TPR behaviour, and any mechanism for
+why RF's confirmed at-distance effect (s26.8/s26.9) holds across 0.3-1.5 rather than only at copy
+fidelity. The remaining work is drafting, verification, and packaging.
