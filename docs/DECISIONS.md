@@ -2132,3 +2132,38 @@ subsection, and PAPER_PLAN.md are updated to state RF's TPR-loss channel is conf
 tested far-jitter range (0.3-1.5), not just at copy fidelity, with the 15-seed, 6-cell,
 Holm-corrected result cited. The single-distance framing for Figure 5 stays as previously
 written since it is a different (smaller, older) test.
+
+### 26.9 Double-dipping check: the 10 new seeds alone, and effect sizes for all 6 cells
+
+Follow-up to s26.8, requested before treating that result as final: the original 5 seeds
+motivated the s26.6 follow-up in the first place (their raw means suggested the pattern), so
+including them in the confirmatory Holm test is mild double-dipping -- a test partly selected by
+the same data it is then used to confirm. Re-ran the Holm correction (same 6-cell family: RF,
+recalibrated TPR, jitter {0.3,0.7,1.5} x ratio {0.2,0.5}) on the 10 *new* seeds (6-15) alone, no
+new experiment run -- same job CSVs, different seed filter. Source:
+`results/phase0/loop/s26_distance_followup.csv`.
+
+| jitter | realized dist. | ratio | mean delta_tpr (15 seeds) | mean delta_tpr (10 new) | t (15 / 10 new) | p (15 / 10 new) |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0.3 | 0.25 | 0.2 | -0.101 +/- 0.058 [95% CI -0.133, -0.068] | -0.114 +/- 0.061 | -6.68 / -5.87 | 1.0e-05 / 2.4e-04 |
+| 0.3 | 0.25 | 0.5 | -0.047 +/- 0.051 [-0.075, -0.019] | -0.063 +/- 0.055 | -3.56 / -3.59 | 3.1e-03 / 5.9e-03 |
+| 0.7 | 0.56 | 0.2 | -0.126 +/- 0.043 [-0.150, -0.102] | -0.134 +/- 0.045 | -11.28 / -9.45 | 2.1e-08 / 5.7e-06 |
+| 0.7 | 0.56 | 0.5 | -0.130 +/- 0.074 [-0.171, -0.089] | -0.135 +/- 0.073 | -6.82 / -5.84 | 8.3e-06 / 2.5e-04 |
+| 1.5 | 1.05 | 0.2 | -0.116 +/- 0.038 [-0.138, -0.095] | -0.123 +/- 0.039 | -11.75 / -10.06 | 1.2e-08 / 3.4e-06 |
+| 1.5 | 1.05 | 0.5 | -0.114 +/- 0.032 [-0.132, -0.096] | -0.124 +/- 0.030 | -13.81 / -13.18 | 1.5e-09 / 3.5e-07 |
+
+**All six cells survive Holm correction on the 10-new-seeds-only family too**, at every jitter
+and both ratios (p from 5.9e-3 to 3.5e-7 on the new seeds alone; the correction is re-run within
+this 10-seed family, not reusing the 15-seed Holm thresholds). The confirmation from s26.8 does
+not depend on the 5 seeds that motivated the follow-up -- **no double-dipping concern survives
+this check.** Effect sizes are, if anything, slightly larger on the new seeds alone at every
+cell (e.g. ratio 0.2, jitter 0.7: -0.134 vs. -0.126 pooled), consistent with the pooled 15-seed
+estimate rather than contradicting it.
+
+**Scope, stated precisely for the write-up:** this result is RF, recalibrated threshold only, at
+jitter 0.3/0.7/1.5 (realized median distance 0.25/0.56/1.05) only. It does not cover: XGBoost
+(not in this family); the FPR channel under either model (still copy-fidelity only, s26.1); or
+jitter 0.01-0.10 (realized 0.014-0.10), which sits in the original 36-cell sweep at 5 seeds only
+and did not individually clear even an uncorrected threshold there (s26.1's raw table) -- there
+is no seed count at which that range's damage status (damaging, null, or something else) is
+established, and no dip, trend, or monotonicity claim is made about it.
