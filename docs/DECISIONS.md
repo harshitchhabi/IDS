@@ -2067,3 +2067,28 @@ say so, with the new cell count and seeds noted. If it does not confirm, s26.1/s
 language stands unchanged and this section records the negative result for the record.
 
 Run: `experiments/phase0_loop.py --dataset cicids --val-nn-tau 0.1 --scenarios control a1 --models rf --jitters 0.3 0.7 1.5 --ratios 0.2 0.5 --seeds 15 --workers 4 --out results/phase0/loop/cicids_recal --no-fidelity` (job CSVs already present for seeds 0-4 at these cells are skipped by the existing resume-by-file logic; this run only adds seeds 5-14).
+
+### 26.7 Twin fraction: delta sensitivity check
+
+Recomputed twin fraction (s26.3) at $\delta \in \{0.001, 0.003\}$, bracketing the chosen
+$\delta=0.0015$ by roughly 2x each way, using the same distances already computed per jitter
+(thresholding is cheap; the brute-force NN query was not re-run). Committed to
+`results/phase0/cicids/twin_fraction_by_jitter.csv` (long format, one row per jitter x delta).
+
+| jitter | delta=0.001 | delta=0.0015 | delta=0.003 |
+|---:|---:|---:|---:|
+| 0.000 | 0.0573 | 0.1053 | 0.2122 |
+| 0.002 | 0.00002 | 0.00345 | 0.1732 |
+| 0.005 | 0.0 | 0.0 | 0.00095 |
+| 0.01, 0.03, 0.1, 0.3, 0.7, 1.5 | 0.0 | 0.0 | 0.0 |
+
+**The qualitative finding (a cliff, not a gradient) holds at all three deltas, but the exact
+location is not delta-invariant.** delta=0.001 and delta=0.0015 both collapse to near-zero by
+jitter 0.002 -- the same point where the FPR damage itself disappears (s26.2: RF ratio 0.2,
++0.337 at jitter 0 -> +0.003 at jitter 0.002). delta=0.003 is coarse enough that it still reads
+0.173 at jitter 0.002, comparable in size to delta=0.0015's own raw-jitter value, and does not
+fall to near-zero until jitter 0.005 -- one jitter step later than the FPR damage collapses. A
+delta chosen too loosely lags the effect it is meant to track. This is reported directly in the
+paper (the appendix delta-sensitivity table in the appendix) rather than described as "robust
+to the choice of delta" -- it is robust to a 1.5x change (0.0015 -> 0.001) but not to a 2x change
+in the other direction (0.0015 -> 0.003).
