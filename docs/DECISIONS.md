@@ -1732,3 +1732,62 @@ at both ratios and retains 0.74-0.83 on CICIDS, so the headroom is small; (b) th
 IPs and timestamps (GeneratedLabelledFlows) is form-gated and unavailable. The per-flow diagnostic in §25.4
 motivates the idea but does not test it. **No experiments follow the cap curve (§25.5).**
 
+
+## 26. F3/F4 predated the honest calibration — re-run under tau=0.1, §17 refined
+
+§17's damage-vs-distance table and trajectory figures were built under the old, miscalibrated
+round-0 threshold (control FPR 0.046 RF / 0.039 XGBoost against a 0.01 target). §19.1's fix
+moved the honest control to 0.007 and the FPR-channel onset from ~1-2% to ~10-20% poison
+(§23), but the paper's own F3/F4 figures were never rebuilt against that fix — they were still
+reading `results/phase0/loop/cicids/` (old calibration). This is the one exception to §25.7's
+"no experiments follow the cap curve": not new research, a figure-correctness fix.
+
+**Re-run** (`results/phase0/loop/cicids_recal/`, tau=0.1): scenarios `{control, a1}`, ratios
+`{0.05, 0.1, 0.2, 0.5}`, jitter `{0, 0.01, 0.03, 0.1, 0.3, 0.7, 1.5}`, 5 seeds, RF (25 trees,
+depth<=16) + XGBoost (60 trees), both threshold modes, 4 workers. 170 of 290 jobs were new (120
+already existed from earlier sweeps at overlapping grid points); 34.8 minutes wall clock.
+
+**What changed from §17's numbers.** The cliff location is unchanged (realized NN ~0.011 vs
+~0.014, the same factor-of-~1.3 gap §17 reported), and it is sharper than §17 showed, not
+different in kind. Fixed-threshold FPR increase at jitter 0 (raw benign fidelity), paired
+same-seed delta, final round:
+
+| ratio | RF | XGBoost |
+|---:|---:|---:|
+| 0.05 | +0.009 | +0.005 |
+| 0.10 | +0.025 | +0.014 |
+| 0.20 | +0.337 | +0.279 |
+| 0.50 | +0.880 | +0.563 |
+
+These match §21.1's spot values at the same ratios (RF +0.337/+0.880 at 20%/50%) to three
+decimal places — §21.1's numbers were already tau=0.1; this re-run adds the full jitter grid
+around them, which did not exist as a paper figure before.
+
+**What is refined, not overturned.** §17 point 4 described a "flat, distance-independent"
+RF sub-cliff FPR residual of +0.02 to +0.056 from realized 0.014 to 1.06, origin not
+established. Under tau=0.1 that residual is smaller and mostly inside the noise floor
+(2 sigma_control = 0.009 at ratio 0.5): every jitter from 0.01 to 0.10 sits at +0.001 to
++0.006 (RF) — clearly inside noise — and only the two largest jitters at the two largest
+ratios edge past it (ratio 0.2/jitter 0.7: +0.011; ratio 0.5/jitter 0.7: +0.012). The old
+calibration's inflated control variance was hiding how small this residual actually is; it has
+not vanished but it is no longer the "flat +0.02 to +0.056" effect §17 described, and whatever
+residual remains is concentrated at high ratio and high jitter rather than flat across the
+whole distance range. XGBoost shows no comparable residual (values scatter slightly negative
+throughout, consistent with §23's "no TPR/FPR channel beyond the cliff").
+
+The recalibrated-threshold TPR channel (§23's RF-only, works-at-distance finding) is confirmed
+across the full grid, not just the two spot jitters §23 reported: RF's delta\_tpr at ratio 0.2
+is -0.140 (raw) -> -0.053 -> -0.012 -> -0.051 -> -0.074 -> -0.109 -> -0.103 as jitter rises
+0 -> 0.01 -> 0.03 -> 0.1 -> 0.3 -> 0.7 -> 1.5: damage dips near the cliff and rises again at
+distance, the U-shape §23 described as "saturating near -0.10 from 20%", now visible at every
+grid point rather than inferred from two. XGBoost's TPR delta at the same ratio stays within
+roughly +/-0.08 with no consistent sign, confirming "no TPR channel" rather than a small one
+in the same direction as RF's.
+
+**Figures.** F3 (`paper/figures/F3_damage_vs_fidelity.pdf`) and F4
+(`paper/figures/F4_a1_trajectory.pdf`) are regenerated from this data
+(`experiments/paper_figures.py:fig_f3/fig_f4`, source `_load_recal`/`_paired_damage_recal`). F3
+drops the dotted S0 reference line that the old-calibration figure carried: this re-run did not
+include an S0 arm (S0's own tau=0.1 CICIDS numbers are a class-prior reference only, §17 point
+5, not re-run here), and overlaying an old-calibration S0 line on a tau=0.1 FPR/TPR plot would
+mix calibrations in one figure.
