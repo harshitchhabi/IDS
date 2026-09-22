@@ -34,27 +34,42 @@ the guard-(c) leakage line (0.25); it is already gone eighteen to twenty-five ti
 raw benign than that. \emph{These numbers supersede an earlier, miscalibrated pass through this
 same sweep (Section~\ref{sec:methodology}); a threshold calibrated on a validation split full of
 near-copies of training rows read this cliff as a gentler, flatter effect than it is.}
+% DECISIONS.md s5, s26: raw A1 realized distance at jitter 0 (~0.011) vs. CICIDS benign's own
+% median self-distance at the same grid (0.0065, Table 2, Section 5) -- a factor of ~1.7. Stated
+% here and returned to in Section 8 (low-entropy networks).
+Put plainly: on CICIDS2017, the false-positive channel fires only once the poison sits about as
+close to real benign traffic as CICIDS2017's own benign traffic already sits to itself — raw
+copy-level poison lands at realized distance $\approx0.011$, within a factor of $\sim1.7$ of
+benign's own median self-distance of 0.0065 (Section~\ref{sec:degeneracy}). This channel is not
+a property of A1 alone; it is a property of how repetitive the target's benign traffic already
+is, and Section~\ref{sec:discussion} returns to what that implies for where this attack does and
+does not generalize.
 
 \subsection{Two channels, one mechanism}
-% DECISIONS.md s23: one mechanism (label conflict: benign-populated rows stamped malicious),
-% two channels. FPR needs copy fidelity + >=10-20% poison (confirmed above). TPR (recalibrated
-% threshold) channel is RF-only and works at every distance tested -- s26's full grid: RF ratio
-% 0.2 delta_tpr goes -0.140 (raw) -> -0.053 -> -0.012 -> -0.051 -> -0.074 -> -0.109 -> -0.103 as
-% jitter rises 0->0.01->0.03->0.1->0.3->0.7->1.5: dips near the cliff, rises again at distance
-% (the "saturating near -0.10" shape). XGBoost's TPR delta at the same ratio stays within
-% roughly +/-0.08 with no consistent sign -- no channel, not a smaller one.
+% DECISIONS.md s23, s26.1: one mechanism (label conflict: benign-populated rows stamped
+% malicious), two channels. FPR needs copy fidelity + >=10-20% poison (confirmed above). TPR
+% (recalibrated threshold) channel is RF-only. s26.1 adds the paired t at every grid point: RF
+% is significant (|t|>3) at realized >=0.25 at both ratios, always damaging, but NOT
+% individually significant in the mid-range (jitter 0.01-0.10, |t|<1.6 at both ratios) -- a real
+% dip, not a flat effect across the whole range. XGBoost's mid-grid fluctuations at ratio 0.2 ARE
+% individually significant (|t| up to 7.4) but in the improving (non-damaging) direction and do
+% not repeat at ratio 0.5 -- "no channel in the damaging direction", not "noise".
 The same underlying mechanism — rows that sit in benign-populated feature space, stamped
 malicious by the auto-labeller, regardless of how far they sit from anything else — produces
 two distinguishable channels, and they behave differently with distance. The FPR channel, just
 described, needs copy-level fidelity. The TPR channel, measured under the recalibrated
-threshold, is different: for RF it is present at \emph{every} distance we tested, not only at
-the cliff. At ratio 0.2, RF's $\Delta$TPR moves from $-0.140$ at raw fidelity, dips toward zero
-near the cliff ($-0.012$ at realized 0.031), then grows again with distance: $-0.051$, $-0.074$,
-$-0.109$, $-0.103$ at realized 0.09, 0.25, 0.56, 1.06 — the U-shape is visible across the whole
-grid (Figure~\ref{fig:f3-damage-vs-fidelity}, right column; Figure~\ref{fig:f4-trajectory}).
-XGBoost shows no comparable channel: its $\Delta$TPR at the same ratio stays within roughly
-$\pm0.08$ with no consistent sign across the grid — noise, not a smaller effect in the same
-direction (Table~\ref{tab:two-channels}).
+threshold, is different: for RF it is present at both ends of the distance range we tested, not
+only at the cliff. At ratio 0.2, RF's $\Delta$TPR is $-0.140$ (raw fidelity, $t=-20.3$), dips to
+a paired $t$ statistically indistinguishable from zero across the mid-range (realized
+0.014--0.10, $|t|<1.6$), then becomes significant again at realized $\ge0.25$ and stays
+damaging out to $-0.109$ ($t=-6.3$) at realized 0.56 and $-0.103$ ($t=-6.0$) at 1.06
+(Figure~\ref{fig:f3-damage-vs-fidelity}, right column; Figure~\ref{fig:f4-trajectory}); the same
+shape holds at ratio 0.5. This is not a flat effect across the whole distance range, as an
+earlier reading of two spot values suggested — it is significant near and significant far, with
+a genuine gap in the middle. XGBoost has no comparable \emph{damaging} channel: several of its
+mid-grid points are themselves statistically significant (paired $t$ up to $+7.4$ at ratio 0.2),
+but every one of them is in the improving direction and none repeats at ratio 0.5 — not
+measurement noise, but not an attack effect either (Table~\ref{tab:two-channels}).
 
 \begin{table}[t]
   \centering

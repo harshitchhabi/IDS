@@ -1791,3 +1791,59 @@ drops the dotted S0 reference line that the old-calibration figure carried: this
 include an S0 arm (S0's own tau=0.1 CICIDS numbers are a class-prior reference only, §17 point
 5, not re-run here), and overlaying an old-calibration S0 line on a tau=0.1 FPR/TPR plot would
 mix calibrations in one figure.
+
+### 26.1 Confirming the RF TPR channel: paired t at every jitter, both ratios
+
+§23's headline recalibrated-threshold number (RF, ratio 0.2, realized NN ~0.56: -0.109 +/-
+0.038) was two spot values. The full re-run (s26) confirms it and extends it across the whole
+jitter grid, with the paired t-statistic at each point (5 seeds, `delta = tpr_a1 - tpr_control`
+at matching seed, final round):
+
+| model | ratio | jitter | realized NN | mean delta_tpr | sd | t |
+|---|---:|---:|---:|---:|---:|---:|
+| rf | 0.2 | 0.00 | 0.011 | -0.140 | 0.015 | -20.3 |
+| rf | 0.2 | 0.01 | 0.014 | -0.053 | 0.079 | -1.5 |
+| rf | 0.2 | 0.03 | 0.031 | -0.012 | 0.058 | -0.5 |
+| rf | 0.2 | 0.10 | 0.091 | -0.051 | 0.098 | -1.2 |
+| rf | 0.2 | 0.30 | 0.254 | -0.074 | 0.045 | -3.6 |
+| rf | 0.2 | 0.70 | 0.559 | **-0.109** | 0.038 | **-6.3** |
+| rf | 0.2 | 1.50 | 1.056 | -0.103 | 0.038 | -6.0 |
+| rf | 0.5 | 0.00 | 0.011 | -0.282 | 0.038 | -16.6 |
+| rf | 0.5 | 0.01 | 0.014 | +0.010 | 0.042 | +0.5 |
+| rf | 0.5 | 0.03 | 0.031 | +0.011 | 0.021 | +1.2 |
+| rf | 0.5 | 0.10 | 0.090 | +0.015 | 0.025 | +1.3 |
+| rf | 0.5 | 0.30 | 0.254 | -0.016 | 0.022 | -1.6 |
+| rf | 0.5 | 0.70 | 0.559 | -0.119 | 0.082 | -3.2 |
+| rf | 0.5 | 1.50 | 1.058 | -0.095 | 0.031 | -6.9 |
+| xgboost | 0.2 | 0.00 | 0.011 | -0.060 | 0.052 | -2.6 |
+| xgboost | 0.2 | 0.01 | 0.014 | +0.073 | 0.023 | +7.1 |
+| xgboost | 0.2 | 0.03 | 0.031 | +0.077 | 0.023 | +7.4 |
+| xgboost | 0.2 | 0.10 | 0.091 | +0.042 | 0.024 | +4.0 |
+| xgboost | 0.2 | 0.30 | 0.254 | +0.041 | 0.016 | +5.9 |
+| xgboost | 0.2 | 0.70 | 0.559 | +0.017 | 0.026 | +1.5 |
+| xgboost | 0.2 | 1.50 | 1.058 | -0.007 | 0.012 | -1.3 |
+| xgboost | 0.5 | 0.00 | 0.011 | -0.219 | 0.058 | -8.5 |
+| xgboost | 0.5 | 0.01 | 0.014 | +0.005 | 0.029 | +0.4 |
+| xgboost | 0.5 | 0.03 | 0.031 | -0.003 | 0.042 | -0.2 |
+| xgboost | 0.5 | 0.10 | 0.090 | +0.027 | 0.033 | +1.9 |
+| xgboost | 0.5 | 0.30 | 0.254 | +0.012 | 0.034 | +0.8 |
+| xgboost | 0.5 | 0.70 | 0.559 | -0.001 | 0.022 | -0.1 |
+| xgboost | 0.5 | 1.50 | 1.058 | +0.003 | 0.006 | +0.9 |
+
+**Confirmed, with a refinement to how it should be described.** RF's TPR channel at distance is
+real: it is significant (|t| > 3) at realized >= 0.25 at both ratios (jitter 0.30/0.70/1.50 at
+ratio 0.2; 0.70/1.50 at ratio 0.5), always in the damaging direction, and the §23 headline point
+(ratio 0.2, jitter 0.70, t = -6.3) holds exactly. But it is not a clean monotone function of
+distance: the mid-range (jitter 0.01-0.10, realized 0.014-0.10) is not individually significant
+at either ratio (|t| < 1.6) — a real dip, not just "gone", between the cliff and where the
+far-distance effect resumes. "Present at every distance tested" (s23, and this paper's s6)
+should be read as "present at the near and far ends of the grid, with a statistically
+indistinguishable-from-zero dip in the middle," not as a flat effect across the whole range.
+
+**XGBoost does not have a comparable channel, but the mid-grid fluctuations are themselves
+significant** — just not in the damaging direction. At ratio 0.2, jitter 0.01/0.03/0.10/0.30 all
+clear |t| > 3, but every one of them is *positive* (TPR improves under poisoning at those
+settings, t up to +7.4): whatever is happening there is not an attack effect, and it does not
+repeat at ratio 0.5 (same jitters: |t| < 2, mixed sign). Reading XGBoost's row as "noise" is
+imprecise; the honest statement is "no channel in the damaging direction, though the model's
+TPR is not perfectly stable under poisoning either" -- s6 is corrected to say this.
