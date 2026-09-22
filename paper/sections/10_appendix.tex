@@ -42,17 +42,120 @@ do not.
   \end{tabular}
 \end{table}
 
-\subsection{Day-split robustness}
-% TODO.
+\subsection{Guard (a): near-duplicate grid sweep, and why \texorpdfstring{\texttt{leak\_warning}}{leak\_warning} is attack-only}
+% Source: DECISIONS.md s11 (grid sweep), s2/s15 (leak_warning gating rationale, moved here from
+% Section 4 for space).
+The near-duplicate guard (Section~\ref{sec:methodology}) removes a large fraction of the benign
+class on CICIDS2017 at any reasonable grid resolution, so that resolution cannot be picked by
+feel. Sweeping \texttt{near\_dup\_grid} $\in \{\text{off}, 0.005, 0.01, 0.02, 0.05\}$: with the
+guard off, partition construction fails outright (CICIDS2017 has roughly 12.3k flows that are
+row-content-identical, to six decimal places, across \texttt{seed\_train} and
+\texttt{trusted\_eval}). From 0.005 to 0.05, benign rows removed range over $2\times$ and
+\texttt{seed\_train} shrinks from 456k to 267k rows, but RF AUROC stays in 0.98--0.996 and TPR in
+0.95--0.97 throughout; \texttt{leak\_warning} is set at every grid tested. The result does not
+depend on which grid in this range is used, and the guard is necessary regardless of grid: this
+paper uses 0.005 throughout.
+
+\texttt{leak\_warning} itself is gated on the attack class alone, not benign. Guard (c)'s purpose
+in setting that flag is to catch \texttt{S0} passing its checkpoint by memorization of a specific
+held-out row rather than by learning a boundary; two different benign flows, unrelated to any
+attack, can legitimately carry identical flow statistics (the same web request shape occurring
+twice), so a near-zero benign nearest-neighbour distance is not by itself evidence of a leak the
+way the same distance on the attack class would be. This does not mean the benign side is
+ignored: guard (c) measures it on the same scale and reports it unconditionally, and
+Section~\ref{sec:degeneracy} is built entirely on that benign-side measurement, because it bears
+directly on A1 (whose poison and whose measured damage are both benign-side) and on the
+threshold-calibration fix (Section~\ref{sec:methodology}).
 
 \subsection{Burst splitting}
-% TODO.
+% Source: DECISIONS.md s14. Erratum embedded in s14 itself: CICIDS2017's MachineLearningCVE CSVs
+% carry no Timestamp column, so every "gap"/"burst" here is a file-order run length, not a
+% wall-clock inter-arrival time (same caveat as Section 4's "the CICIDS split is not temporal").
+Section~\ref{sec:methodology}'s guard (b) is a row-level cut, which could in principle slice
+through the middle of a contiguous burst of highly similar flows (a flood tool's output, most
+obviously). Burst-level splitting tests this directly: segment each (day, family) stream into
+contiguous episodes by inter-flow gap ($>2$s, chosen from the measured gap distribution) and
+assign each burst whole to one partition, never dividing one across a boundary
+(\texttt{tests/test\_partition.py} asserts this invariant on the reconstructed union of all four
+partitions). Two family groups emerge: session-like families (Bot, SSH-/FTP-Patator, DoS
+GoldenEye, Web Attack variants) have a median inter-flow gap of 4--38s and thousands of bursts
+per day, where a row-level cut genuinely could split one; continuous floods (DoS Hulk, DDoS, DoS
+Slowhttptest, PortScan) have a median gap under 1s and essentially do not pause — DDoS is
+$\sim$128k rows in 22 bursts for the entire day.
+
+With burst splitting on, the guard-(a) grid sweep repeats at the same order of magnitude as the
+row-level cut ($\text{nn\_attack\_p5}$ 0.0010--0.0058 across grid 0.005--0.05, versus 0.0010--0.0067
+row-level, Section~\ref{sec:degeneracy}); \texttt{leak\_warning} is set at every grid, unchanged.
+The per-family nearest-neighbour breakdown explains why burst-awareness does not help: DoS
+Hulk's nearest \texttt{honeypot\_pool} neighbour to a \texttt{trusted\_eval} row has RMS distance
+0.0003, DDoS 0.00017, DoS GoldenEye 0.00017 — a different burst, sometimes a different half of
+the day, and the feature vector is still within noise of zero distance. The degeneracy
+(Section~\ref{sec:degeneracy}) is a property of the feature representation these families
+produce, not an artifact of where or how the cut is drawn.
 
 \subsection{D1: full definition and grid}
 % TODO. Source: DECISIONS.md s20, s24.
 
 \subsection{XGBoost per-seed trajectories}
-% TODO. Source: DECISIONS.md s25.6.
+% Source: DECISIONS.md s25.6. Full 8-round, both-model per-seed table; Section 6 summarizes
+% this and refers here rather than reproducing all 10 rows in the main body.
+Section~\ref{sec:attack} reports XGBoost's fixed-threshold FPR response to A1 as seed-dependent
+rather than characterisable from a mean over 5 seeds; Table~\ref{tab:xgb-seeds-full} is the full
+per-seed trajectory this is based on (ratio 0.5, raw fidelity, rounds 2 through 20). XGBoost is
+bimodal: seeds 2 and 4 reach 70--84\% FPR by round 8--10; seeds 1 and 5 stay below 2\% through
+round 10, and only seed 5 climbs at all by round 20 (to 12\%); seed 3 sits in between, jumping
+late (round 6--8). RF climbs on all 5 seeds, with none staying flat. A mean-over-seeds summary
+hides this: XGBoost's round-10 mean is dragged up by two seeds while three show no effect at
+all, which is a bimodal outcome, not a noisy estimate of one common trajectory. Every mean
+XGBoost number elsewhere in this paper should be read with that in mind.
+
+\begin{table}[t]
+  \centering
+  \caption{Fixed-threshold FPR by seed and round, ratio 0.5, raw fidelity, both models.}
+  % Source: DECISIONS.md s25.6 (results/phase0/loop/cicids_recal/jobs/a1_{model}_s*_j0.0_r0.5_vt0.1.csv).
+  \label{tab:xgb-seeds-full}
+  \small
+  \begin{tabular}{llrrrrrrrr}
+    \toprule
+    Model & Seed & r2 & r4 & r6 & r8 & r10 & r12 & r15 & r20 \\
+    \midrule
+    XGBoost & 1 & 0.005 & 0.005 & 0.004 & 0.006 & 0.006 & 0.006 & 0.007 & 0.019 \\
+    XGBoost & 2 & 0.016 & 0.503 & 0.737 & 0.782 & 0.823 & 0.878 & 0.924 & 0.955 \\
+    XGBoost & 3 & 0.006 & 0.007 & 0.053 & 0.538 & 0.693 & 0.714 & 0.734 & 0.800 \\
+    XGBoost & 4 & 0.046 & 0.707 & 0.776 & 0.839 & 0.908 & 0.949 & 0.948 & 0.958 \\
+    XGBoost & 5 & 0.005 & 0.004 & 0.004 & 0.006 & 0.007 & 0.008 & 0.010 & 0.117 \\
+    RF & 1 & 0.048 & 0.232 & 0.618 & 0.721 & 0.767 & 0.804 & 0.858 & 0.911 \\
+    RF & 2 & 0.032 & 0.153 & 0.503 & 0.700 & 0.735 & 0.776 & 0.840 & 0.894 \\
+    RF & 3 & 0.021 & 0.088 & 0.362 & 0.612 & 0.706 & 0.743 & 0.776 & 0.853 \\
+    RF & 4 & 0.015 & 0.095 & 0.383 & 0.615 & 0.728 & 0.740 & 0.788 & 0.869 \\
+    RF & 5 & 0.042 & 0.284 & 0.647 & 0.729 & 0.779 & 0.836 & 0.880 & 0.917 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \subsection{Cost padding}
 % TODO. Source: DECISIONS.md s21.6.
+
+\subsection{Additional limitations}
+% Source: DECISIONS.md s14 erratum (file-order split), s25.5 (cap is model/dataset-specific),
+% s25.7 (session-level D1/adaptive-attacker parked, not run). Moved from Section 8 for space;
+% these are real limitations, not lower-priority ones -- kept complete here rather than cut.
+Beyond the four limitations in Section~\ref{sec:discussion}:
+
+\begin{itemize}
+  \item \textbf{The partition is by file order, not a verified capture timestamp.}
+    CICIDS2017's public \texttt{MachineLearningCVE} release carries no timestamp column
+    (Section~\ref{sec:methodology}), so "day split" in this paper means the dataset's own file
+    boundaries, not confirmed calendar time. A burst-aware split gives comparable results
+    (Appendix~\ref{sec:appendix}, "Burst splitting"), but that is evidence the result survives a
+    different file-order cut, not independent evidence of separation on real wall-clock time.
+  \item \textbf{ShareCap's safe cap range is not a universal constant.} It is measured for one
+    model and one dataset at a time (Section~\ref{sec:defenses}); a different model or dataset
+    may have a different safe range, and we do not have a way to predict it without measuring it.
+  \item \textbf{No adaptive attacker against ShareCap beyond filling the cap.} We do not test an
+    attacker who observes or infers the cap and tunes its poison ratio specifically around it,
+    e.g. staying just under the cap indefinitely rather than pushing past it. Session-level
+    cost-of-influence weighting (a defense that might address a session-aware version of this)
+    was considered and parked, not run: the dataset that would carry the source IPs and
+    timestamps it needs is form-gated and was unavailable to us.
+\end{itemize}

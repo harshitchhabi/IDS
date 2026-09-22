@@ -169,31 +169,15 @@ correction either.
 % DECISIONS.md s25.6: per-seed fixed-threshold FPR at ratio 0.5, jitter 0 (raw fidelity), rounds
 % 10 and 20. XGBoost is bimodal (seeds 2,4 climb early; 1,5 stay flat through round 10; 3 jumps
 % late); RF climbs on all 5 seeds. 5 seeds is too few to characterize XGBoost's response; report
-% per-seed, not mean+/-sd. Full 8-round table in Appendix A.4.
+% per-seed, not mean+/-sd. Full 8-round, both-model table moved to Appendix (space).
 \textbf{The FPR channel's XGBoost trajectory is seed-dependent, and 5 seeds is too few to
-characterize it.} At ratio 0.5, raw fidelity, fixed threshold (Table~\ref{tab:xgb-seeds}),
-XGBoost's per-seed FPR at round 10 splits into two groups rather than clustering around the
-mean: two seeds have already reached 82--91\%, two sit at 0.6--0.7\%, and one is midway. RF
-climbs on every one of the 5 seeds. A mean-over-seeds table hides this — it reads as one noisy
-estimate of a common trajectory, and it is not. Every mean XGBoost number elsewhere in this
-paper should be read with that in mind; the full 8-round table is in
-Appendix~\ref{sec:appendix}.
-
-\begin{table}[t]
-  \centering
-  \caption{XGBoost fixed-threshold FPR by seed, ratio 0.5, raw fidelity.}
-  % Source: DECISIONS.md s25.6 (results/phase0/loop/cicids_recal/jobs/a1_xgboost_s*_j0.0_r0.5_vt0.1.csv).
-  \label{tab:xgb-seeds}
-  \small
-  \begin{tabular}{lrrrrr}
-    \toprule
-    Round & Seed 1 & Seed 2 & Seed 3 & Seed 4 & Seed 5 \\
-    \midrule
-    10 & 0.006 & 0.823 & 0.693 & 0.908 & 0.007 \\
-    20 & 0.019 & 0.955 & 0.800 & 0.958 & 0.117 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+characterize it.} At ratio 0.5, raw fidelity, fixed threshold, XGBoost's per-seed FPR at round
+10 splits into two groups rather than clustering around the mean: two seeds have already
+reached 82--91\%, two sit at 0.6--0.7\%, and one is midway. RF climbs on every one of the 5
+seeds. A mean-over-seeds table hides this — it reads as one noisy estimate of a common
+trajectory, and it is not. Every mean XGBoost number elsewhere in this paper should be read
+with that in mind; the full per-seed, per-round table for both models is in
+Appendix~\ref{sec:appendix} (Table~\ref{tab:xgb-seeds-full}).
 
 \subsection{Mechanism isolation}
 % DECISIONS.md s23 "Prior shift is null" table + s7 (this paper's Figure 5 / F5). RF,

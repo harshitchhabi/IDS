@@ -109,27 +109,17 @@ of which scenario produced it.
 % nearest honeypot_pool row of the same class, reported as a percentile distribution for BOTH
 % classes but gating leak_warning on the ATTACK class only.
 Three guards run on every partition build. (a) Near-duplicate rows are removed globally, before
-splitting, at grid resolution 0.005 (swept in Appendix~\ref{sec:appendix}). (b) Rows within a
-buffer of an internal cut are dropped. (c) For every \texttt{trusted\_eval} row, the
+splitting, at grid resolution 0.005 (grid sweep and rationale in
+Appendix~\ref{sec:appendix}). (b) Rows within a buffer of an internal cut are dropped
+(burst-level splitting, a stronger version of this guard, is also in the appendix; it does not
+change Section~\ref{sec:degeneracy}'s result). (c) For every \texttt{trusted\_eval} row, the
 nearest-neighbour distance in normalized feature space to its nearest \texttt{honeypot\_pool}
-row of the same class is computed and reported for both classes. Burst-level splitting
-(assigning whole contiguous episodes, not individual rows, to one partition) was tried as a
-stronger version of (b) and is reported in Appendix~\ref{sec:appendix}; it does not change the
-result in Section~\ref{sec:degeneracy}.
-% DECISIONS.md s2, s15: leak_warning is gated on the attack class only, because guard (c)'s
-% job there is to catch S0 passing by memorization -- and two different benign HTTP requests
-% can legitimately have identical flow statistics, so near-zero benign NN distance is not by
-% itself evidence of anything. That does NOT mean benign closeness is dismissed: it is measured
-% by the same guard, on the same scale, and Section 5 reports it and treats it as degeneracy,
-% because it bears directly on A1 (whose poison and whose damage are both benign-side) and on
-% threshold calibration below.
-\texttt{leak\_warning} is gated on the attack class alone, because guard (c)'s purpose here is
-to catch \texttt{S0} passing its checkpoint by memorization rather than learning, and two
-different benign flows can legitimately carry identical flow statistics — near-zero benign NN
-distance is not by itself evidence of a leak. That gate does not settle the benign side: guard
-(c) measures it on the same scale, and Section~\ref{sec:degeneracy} reports and uses that
-measurement, because it bears directly on A1 (whose poison and whose measured damage are both
-benign-side) and on the calibration fix below.
+row of the same class is computed and reported for both classes — this is the metric behind
+every "realized distance" and "twin fraction" number in this paper.
+% DECISIONS.md s2, s15: leak_warning gating rationale moved to Appendix for space; guard (c)'s
+% definition above is kept in the main body since S5/S6 depend on readers knowing what it is.
+Why the resulting \texttt{leak\_warning} is gated on the attack class alone, and what that does
+and does not imply about the benign side, is in Appendix~\ref{sec:appendix}.
 
 \subsection{Threshold policy}
 % DECISIONS.md s5: calibrate to a target FPR (0.01) on a benign-stratified validation split

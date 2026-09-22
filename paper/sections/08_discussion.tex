@@ -26,16 +26,12 @@ and there is no network-level cost to reaching the decoy in the first place. We 
 features only, not payload content, so any attack or defense that depends on packet contents is
 out of scope. CICIDS2017 answers the degeneracy measurement and the fidelity-versus-damage curve
 but carries no learning claim (Section~\ref{sec:degeneracy}); the synthetic dataset answers the
-honest-loop learning claim but has no attacker-cost profile of its own. The partition is by file
-order, not by a verified capture timestamp — CICIDS2017's public release does not carry one — so
-"day split" in this paper means the dataset's own file boundaries, not confirmed calendar time;
-a burst-aware split gives comparable results but is not independent evidence of temporal
-separation. Five seeds is enough to establish some effects and not others: XGBoost's
-fixed-threshold FPR trajectory splits into two distinct per-seed groups rather than clustering
-around a mean (Section~\ref{sec:attack}), and RF's damage at large mimicry distance needed a
-dedicated 15-seed follow-up to confirm — the original 5-seed, 36-cell grid family lacked the
-power to resolve it, even though the effect was real (Section~\ref{sec:attack}). We only had the
-budget to run that follow-up for RF; the same question is open for XGBoost. ShareCap's safe cap
-range is measured for one model and one dataset at a time and is not a universal constant; we do
-not test an adaptive attacker who tunes its poison ratio specifically to fill the cap rather than
-exceed it.
+honest-loop learning claim but has no attacker-cost profile of its own. Five seeds is enough to
+establish some effects and not others: XGBoost's fixed-threshold FPR trajectory splits into two
+distinct per-seed groups rather than clustering around a mean (Section~\ref{sec:attack}), and
+RF's damage at large mimicry distance needed a dedicated 15-seed follow-up to confirm — the
+original 5-seed, 36-cell grid family lacked the power to resolve it, even though the effect was
+real (Section~\ref{sec:attack}). We only had the budget to run that follow-up for RF; the same
+question is open for XGBoost. Further limitations — the partition's file-order versus verified
+timestamp, and ShareCap's cap range and adaptive-attacker coverage — are in
+Appendix~\ref{sec:appendix}.
