@@ -1,28 +1,148 @@
 \section{Methodology}
 \label{sec:methodology}
-% Budget: 1.25 pages.
-% - The loop: rounds, retention, budget mode, cold-start retraining. DECISIONS.md s7, s18.
-% - Datasets and partitions: four disjoint partitions, (day, family) split, four eval arms.
-%   DECISIONS.md s1, s3, s10.
-% - Leakage guards (s2, s11); burst splitting to appendix (s14).
-% - Threshold policy: fixed vs recalibrated, twin-free calibration fix. s5, s19.1.
-% - One weight channel (s6). Seeds, determinism (s8).
-% - Arms: control, S0, A1, plus null controls a1truth, s0j, junk. s19.2, s23.
-% TODO: prose.
+
+\subsection{The loop}
+% DECISIONS.md s7 (cold-start), s18 (retention/budget mode), s6 (one weight channel), s8 (seeds/determinism)
+Each round: the adversary generates a batch of flows and a per-batch cost record (flows,
+packets, bytes, flow-time); the auto-labeler stamps every row in the batch (Section~\ref{sec:threat-model});
+a defense hook, when one is installed, sets a per-row \texttt{sample\_weight} and may quarantine
+the whole batch; the batch is added to the accumulated training set; the model is
+\textbf{retrained from scratch} on seed data plus every admitted batch to date; the fresh model
+is scored on \texttt{trusted\_eval}. Retraining cold-start each round, rather than warm-starting
+from the previous round's model, keeps rounds comparable and prevents poisoning dynamics from
+being confounded with optimization path dependence.
+% DECISIONS.md s18: retention=accumulate (default, worst case for the defender: honeypot
+% influence never expires), budget_mode=fixed_ratio (the per-round batch size is set so the
+% honeypot's share of the training set reaches a target ratio by the final round)
+Two knobs govern how honeypot data accumulates. \emph{Retention} is \texttt{accumulate} by
+default: every admitted batch is kept for the rest of the run, which is both the design the
+honeypot-retraining literature proposes ("continuous adaptation") and the worst case for the
+defender, since influence only grows. \emph{Budget mode} is \texttt{fixed\_ratio}: the
+per-round batch size is set so the honeypot's share of the training set reaches a target ratio
+by the final round, so every point on a damage curve has a known, comparable poison share.
+% DECISIONS.md s6: single sample_weight channel; no class_weight="balanced", no scale_pos_weight,
+% no oversampling/SMOTE -- A1 shifts the class balance by design, and automatic rebalancing would
+% respond to that shift and confound the measured effect
+No model in this codebase uses automatic class rebalancing (\texttt{class\_weight="balanced"},
+XGBoost's \texttt{scale\_pos\_weight}, oversampling, SMOTE). A1 works by injecting
+malicious-labeled volume, which shifts the class balance; an automatic rebalancer would respond
+to that shift and the measured attack effect would be entangled with a rebalancing artifact.
+\texttt{sample\_weight} is the only channel by which any row's influence on the fit is adjusted,
+and every defense in Section~\ref{sec:defenses} rides on it.
+% DECISIONS.md s8: seed_everything (Python, NumPy, PyTorch), deterministic kernels, float32
+% features; the model seed varies by round (seed*1000+round) but is shared across arms at a
+% given (seed, round), so paired same-seed deltas across arms isolate the treatment
+Every fit seeds Python, NumPy and PyTorch and forces deterministic kernels. The model seed
+varies by round but is shared across every arm at a given (seed, round), so a paired,
+same-seed delta between an arm and the control isolates the treatment rather than retraining
+noise.
+
+\subsection{Datasets and partitions}
+% DECISIONS.md s1: within_day_temporal splits within each (day, family) block, not each whole
+% day, because a whole-day split places every attack family entirely inside one partition and
+% destroys A4 as a variable. Fractions: benign 30/20/30/20, attack 40/-/40/20 (no prod_benign
+% for attack). Four eval arms: seen_both / seed_only / honeypot_only / novel.
+Data comes from CICIDS2017 (\texttt{MachineLearningCVE}) and a synthetic generator that ships
+with the codebase, both partitioned identically into four disjoint sets: \texttt{seed\_train}
+(the defender's trusted starting data), \texttt{prod\_benign} (unused here), \texttt{honeypot\_pool}
+(what the adversary can draw from and what genuine decoy traffic would supply), and
+\texttt{trusted\_eval} (held out, never written to by the loop). The split is within each
+(day, family) block, not each whole day: benign rows go 30/20/30/20 to
+seed\_train/prod\_benign/honeypot\_pool/trusted\_eval, attack rows 40/40/20 to
+seed\_train/honeypot\_pool/trusted\_eval. This gives every attack family a presence in every
+partition (\texttt{seen\_both}), which a whole-day split cannot, since CICIDS2017 runs each
+family on its own day.
+% PAPER_PLAN.md writing rule + DECISIONS.md s14 erratum: MachineLearningCVE has no Timestamp
+% column; clean_flows synthesizes one at one row per second in file order. Every "temporal"
+% split, guard-(b) buffer and burst boundary on CICIDS in this paper is therefore a file-order
+% cut, not a wall-clock one.
+\textbf{The CICIDS split is not temporal.} The \texttt{MachineLearningCVE} CSVs carry no
+timestamp column; a timestamp is synthesized at one row per second in file order. Every cut,
+buffer and burst boundary computed on CICIDS in this paper is therefore a file-order cut, not
+a wall-clock one. Section~\ref{sec:degeneracy} shows this distinction does not matter to the
+result: a uniformly shuffled re-split reproduces the same feature-space distances.
+% DECISIONS.md s3: seed_only must never be merged with novel -- only seed_only is a controlled
+% manipulation (A4), and collapsing it hides A4 entirely.
+Four eval-family arms are tracked, never folded into an aggregate: \texttt{seen\_both} (in both
+seed\_train and honeypot\_pool, the literature's regime), \texttt{seed\_only} (A4's controlled
+arm), \texttt{honeypot\_only} (the loop's most interesting arm: a family the detector saw only
+via the decoy), and \texttt{novel} (in neither).
 
 \begin{table}[t]
   \centering
-  \caption{TODO: partitions and row counts per dataset. Source: results/phase0/*/partition\_summary.csv,
-  results/phase0/*/partitions.md (condensed).}
+  \caption{Partition sizes (rows). Attack rows have no \texttt{prod\_benign} share.}
+  % Source: results/phase0/cicids/partition_summary.csv, results/phase0/partition_summary.csv
   \label{tab:partitions}
-  \begin{tabular}{lrr}
+  \small
+  \begin{tabular}{lrrrr}
     \toprule
-    Partition & CICIDS2017 & Synthetic \\
+    Partition & \multicolumn{2}{c}{CICIDS2017} & \multicolumn{2}{c}{Synthetic} \\
+    & benign & attack & benign & attack \\
     \midrule
-    seed\_train & TODO & TODO \\
-    prod\_benign & TODO & TODO \\
-    honeypot\_pool & TODO & TODO \\
-    trusted\_eval & TODO & TODO \\
+    seed\_train      & 344{,}823 & 78{,}877  & 20{,}383 & 8{,}241 \\
+    prod\_benign     & 229{,}139 & --        & 13{,}098 & --      \\
+    honeypot\_pool   & 344{,}221 & 130{,}166 & 19{,}951 & 7{,}993 \\
+    trusted\_eval    & 229{,}695 & 52{,}054  & 13{,}262 & 4{,}535 \\
     \bottomrule
   \end{tabular}
 \end{table}
+
+\subsection{Leakage guards}
+% DECISIONS.md s2: three guards on within_day_temporal -- (a) global near-duplicate removal
+% (two half-offset grid snaps), (b) a temporal guard band around internal cut times, (c)
+% nearest-neighbour distance from every trusted_eval row to its nearest honeypot_pool row of
+% the same class, gating a leak_warning at a 0.25 threshold on the ATTACK class only (near-zero
+% benign NN distance is normal for real traffic, not evidence of memorization).
+Three guards run on every partition build. (a) Near-duplicate rows are removed globally, before
+splitting, at a swept grid resolution (Appendix~\ref{sec:appendix}). (b) Rows within a buffer of
+an internal cut are dropped. (c) For every \texttt{trusted\_eval} row, the nearest-neighbour
+distance in normalized feature space to its nearest \texttt{honeypot\_pool} row of the same
+class is computed; the attack class alone gates a \texttt{leak\_warning} at 0.25, since two
+different benign flows can legitimately have identical flow statistics. Burst-level splitting
+(assigning whole contiguous episodes, not individual rows, to one partition) was tried as a
+stronger guard and is reported in Appendix~\ref{sec:appendix}; it does not change the result in
+Section~\ref{sec:degeneracy}.
+
+\subsection{Threshold policy}
+% DECISIONS.md s5: calibrate to a target FPR (0.01) on a benign-stratified validation split
+% carved from training, conservative under ties. Two modes, both reported: fixed (round-0
+% threshold held) shows A1 damage as rising FPR; recalibrated (every round) shows it as
+% collapsing TPR.
+No model uses a 0.5 cutoff. Each model's threshold is calibrated to a target FPR (0.01) on a
+validation split carved from its own training data. Two threshold modes are reported for every
+run, because A1's damage surfaces in different places under each: \emph{fixed} calibrates once
+at round 0 and holds that threshold, so damage appears as rising FPR on trusted benign;
+\emph{recalibrated} recalibrates every round on trusted benign, so FPR stays capped by
+construction and damage appears as collapsing TPR instead.
+% DECISIONS.md s19.1: the round-0 validation split is full of near-copies of training rows on
+% CICIDS (s16), so naive calibration is optimistic and the threshold too low. Fix: calibrate
+% only on validation rows with no same-class training twin within tau=0.1 (per-feature RMS,
+% normalized space). This discards 94% of benign validation rows and moves control fixed-FPR
+% from 0.046 to 0.007 (RF).
+On CICIDS2017 this calibration is not honest by default: the validation split is carved from
+training data that, by Section~\ref{sec:degeneracy}'s measurement, is full of near-copies of
+what it is meant to hold out, so a threshold calibrated against it is optimistic and lands too
+low (control fixed-threshold FPR 0.046 against a 0.01 target). We calibrate instead only on
+validation rows with no same-class training twin within a distance $\tau=0.1$ (the same
+per-feature RMS metric as guard (c)). This discards 94\% of benign validation rows and moves
+the control's fixed-threshold FPR to 0.007. Every CICIDS number in this paper after
+Section~\ref{sec:degeneracy} uses this calibration.
+
+\subsection{Arms}
+% DECISIONS.md s23 table + s19.2: control (no ingestion, retrain on seed_train each round only,
+% model seed varies by round so it measures real retrain noise); S0 (genuine attack rows,
+% correctly labeled); A1 (benign rows, jittered, stamped malicious); plus three matched null
+% controls that each remove one candidate mechanism: a1truth (the same rows as A1, true label:
+% removes the label conflict), s0j (attack rows with A1's jitter, stamped malicious: same
+% volume and prior shift, no label conflict), junk (marginal-shuffled bulk, stamped malicious:
+% volume alone, no structure).
+Every experiment compares an arm against a same-seed \emph{control} (no honeypot ingestion,
+retrain on seed\_train alone each round; the model seed still varies by round, so the control
+measures real retrain-to-retrain noise, not zero). \textbf{S0} (clean) feeds genuine attack
+rows, correctly labeled. \textbf{A1} (benign mimicry) feeds benign rows, jittered by a
+controlled amount, stamped malicious by the auto-labeler. Section~\ref{sec:attack} isolates
+A1's mechanism with three matched null controls, each removing exactly one candidate cause:
+\texttt{a1truth} (A1's own rows, correctly labeled — removes the label conflict),
+\texttt{s0j} (attack rows carrying A1's jitter, stamped malicious — same volume and class-prior
+shift, no label conflict), and \texttt{junk} (marginal-shuffled bulk, stamped malicious — volume
+with no structure at all).

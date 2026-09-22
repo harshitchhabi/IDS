@@ -42,6 +42,12 @@ SEQ_BLUE = ["#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#
 MUT = "#8a8a86"
 LEAK_BAR = 0.25   # guard-(c) leakage threshold, DECISIONS.md ss10/15
 
+# ACM sigconf column widths (in): single-column figures render at COL_W, full-width (figure*)
+# ones at PAGE_W, so rcParams font sizes below come out ~8pt on the printed page -- matplotlib
+# text is sized in points independent of figsize, so an oversized figure scaled down by
+# \includegraphics{width=\linewidth} shrinks its text along with it.
+COL_W, PAGE_W = 3.33, 7.0
+
 
 def setup_style() -> None:
     plt.rcParams.update({
@@ -92,12 +98,12 @@ def fig_f2() -> None:
     d = pd.DataFrame(rows).sort_values("median_rms")
     included = d.n >= 500
 
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
+    fig, ax = plt.subplots(figsize=(COL_W, 4.1))
     y = np.arange(len(d))
     colors = [BLUE if inc else MUT for inc in included]
-    ax.hlines(y, 3e-6, d.median_rms, color=colors, lw=1.4, zorder=2)
-    ax.scatter(d.median_rms, y, color=colors, s=34, zorder=3,
-               edgecolor="white", linewidth=0.5)
+    # Dots only: on a log x-axis a stem's length is dominated by the (arbitrary) left edge, not
+    # the value it represents, so a stem here would carry no information (dataviz anti-pattern).
+    ax.scatter(d.median_rms, y, color=colors, s=22, zorder=3, edgecolor="white", linewidth=0.4)
     ax.set_yticks(y)
     ax.set_yticklabels(d.family)
     for lbl, f in zip(ax.get_yticklabels(), d.family):
@@ -105,17 +111,18 @@ def fig_f2() -> None:
             lbl.set_fontweight("bold")
     ax.set_xscale("log")
     ax.set_xlim(3e-6, 2)
-    ax.axvline(LEAK_BAR, color=RED, ls="--", lw=1.2, zorder=1)
-    ax.text(0.815, 0.99, "leakage threshold\n(guard c) = 0.25", color=RED, fontsize=7, va="top", ha="left",
-           transform=ax.transAxes)
-    ax.set_xlabel("median nearest-neighbour RMS distance to a\nsame-label training twin, normalized space, log scale")
-    ax.set_title("CICIDS2017 is near-degenerate in CICFlowMeter feature space", loc="left", fontsize=9.5)
-    handles = [plt.Line2D([0], [0], marker="o", color="none", markerfacecolor=BLUE, markersize=6,
-                          label="≥500 eval rows (reportable)"),
-              plt.Line2D([0], [0], marker="o", color="none", markerfacecolor=MUT, markersize=6,
+    ax.set_ylim(-1.2, len(d) - 0.2)
+    ax.axvline(LEAK_BAR, color=RED, ls="--", lw=1.1, zorder=1)
+    # Label sits low, right of the line, where no point in this dataset falls within two
+    # decades of the threshold -- clear of Heartbleed (top row) and of every other point.
+    ax.text(LEAK_BAR * 1.3, 1.6, "guard c\n= 0.25", color=RED, fontsize=6.5, va="center", ha="left")
+    ax.set_xlabel("median NN RMS distance to a same-label\ntraining twin, normalized space, log scale", fontsize=7.5)
+    handles = [plt.Line2D([0], [0], marker="o", color="none", markerfacecolor=BLUE, markersize=5.5,
+                          label="≥500 eval rows"),
+              plt.Line2D([0], [0], marker="o", color="none", markerfacecolor=MUT, markersize=5.5,
                           label="<500 eval rows")]
-    ax.legend(handles=handles, frameon=True, framealpha=0.9, edgecolor="none", loc="lower left",
-             bbox_to_anchor=(0.0, 0.0))
+    ax.legend(handles=handles, frameon=True, framealpha=0.9, edgecolor="none", fontsize=6.5,
+             loc="lower right")
     _style(ax)
     fig.tight_layout()
     save(fig, "F2_nn_by_family")
@@ -127,7 +134,7 @@ def fig_f3() -> None:
     s0 = pd.read_csv(ROOT / "loop" / "cicids" / "s0_reference_damage.csv")
     ratios = sorted(dm.poison_ratio.unique())
     models = ("rf", "xgboost")
-    fig, axes = plt.subplots(2, 2, figsize=(7.2, 5.2), sharex=True)
+    fig, axes = plt.subplots(2, 2, figsize=(PAGE_W, 4.9), sharex=True)
     for i, model in enumerate(models):
         for j, (mode, col, ylab, sgn) in enumerate((
                 ("fixed", "delta_fpr", "FPR increase vs control", 1),
@@ -152,9 +159,7 @@ def fig_f3() -> None:
     for ax in axes[1]:
         ax.set_xlabel("realized mimicry distance (log)", fontsize=8)
     axes[0, 0].legend(fontsize=6, frameon=False, title="final poison ratio", title_fontsize=6, ncol=2)
-    fig.suptitle("A1 damage vs realized mimicry fidelity (grey band = ±2σ of control; "
-                 "dotted = S0 at the same ratio)", fontsize=9.5, x=0.01, ha="left")
-    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    fig.tight_layout()
     save(fig, "F3_damage_vs_fidelity")
 
 
@@ -166,7 +171,7 @@ def fig_f4(ratio: float = 0.2) -> None:
     ctrl = df[df.scenario == "control"]
     jits = [j for j in sorted(a1.jitter.unique()) if any(np.isclose(j, sj) for sj in show_jitters)]
     models = ("rf", "xgboost")
-    fig, axes = plt.subplots(2, 2, figsize=(7.2, 5.2), sharex=True)
+    fig, axes = plt.subplots(2, 2, figsize=(PAGE_W, 4.9), sharex=True)
     for i, model in enumerate(models):
         for j, (mode, metric, title) in enumerate((("fixed", "fpr", "FPR, fixed threshold"),
                                                     ("recalibrated", "tpr", "TPR, recalibrated threshold"))):
@@ -188,49 +193,53 @@ def fig_f4(ratio: float = 0.2) -> None:
         ax.set_xlabel("round", fontsize=8)
     axes[0, 0].legend(fontsize=6, frameon=False, title=f"poison ratio {ratio}, by mimicry fidelity",
                       title_fontsize=6)
-    fig.suptitle(f"A1 on CICIDS2017, poison ratio {ratio} (band = control mean ± 2 sd across seeds)",
-                 fontsize=9.5, x=0.01, ha="left")
-    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    fig.tight_layout()
     save(fig, "F4_a1_trajectory")
 
 
 # ---- F5: mechanism isolation -------------------------------------------------------------------
-def fig_f5() -> None:
+def _mechanism_rows() -> pd.DataFrame:
+    """The four F5 bars: RF, recalibrated threshold, ratio 0.2, honest calibration (cicids_recal).
+    A1 / a1truth / s0j share the jitter-0.70 run (realized NN ~0.56, DECISIONS.md s23); junk has no
+    jitter parameter of its own but was launched under that same jitter-1.5 sweep config."""
     d = pd.read_csv(ROOT / "export" / "summary.csv")
     d = d[(d.model == "rf") & (d.threshold_mode == "recalibrated") & (d.target_poison_ratio == 0.2)
          & (d.defense.fillna("none") == "none") & (d.run_dir == "cicids_recal")]
-    picks = [("a1", 0.70, "A1", RED), ("a1truth", 0.70, "a1truth", MUT), ("s0j", 0.70, "s0j", MUT),
-             ("junk", -1.00, "junk", MUT)]
+    picks = [("a1", 0.70, RED), ("a1truth", 0.70, MUT), ("s0j", 0.70, MUT), ("junk", -1.00, MUT)]
     rows = []
-    for sc, jit, label, color in picks:
+    for sc, jit, color in picks:
         r = d[(d.scenario == sc) & np.isclose(d.jitter, jit)]
         if len(r) != 1:
             raise ValueError(f"expected exactly one row for {sc} jitter={jit}, got {len(r)}")
         r = r.iloc[0]
-        rows.append({"label": label, "mean": r.delta_tpr_mean, "sd": r.delta_tpr_std,
-                    "n": r.n_seeds, "sigma_control": r.sigma_control_tpr, "color": color})
-    t = pd.DataFrame(rows)
-    sigma = t.sigma_control.iloc[0]
+        rows.append({"scenario": sc, "mean": r.delta_tpr_mean, "sd": r.delta_tpr_std, "n": r.n_seeds,
+                    "sigma_control": r.sigma_control_tpr, "fidelity_median": r.fidelity_median_mean,
+                    "color": color})
+    return pd.DataFrame(rows)
 
-    fig, ax = plt.subplots(figsize=(5.6, 3.8))
+
+def fig_f5() -> None:
+    t = _mechanism_rows()
+    sigma = t.sigma_control.iloc[0]
+    a1_nn = t.loc[t.scenario == "a1", "fidelity_median"].iloc[0]
+    labels = {"a1": "A1", "a1truth": "a1truth", "s0j": "s0j", "junk": "junk"}
+
+    fig, ax = plt.subplots(figsize=(COL_W, 2.7))
     x = np.arange(len(t))
     ax.axhspan(-2 * sigma, 2 * sigma, color=MUT, alpha=0.18, lw=0, zorder=1)
     ax.axhline(0, color="#4a4a4a", lw=0.8, zorder=1)
     ax.bar(x, t["mean"], yerr=t.sd, color=t.color, width=0.55, zorder=3,
-          error_kw=dict(elinewidth=1.1, capsize=3, ecolor="#1a1a1a"))
+          error_kw=dict(elinewidth=1.0, capsize=2.5, ecolor="#1a1a1a"))
     ax.set_xticks(x)
-    ax.set_xticklabels(t.label, fontsize=8.5)
+    ax.set_xticklabels([labels[s] for s in t.scenario], fontsize=7.5)
     ax.set_xlim(-0.6, len(t) - 0.4)
-    ax.text(0.02, 0.965, "control ±2σ (noise floor)", color="#5a5a5a", fontsize=6.5,
-           transform=ax.transAxes, va="top", ha="left")
-    ax.set_ylabel("Δ TPR vs control, recalibrated\nthreshold (RF, ratio 0.2, n=5 seeds)", fontsize=8)
-    ax.set_title("Only label conflict on high-fidelity poison moves the detector", loc="left", fontsize=9.5)
-    caption = ("A1: benign, copy fidelity   ·   a1truth: same rows, true label   ·   "
-              "s0j: genuine attack, jittered   ·   junk: marginal-shuffled bulk")
-    fig.text(0.5, 0.005, caption, fontsize=6.5, ha="center", color="#5a5a5a")
+    ax.text(0.02, 0.965, "control ±2σ", color="#5a5a5a", fontsize=6, transform=ax.transAxes,
+           va="top", ha="left")
+    ax.set_ylabel("Δ TPR vs control (RF, recal.,\nratio 0.2, n=5 seeds)", fontsize=7)
     _style(ax)
-    fig.tight_layout(rect=(0, 0.06, 1, 1))
+    fig.tight_layout()
     save(fig, "F5_mechanism_isolation")
+    return a1_nn
 
 
 # ---- F6: defense frontier + ShareCap cap curve --------------------------------------------------
@@ -253,92 +262,131 @@ def _paired_last_round(files_a, files_b, metric: str, at_round: int = 20):
 
 
 def _sharecap_curve(caps) -> pd.DataFrame:
-    """Recovery (ratio 0.5) and retention (CICIDS 0.2, synthetic 0.05/0.2) for each cap, from the
-    raw per-seed job CSVs (DECISIONS.md s25.5). Independent of frontier_points.csv on purpose --
-    that file only has the three caps chosen for s25.2-25.3, not the full curve."""
+    """Recovery (poison ratios 0.5 and 0.9) and retention (CICIDS 0.2, synthetic 0.05/0.2) for
+    each cap, from the raw per-seed job CSVs (DECISIONS.md s25.5). Independent of
+    frontier_points.csv on purpose -- that file only has the three caps chosen for s25.2-25.3,
+    not the full curve."""
     cic_jobs = ROOT / "loop" / "cicids_recal" / "jobs"
     syn_jobs = ROOT / "loop" / "synthetic" / "jobs"
+
+    def retention(c, ratio, jobs, tag):
+        hp = glob.glob(str(jobs / f"s0_xgboost_s*_j0.0_r{ratio}{tag}_sharecap_c{c:g}.csv"))
+        und = glob.glob(str(jobs / f"s0_xgboost_s*_j0.0_r{ratio}{tag}.csv"))
+        ctl = glob.glob(str(jobs / f"control_xgboost_s*{tag}.csv"))
+        def last_tpr(files):
+            out = {}
+            for f in files:
+                seed = Path(f).name.split("_s")[1][0]
+                x = pd.read_csv(f, float_precision="round_trip")
+                x = x[(x.threshold_mode == "fixed") & (x["round"] == 20)]
+                if len(x):
+                    out[seed] = float(x.tpr.iloc[0])
+            return out
+        tp_hp, tp_und, tp_ctl = last_tpr(hp), last_tpr(und), last_tpr(ctl)
+        shared = sorted(set(tp_hp) & set(tp_und) & set(tp_ctl))
+        if len(shared) < 3:
+            return np.nan
+        gain_und = np.mean([tp_und[s] - tp_ctl[s] for s in shared])
+        gain_hp = np.mean([tp_hp[s] - tp_ctl[s] for s in shared])
+        return float(gain_hp / gain_und) if gain_und else np.nan
+
     rows = []
     for c in caps:
-        rec, n = _paired_last_round(
-            glob.glob(str(cic_jobs / f"a1_xgboost_s*_j0.0_r0.5_vt0.1_sharecap_c{c:g}.csv")),
-            glob.glob(str(cic_jobs / f"a1_xgboost_s*_j0.0_r0.5_vt0.1.csv")), "fpr")
-        recovery = float(1 - rec["a"].mean() / rec["b"].mean()) if rec else np.nan
-
-        def retention(ratio, dataset, jobs, tag):
-            hp = glob.glob(str(jobs / f"s0_xgboost_s*_j0.0_r{ratio}{tag}_sharecap_c{c:g}.csv"))
-            und = glob.glob(str(jobs / f"s0_xgboost_s*_j0.0_r{ratio}{tag}.csv"))
-            ctl = glob.glob(str(jobs / f"control_xgboost_s*{tag}.csv"))
-            def last_tpr(files):
-                out = {}
-                for f in files:
-                    seed = Path(f).name.split("_s")[1][0]
-                    x = pd.read_csv(f, float_precision="round_trip")
-                    x = x[(x.threshold_mode == "fixed") & (x["round"] == 20)]
-                    if len(x):
-                        out[seed] = float(x.tpr.iloc[0])
-                return out
-            tp_hp, tp_und, tp_ctl = last_tpr(hp), last_tpr(und), last_tpr(ctl)
-            shared = sorted(set(tp_hp) & set(tp_und) & set(tp_ctl))
-            if len(shared) < 3:
-                return np.nan
-            gain_und = np.mean([tp_und[s] - tp_ctl[s] for s in shared])
-            gain_hp = np.mean([tp_hp[s] - tp_ctl[s] for s in shared])
-            return float(gain_hp / gain_und) if gain_und else np.nan
-
-        rows.append({"defense": f"sharecap_c{c:g}", "family": "ShareCap", "cap": c,
-                    "recovery_r0.5": recovery,
-                    "retention_cicids r0.2": retention(0.2, "cicids", cic_jobs, "_vt0.1"),
-                    "retention_synthetic r0.05": retention(0.05, "synthetic", syn_jobs, ""),
-                    "retention_synthetic r0.2": retention(0.2, "synthetic", syn_jobs, "")})
+        row = {"defense": f"sharecap_c{c:g}", "family": "ShareCap", "cap": c,
+              "retention_cicids r0.2": retention(c, 0.2, cic_jobs, "_vt0.1"),
+              "retention_synthetic r0.05": retention(c, 0.05, syn_jobs, ""),
+              "retention_synthetic r0.2": retention(c, 0.2, syn_jobs, "")}
+        for ratio in (0.5, 0.9):
+            rec, n = _paired_last_round(
+                glob.glob(str(cic_jobs / f"a1_xgboost_s*_j0.0_r{ratio}_vt0.1_sharecap_c{c:g}.csv")),
+                glob.glob(str(cic_jobs / f"a1_xgboost_s*_j0.0_r{ratio}_vt0.1.csv")), "fpr")
+            row[f"recovery_r{ratio}"] = float(1 - rec["a"].mean() / rec["b"].mean()) if rec else np.nan
+        rows.append(row)
     return pd.DataFrame(rows)
+
+
+_F6_COL = {"D1": BLUE, "D1q": AQUA, "D1fixed": VIOLET, "kNN sanitize": RED, "loss filter": YELLOW,
+          "uniform": MUT, "ShareCap": ORANGE}
+_F6_CAPS_TO_LABEL = (0.05, 0.1, 0.2)
+
+
+def _f6_panel(ax, tab, sc, ycol: str, xcol: str, zoom: dict | None = None) -> None:
+    """One (retention axis, poison ratio) panel: points for every non-ShareCap family that has
+    ``ycol`` recorded, the uniform no-skill line, and the full ShareCap cap curve."""
+    def draw(a, xscale=1.0, yscale=1.0, annotate=False, marker_scale=1.0):
+        for fam, sub in tab[tab.family != "ShareCap"].groupby("family"):
+            s = sub.dropna(subset=[xcol, ycol]) if {xcol, ycol} <= set(sub.columns) else sub.iloc[0:0]
+            if s.empty:
+                continue
+            pre = s.defense == "d1_E8_g2"
+            a.scatter(xscale * s.loc[~pre, xcol], yscale * s.loc[~pre, ycol], s=16 * marker_scale,
+                     color=_F6_COL.get(fam, "#333333"), marker={"kNN sanitize": "D"}.get(fam, "o"),
+                     edgecolor="white", linewidth=0.4, label=fam, zorder=3)
+            if pre.any():
+                p = s[pre]
+                a.scatter(xscale * p[xcol], yscale * p[ycol], s=95 * marker_scale, facecolor="none",
+                         edgecolor="black", linewidth=1.2, marker="o", zorder=4)
+        u = tab[tab.family == "uniform"].dropna(subset=[xcol, ycol]).sort_values(xcol) if xcol in tab else tab.iloc[0:0]
+        if len(u) > 1:
+            a.plot(xscale * u[xcol], yscale * u[ycol], color=_F6_COL["uniform"], lw=1.0, ls=":", zorder=2)
+        s6 = sc.dropna(subset=[xcol, ycol]).sort_values("cap") if {xcol, ycol} <= set(sc.columns) else sc.iloc[0:0]
+        if len(s6):
+            a.plot(xscale * s6[xcol], yscale * s6[ycol], color=_F6_COL["ShareCap"], lw=1.4, zorder=2)
+            a.scatter(xscale * s6[xcol], yscale * s6[ycol], s=18 * marker_scale, color=_F6_COL["ShareCap"],
+                     marker="s", edgecolor="white", linewidth=0.4, label="ShareCap (cap curve)", zorder=3)
+            if annotate:
+                for i, cap in enumerate(_F6_CAPS_TO_LABEL):
+                    row = s6[np.isclose(s6.cap, cap)]
+                    if len(row):
+                        a.annotate(f"c={cap:g}", (xscale * row[xcol].iloc[0], yscale * row[ycol].iloc[0]),
+                                  fontsize=5, color=_F6_COL["ShareCap"], xytext=(3, -7 + 9 * i),
+                                  textcoords="offset points", ha="left", va="center")
+
+    # Cap labels go in whichever view (the main panel, or the zoomed inset) has room for them.
+    draw(ax, xscale=100, yscale=100, annotate=zoom is None)
+    ax.set_xlim(-5, 110)
+    ax.set_ylim(-5, 108)
+    _style(ax)
+    if zoom is not None:
+        iax = ax.inset_axes(zoom["pos"])
+        draw(iax, xscale=100, yscale=100, marker_scale=0.7, annotate=True)
+        iax.set_xlim(*zoom["xlim"])
+        iax.set_ylim(*zoom["ylim"])
+        iax.set_xticks([]); iax.set_yticks([])
+        for s in iax.spines.values():
+            s.set_edgecolor("#888888")
+            s.set_linewidth(0.6)
+        ax.indicate_inset_zoom(iax, edgecolor="#888888", linewidth=0.6)
 
 
 def fig_f6() -> None:
     tab = pd.read_csv(ROOT / "frontier" / "frontier_points.csv")
     caps = [0.01, 0.02, 0.03, 0.05, 0.08, 0.1, 0.15, 0.2, 0.3, 0.5]
-    sc = _sharecap_curve(caps).sort_values("cap")
+    sc = _sharecap_curve(caps)
 
-    col = {"D1": BLUE, "D1q": AQUA, "D1fixed": VIOLET, "kNN sanitize": RED, "loss filter": YELLOW,
-          "uniform": MUT, "ShareCap": ORANGE}
-    panels = [("cicids r0.2", "retention_cicids r0.2"), ("synthetic r0.05", "retention_synthetic r0.05"),
-             ("synthetic r0.2", "retention_synthetic r0.2")]
-    fig, axes = plt.subplots(1, 3, figsize=(10.2, 3.6), sharey=True)
-    for ax, (label, c) in zip(axes, panels):
-        for fam, sub in tab[tab.family != "ShareCap"].groupby("family"):
-            s = sub.dropna(subset=[c]) if c in sub else sub.iloc[0:0]
-            if s.empty:
-                continue
-            is_preregistered = s.defense == "d1_E8_g2"
-            ax.scatter(100 * s.loc[~is_preregistered, c], 100 * s.loc[~is_preregistered, "recovery_r0.5"],
-                      s=18, color=col.get(fam, "#333333"), marker={"kNN sanitize": "D"}.get(fam, "o"),
-                      edgecolor="white", linewidth=0.4, label=fam, zorder=3)
-            if is_preregistered.any():
-                p = s[is_preregistered]
-                ax.scatter(100 * p[c], 100 * p["recovery_r0.5"], s=110, facecolor="none",
-                          edgecolor="black", linewidth=1.3, marker="o", zorder=4)
-        u = tab[tab.family == "uniform"].dropna(subset=[c]).sort_values(c) if c in tab else tab.iloc[0:0]
-        if len(u) > 1:
-            ax.plot(100 * u[c], 100 * u["recovery_r0.5"], color=col["uniform"], lw=1.1, ls=":", zorder=2)
-        s6 = sc.dropna(subset=[c]).sort_values(c) if c in sc else sc.iloc[0:0]
-        if len(s6):
-            ax.plot(100 * s6[c], 100 * s6["recovery_r0.5"], color=col["ShareCap"], lw=1.6, zorder=2)
-            ax.scatter(100 * s6[c], 100 * s6["recovery_r0.5"], s=24, color=col["ShareCap"],
-                      marker="s", edgecolor="white", linewidth=0.4, label="ShareCap (full cap curve)", zorder=3)
-        ax.set_xlabel(f"retention of honeypot_only gain ({label}), %", fontsize=7.5)
-        ax.set_xlim(-5, 110)
-        ax.set_ylim(-5, 108)
-        _style(ax)
-    axes[0].set_ylabel("recovery of A1 damage (CICIDS, ratio 0.5), %")
-    h, l = axes[0].get_legend_handles_labels()
+    # (retention axis label, x column, inset zoom into the crowded top-right corner or None)
+    panels = [("CICIDS r0.2", "retention_cicids r0.2",
+              {"pos": [0.42, 0.06, 0.55, 0.5], "xlim": (55, 102), "ylim": (78, 103)}),
+             ("synthetic r0.05", "retention_synthetic r0.05",
+              {"pos": [0.06, 0.06, 0.55, 0.5], "xlim": (85, 102), "ylim": (82, 103)}),
+             ("synthetic r0.2", "retention_synthetic r0.2",
+              {"pos": [0.06, 0.06, 0.55, 0.5], "xlim": (80, 102), "ylim": (78, 103)})]
+    fig, axes = plt.subplots(2, 3, figsize=(PAGE_W, 4.6), sharex="col", sharey="row")
+    for row, ratio in enumerate((0.5, 0.9)):
+        ycol = f"recovery_r{ratio}"
+        for col_i, (label, xcol, zoom) in enumerate(panels):
+            ax = axes[row, col_i]
+            _f6_panel(ax, tab, sc, ycol, xcol, zoom=zoom if row == 0 else None)
+            if row == 1:
+                ax.set_xlabel(f"retention of S0 gain ({label}), %", fontsize=7)
+        axes[row, 0].set_ylabel(f"recovery of A1 damage\n(ratio {ratio}), %", fontsize=7)
+    h, l = axes[0, 0].get_legend_handles_labels()
     seen = dict(zip(l, h))
-    seen["D1 (pre-registered E*=8, g=2)"] = plt.Line2D([0], [0], marker="o", color="none", markerfacecolor="none",
-                                                       markeredgecolor="black", markersize=9, markeredgewidth=1.3)
-    axes[0].legend(seen.values(), seen.keys(), fontsize=6, frameon=False, loc="lower left")
-    fig.suptitle("Defense frontier (XGBoost, 5 seeds). ShareCap's full cap-sensitivity curve "
-                "(0.01-0.5) is undominated at every cap tested (DECISIONS.md s25.5).",
-                fontsize=9.5, x=0.01, ha="left")
-    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    seen["D1 (pre-registered)"] = plt.Line2D([0], [0], marker="o", color="none", markerfacecolor="none",
+                                             markeredgecolor="black", markersize=8, markeredgewidth=1.2)
+    fig.legend(seen.values(), seen.keys(), fontsize=6, frameon=False, ncol=4, loc="upper center",
+              bbox_to_anchor=(0.5, 1.02))
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
     save(fig, "F6_frontier")
 
 
