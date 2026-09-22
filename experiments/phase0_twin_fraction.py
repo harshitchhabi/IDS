@@ -31,6 +31,9 @@ log = get_logger("experiments.phase0_twin_fraction")
 
 JITTERS = (0.0, 0.002, 0.005, 0.01, 0.03, 0.1, 0.3, 0.7, 1.5)
 TWIN_DELTA = 0.0015  # midpoint of jitter-0 p5 (0.00093) and jitter-0.002 p5 (0.00206), s26.2
+# Sensitivity check (user request, DECISIONS.md s27): does the twin-fraction picture depend on
+# the exact delta chosen from the data? 0.001 and 0.003 bracket the chosen 0.0015 by ~2x each way.
+TWIN_DELTAS = (0.001, 0.0015, 0.003)
 SEED = 1
 
 
@@ -59,13 +62,16 @@ def main(argv: list[str] | None = None) -> int:
         adv = MimicryAdversary(d.pool_benign_x, d.normalizer, jit, SEED)
         batch, _ = adv.generate_batch(1, len(d.pool_benign_x))
         x = features_of(batch)
+        # Distances computed once per jitter and reused across all TWIN_DELTAS -- thresholding is
+        # cheap, the brute-force NN query is not.
         dist = fm.distances(x, max_rows=len(x), rng=rng)
-        row = {"jitter": jit, "n": len(dist), "median": float(np.median(dist)),
-              "p5": float(np.percentile(dist, 5)), "twin_delta": TWIN_DELTA,
-              "twin_fraction": float((dist <= TWIN_DELTA).mean()),
-              "exact_duplicates": 0 if jit == 0.0 else None}
-        rows.append(row)
-        log.info("twin fraction", **row)
+        for delta in TWIN_DELTAS:
+            row = {"jitter": jit, "n": len(dist), "median": float(np.median(dist)),
+                  "p5": float(np.percentile(dist, 5)), "twin_delta": delta,
+                  "twin_fraction": float((dist <= delta).mean()),
+                  "exact_duplicates": 0 if jit == 0.0 else None}
+            rows.append(row)
+            log.info("twin fraction", **row)
     out.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(out, index=False)
     print(f"wrote {out}")
