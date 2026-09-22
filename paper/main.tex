@@ -1,0 +1,62 @@
+% Poisoning the Deception Loop -- paper skeleton.
+%
+% Template: ACM sigconf (AISec uses ACM format), chosen provisionally per docs/PAPER_PLAN.md
+% ("Confirm the venue, template and page limit before day 4"). To swap to USENIX later:
+%   1. Replace the \documentclass line and the two acmart-specific commands below
+%      (\acmConference..., \settopmatter...) with a usenix2019.sty preamble.
+%   2. Everything from \input{sections/...} down is template-agnostic and needs no changes --
+%      the section files contain only \section/\subsection structure, prose and floats.
+% Build: .tools/tectonic.exe paper/main.tex   (or: python scripts/run.py figures && <same>)
+\documentclass[sigconf,anonymous=false,review=false]{acmart}
+
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+% ---- venue / title / authors (placeholders; DECIDE at "Venue, template and page limit
+% confirmed", docs/PAPER_PLAN.md "Open items") ----------------------------------------------
+\acmConference[AISec '26]{ACM Workshop on Artificial Intelligence and Security}{TBD}{TBD}
+\acmYear{2026}
+\copyrightyear{2026}
+\acmISBN{TBD}
+\acmDOI{TBD}
+\settopmatter{printccs=false}
+
+\title{Poisoning the Deception Loop: Label Conflict in Honeypot-Fed Intrusion Detection}
+% Working alternate title (docs/PAPER_PLAN.md): "When the Honeypot Writes the Labels:
+% Poisoning Self-Training Intrusion Detectors"
+
+\author{Author One}
+\affiliation{%
+  \institution{TBD}
+  \city{TBD}
+  \country{TBD}
+}
+\email{TBD}
+
+\begin{abstract}
+% docs/PAPER_PLAN.md "The claim, in one paragraph" -- draft here once prose starts.
+% Do not draft prose yet (per instruction); this is a structural placeholder only.
+TODO: abstract.
+\end{abstract}
+
+\begin{document}
+\maketitle
+
+\input{sections/01_introduction}
+\input{sections/02_background}
+\input{sections/03_threat_model}
+\input{sections/04_methodology}
+\input{sections/05_degeneracy}
+\input{sections/06_attack}
+\input{sections/07_defenses}
+\input{sections/08_discussion}
+\input{sections/09_conclusion}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\appendix
+\input{sections/10_appendix}
+
+\end{document}

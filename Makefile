@@ -1,10 +1,11 @@
 # Deception Loop — make targets
 # Targets required by CLAUDE.md: demo, test, sim, experiment-<id>, figures, clean
-# (demo/sim/figures are stubs until their phase lands.)
+# (sim/demo are stubs from the offline-simulator phase; demo is superseded by
+# `python scripts/run.py demo`, docs/DEMO.md. figures/paper are implemented -- see experiments/paper_figures.py.)
 
 UV ?= uv
 
-.PHONY: help sync test phase0-explore phase0-models phase0-results sim demo figures clean
+.PHONY: help sync test phase0-explore phase0-models phase0-results sim demo figures paper clean
 
 help:
 	@echo "sync            install dependencies (uv sync)"
@@ -12,7 +13,8 @@ help:
 	@echo "phase0-explore  feature distributions + cleaning drop report (synthetic)"
 	@echo "sim             offline simulator (Phase 0, not yet implemented)"
 	@echo "demo            docker testbed (Phase 1+, not yet implemented)"
-	@echo "figures         regenerate paper figures (Phase 6)"
+	@echo "figures         regenerate paper figures from committed CSVs (no re-runs)"
+	@echo "paper           figures + compile paper/main.tex with Tectonic"
 	@echo "clean           remove caches and generated artifacts"
 
 sync:
@@ -40,7 +42,10 @@ demo:
 	@echo "demo: not implemented until Phase 1"; exit 1
 
 figures:
-	@echo "figures: not implemented until Phase 6"; exit 1
+	$(UV) run python scripts/run.py figures
+
+paper: figures
+	.tools/tectonic.exe -X compile paper/main.tex --outdir paper
 
 experiment-%:
 	$(UV) run python -m experiments.$*
