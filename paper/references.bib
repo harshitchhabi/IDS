@@ -1,3 +1,213 @@
-% Bibliography for paper/main.tex. Empty skeleton -- populate per docs/PAPER_PLAN.md section 2
-% (honeypot-ML integrations; adaptive/LLM honeypots; poisoning of network classifiers;
-% poisoning defenses; IDS dataset critiques).
+% Bibliography for paper/main.tex. Every entry here is verified against its own page
+% (arXiv/DBLP/publisher DOI) -- see docs/RELATED_WORK.md for the check log and the overlap
+% discussion that will inform Sections 1-2's novelty claim.
+
+% ---- A. Honeypot-fed ML / closed-loop retraining ------------------------------------------
+@article{yugai2024honeypot,
+  author  = {Yugai, P. E. and Moskvin, D. A.},
+  title   = {Using Machine Learning Algorithms and Honeypot Systems to Detect Adversarial
+             Attacks on Intrusion Detection Systems},
+  journal = {Automatic Control and Computer Sciences},
+  volume  = {58},
+  pages   = {1226--1233},
+  year    = {2024},
+}
+
+@inproceedings{abdou2021honeymodels,
+  author    = {Abdou, Ahmed and Sheatsley, Ryan and Beugin, Yohan and Shipp, Tyler and
+               McDaniel, Patrick},
+  title     = {HoneyModels: Machine Learning Honeypots},
+  booktitle = {MILCOM 2021 -- 2021 IEEE Military Communications Conference (MILCOM)},
+  year      = {2021},
+}
+
+% ---- B. Adaptive / LLM honeypots -----------------------------------------------------------
+@inproceedings{fan2024honeyllm,
+  author    = {Fan, Wenjun and Yang, Zichen and Liu, Yuanzhen and Qin, Lang and Liu, Jia},
+  title     = {HoneyLLM: A Large Language Model-Powered Medium-Interaction Honeypot},
+  booktitle = {Information and Communications Security (ICICS 2024)},
+  series    = {LNCS},
+  volume    = {15057},
+  year      = {2024},
+}
+
+@misc{wang2024honeygpt,
+  author = {Wang, Ziyang and You, Jianzhou and Wang, Haining},
+  title  = {HoneyGPT: Breaking the Trilemma in Terminal Honeypots with Large Language Model},
+  year   = {2024},
+  eprint = {2406.01882},
+  archivePrefix = {arXiv},
+}
+
+@misc{otal2024llmhoneypot,
+  author = {Otal, Hakan T. and Canbaz, M. Abdullah},
+  title  = {LLM Honeypot: Leveraging Large Language Models as Advanced Interactive Honeypot
+            Systems},
+  year   = {2024},
+  eprint = {2409.08234},
+  archivePrefix = {arXiv},
+}
+
+@inproceedings{huang2019adaptive,
+  author    = {Huang, Linan and Zhu, Quanyan},
+  title     = {Adaptive Honeypot Engagement through Reinforcement Learning of Semi-Markov
+               Decision Processes},
+  booktitle = {Decision and Game Theory for Security (GameSec 2019)},
+  year      = {2019},
+  doi       = {10.1007/978-3-030-32430-8_13},
+}
+
+@misc{bridges2025sok,
+  author = {Bridges, Robert A. and Mitchell, Thomas R. and Mu{\~n}oz, Mauricio and
+            Henriksson, Ted},
+  title  = {SoK: Honeypots \& LLMs, More Than the Sum of Their Parts?},
+  year   = {2025},
+  eprint = {2510.25939},
+  archivePrefix = {arXiv},
+}
+
+@article{srinivasa2023gotta,
+  author  = {Srinivasa, Shreyas and Pedersen, Jens Myrup and Vasilomanolakis, Emmanouil},
+  title   = {Gotta Catch 'em All: A Multistage Framework for Honeypot Fingerprinting},
+  journal = {ACM Digital Threats: Research and Practice},
+  volume  = {4},
+  number  = {3},
+  pages   = {42},
+  year    = {2023},
+}
+
+% ---- C. Poisoning of network / ML classifiers (attacks) ------------------------------------
+@inproceedings{newsome2006paragraph,
+  author    = {Newsome, James and Karp, Brad and Song, Dawn},
+  title     = {Paragraph: Thwarting Signature Learning by Training Maliciously},
+  booktitle = {Recent Advances in Intrusion Detection (RAID 2006)},
+  series    = {LNCS},
+  volume    = {4219},
+  pages     = {81--105},
+  year      = {2006},
+}
+
+@inproceedings{perdisci2006misleading,
+  author    = {Perdisci, Roberto and Dagon, David and Lee, Wenke and Fogla, Prahlad and
+               Sharif, Monirul},
+  title     = {Misleading Worm Signature Generators Using Deliberate Noise Injection},
+  booktitle = {2006 IEEE Symposium on Security and Privacy},
+  year      = {2006},
+}
+
+@inproceedings{nelson2008exploiting,
+  author    = {Nelson, Blaine and Barreno, Marco and Chi, Fuching Jack and Joseph, Anthony D.
+               and Rubinstein, Benjamin I. P. and Saini, Udam and Sutton, Charles and
+               Tygar, J. D. and Xia, Kai},
+  title     = {Exploiting Machine Learning to Subvert Your Spam Filter},
+  booktitle = {Proceedings of the 1st USENIX Workshop on Large-Scale Exploits and Emergent
+               Threats (LEET)},
+  year      = {2008},
+}
+
+@inproceedings{biggio2012poisoning,
+  author    = {Biggio, Battista and Nelson, Blaine and Laskov, Pavel},
+  title     = {Poisoning Attacks against Support Vector Machines},
+  booktitle = {Proceedings of the 29th International Conference on Machine Learning (ICML)},
+  year      = {2012},
+}
+
+@inproceedings{rubinstein2009antidote,
+  author    = {Rubinstein, Benjamin I. P. and Nelson, Blaine and Huang, Ling and
+               Joseph, Anthony D. and Lau, Shing-hon and Rao, Satish and Taft, Nina and
+               Tygar, J. D.},
+  title     = {ANTIDOTE: Understanding and Defending against Poisoning of Anomaly Detectors},
+  booktitle = {Proceedings of the 9th ACM SIGCOMM Conference on Internet Measurement (IMC)},
+  year      = {2009},
+}
+
+@article{kloft2012security,
+  author  = {Kloft, Marius and Laskov, Pavel},
+  title   = {Security Analysis of Online Centroid Anomaly Detection},
+  journal = {Journal of Machine Learning Research},
+  volume  = {13},
+  pages   = {3681--3724},
+  year    = {2012},
+}
+
+% ---- D. Poisoning defenses (generic) --------------------------------------------------------
+@inproceedings{barreno2006can,
+  author    = {Barreno, Marco and Nelson, Blaine and Sears, Russell and Joseph, Anthony D.
+               and Tygar, J. D.},
+  title     = {Can Machine Learning Be Secure?},
+  booktitle = {Proceedings of the 2006 ACM Symposium on Information, Computer and
+               Communications Security (ASIACCS)},
+  year      = {2006},
+}
+
+@misc{paudice2018label,
+  author = {Paudice, Andrea and Mu{\~n}oz-Gonz{\'a}lez, Luis and Lupu, Emil C.},
+  title  = {Label Sanitization against Label Flipping Poisoning Attacks},
+  year   = {2018},
+  eprint = {1803.00992},
+  archivePrefix = {arXiv},
+  note   = {ECML-PKDD Nemesis workshop, 2018},
+}
+
+@article{biggio2018wild,
+  author  = {Biggio, Battista and Roli, Fabio},
+  title   = {Wild Patterns: Ten Years After the Rise of Adversarial Machine Learning},
+  journal = {Pattern Recognition},
+  year    = {2018},
+}
+
+@article{cina2023wild,
+  author  = {Cin{\`a}, Antonio Emanuele and Grosse, Kathrin and Demontis, Ambra and
+             Vascon, Sebastiano and Zellinger, Werner and Moser, Bernhard A. and
+             Oprea, Alina and Biggio, Battista and Pelillo, Marcello and Roli, Fabio},
+  title   = {Wild Patterns Reloaded: A Survey of Machine Learning Security against
+             Training Data Poisoning},
+  journal = {ACM Computing Surveys},
+  year    = {2023},
+}
+
+% ---- E. IDS dataset critiques ---------------------------------------------------------------
+@inproceedings{engelen2021troubleshooting,
+  author    = {Engelen, Gints and Rimmer, Vera and Joosen, Wouter},
+  title     = {Troubleshooting an Intrusion Detection Dataset: the CICIDS2017 Case Study},
+  booktitle = {2021 IEEE Security and Privacy Workshops (SPW)},
+  pages     = {7--12},
+  year      = {2021},
+}
+
+@inproceedings{lanvin2022errors,
+  author    = {Lanvin, Maxime and Gimenez, Pierre-Fran{\c c}ois and Han, Yufei and
+               Majorczyk, Fr{\'e}d{\'e}ric and M{\'e}, Ludovic and Totel, Eric},
+  title     = {Errors in the CICIDS2017 Dataset and the Significant Differences in
+               Detection Performances It Makes},
+  booktitle = {Risks and Security of Internet and Systems (CRiSIS 2022)},
+  year      = {2022},
+}
+
+@inproceedings{rosay2022network,
+  author    = {Rosay, Arnaud and Cheval, Elo{\"i}se and Carlier, Florent and Leroux, Pascal},
+  title     = {Network Intrusion Detection: A Comprehensive Analysis of CIC-IDS2017},
+  booktitle = {Proceedings of the 8th International Conference on Information Systems
+               Security and Privacy (ICISSP)},
+  pages     = {25--36},
+  year      = {2022},
+}
+
+% ---- F. Adjacent: federated/online-learning IDS poisoning, shadow honeypots ----------------
+@article{thein2024personalized,
+  author  = {Thein, Thanoun and Shiraishi, Yoshiaki and Morii, Masakatu},
+  title   = {Personalized Federated Learning-Based Intrusion Detection System: Poisoning
+             Attack and Defense},
+  journal = {Future Generation Computer Systems},
+  volume  = {153},
+  pages   = {182--192},
+  year    = {2024},
+}
+
+@inproceedings{anagnostakis2005shadow,
+  author    = {Anagnostakis, Kostas G. and Sidiroglou, Stelios and Akritidis, Periklis and
+               Xinidis, Konstantinos and Markatos, Evangelos and Keromytis, Angelos D.},
+  title     = {Detecting Targeted Attacks Using Shadow Honeypots},
+  booktitle = {Proceedings of the 14th USENIX Security Symposium},
+  year      = {2005},
+}
