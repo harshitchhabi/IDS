@@ -1,9 +1,53 @@
 \section{Threat Model}
 \label{sec:threat-model}
-% Budget: 0.75 page. Source: CLAUDE.md threat model, DECISIONS.md s4, s17.
-% - Defender retrains on seed data plus honeypot traffic stamped malicious.
-% - Attacker can send arbitrary traffic to the decoy, knows the labelling policy, cannot
-%   touch production training data or the model.
-% - Goals: raise false positives, or suppress detection.
-% - Capability axis: mimicry fidelity, measured as realized NN distance to benign.
-% TODO: prose.
+% CLAUDE.md threat model: honeypot-ML integrations retrain the detector on decoy traffic,
+% auto-labelled malicious by policy ("everything the honeypot sees is malicious", public), as
+% free ground truth. The unexamined assumption is that the label is trustworthy because the
+% source is a decoy; the attacker controls exactly what the decoy sees, so the honeypot is a
+% write channel into the defender's training set that the defender opens deliberately. The
+% poison budget is not a fraction the attacker must fight for -- it is the entire
+% honeypot-derived share of the training set.
+The systems we attack retrain on two sources: a trusted seed set the defender controls, and
+whatever traffic reaches a honeypot, auto-labelled malicious by a public policy — anything a
+decoy sees is unsolicited by definition, so the argument goes, and therefore free
+ground-truth-malicious data. That argument holds only if the label is trustworthy because the
+source is a decoy. It is not: the attacker chooses exactly what the decoy sees, and the
+labelling policy is public. The honeypot is a write channel into the defender's training set,
+opened by the defender's own design. The poison budget is not a fraction the attacker has to
+fight for against a defended channel; it is the entire honeypot-derived share of the training
+set, by construction.
+
+% DECISIONS.md s4: attacker capability. Can send arbitrary traffic to the decoy; the pool is
+% two-class (benign-shaped and attack-shaped) so A1 (point the benign generator at the decoy)
+% and S0/A4 can both be expressed from the same adversary interface; sized (~20k rows) so
+% poison ratios up to 50% are reachable with FRESH rows, not resampled duplicates -- a
+% resampled duplicate is closer to upweighting an existing sample than to injecting new poison.
+\textbf{Attacker capability.} The attacker can send arbitrary traffic to the honeypot and knows
+the public labelling policy, but cannot touch \texttt{seed\_train}, \texttt{trusted\_eval}, or
+the model directly — every effect it has on the deployed detector routes through what the
+honeypot logs. The pool it draws from is two-class, sized so poison ratios up to 50\% of the
+training set are reachable with fresh rows rather than resampled duplicates; for a tree model, a
+resampled duplicate is closer to upweighting a sample already present than to injecting new
+poison, which would understate what the attack can do.
+
+% CLAUDE.md scenarios table.
+\textbf{Attacker goal.} Raise the detector's false-positive rate on production traffic, or
+suppress its detection of a real attack. \textbf{A1 (benign mimicry)}, this paper's subject,
+does the first: point the same kind of traffic generator that produces legitimate benign flows
+at the honeypot instead of production, and let the auto-labeller stamp the result malicious.
+Nothing about A1 requires the attacker to know anything about the model; it needs only to know
+the labelling policy, which is public by the design being attacked. \textbf{S0 (clean)} — the
+honeypot sees genuine attacks, correctly labelled — is not an attack; it is the sanity check
+this design has to pass before any attack against it means anything (Section~\ref{sec:attack}).
+\textbf{A2 (boundary drift)} and \textbf{A4 (fingerprint-and-split)} are scoped out: A2 needs a
+gradual multi-round adversary this paper does not build, and A4's controlled measurement arm
+cannot occur naturally on CICIDS2017, where every family runs on a single day
+(Section~\ref{sec:methodology}).
+
+% DECISIONS.md s18 "Realized fidelity, not the knob": the capability axis is a measured
+% distance, not an assumed one.
+\textbf{Capability axis.} A1's only free parameter is how closely the attacker's traffic
+resembles genuine production benign traffic. We do not assume this from a generation setting;
+we measure it directly as the realized nearest-neighbour distance from the injected poison to
+trusted benign traffic (Section~\ref{sec:methodology}), and report damage as a function of that
+measured distance rather than of the knob that produced it.
