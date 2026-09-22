@@ -2039,3 +2039,31 @@ under a fixed threshold or TPR loss under recalibration, confirmed at copy-level
 models (RF at both ratios tested, XGBoost at one of two), with a separate pre-specified
 single-distance result (RF, jitter 0.7) reported honestly as an effect not yet confirmed to
 generalise across the grid.
+
+### 26.6 Pre-registration: does RF's at-distance TPR pattern generalise? (written before running)
+
+s26.1/s26.5 report RF's apparent TPR recovery at large jitter as an observed, unconfirmed
+pattern -- real in the raw 5-seed means, reproducing at both ratios, but not separable from
+chance once the 36-cell grid sweep is corrected for multiple comparisons. This pre-registers a
+smaller, targeted family to test it properly with more seeds, **written and committed before the
+run**, per this project's convention that a correction's pass/fail bar is fixed in advance.
+
+**Family:** RF, recalibrated-threshold TPR only, jitter $\in \{0.3, 0.7, 1.5\}$ x poison ratio
+$\in \{0.2, 0.5\}$ = 6 cells. Holm-Bonferroni step-down, family-wise $\alpha = 0.05$, within this
+family of 6 only (not re-merged into the 36-cell family from s26.1).
+
+**Seeds:** 15 total -- the existing 5 (seeds 0-4) plus 10 new (seeds 5-14), same paired-t design
+as s26.1 (A1 vs. same-seed control, final round).
+
+**Confirmation bar, fixed now:** the at-distance pattern is **confirmed** if and only if at least
+2 adjacent jitters (of the 3 tested: 0.3, 0.7, 1.5) survive Holm correction **at both ratios**.
+Anything short of that (fewer than 2 adjacent jitters, or confirmed at only one ratio) is
+**not confirmed**, and is reported as such -- not reframed as a weaker positive result.
+
+**What does not change regardless of outcome:** this is a follow-up characterisation of a
+pattern already labelled unconfirmed; §1-§9 of the paper are drafted assuming "unconfirmed" and
+are not blocked on this result. If it confirms, one sentence in §6 and Table 2 is updated to
+say so, with the new cell count and seeds noted. If it does not confirm, s26.1/s26.5's existing
+language stands unchanged and this section records the negative result for the record.
+
+Run: `experiments/phase0_loop.py --dataset cicids --val-nn-tau 0.1 --scenarios control a1 --models rf --jitters 0.3 0.7 1.5 --ratios 0.2 0.5 --seeds 15 --workers 4 --out results/phase0/loop/cicids_recal --no-fidelity` (job CSVs already present for seeds 0-4 at these cells are skipped by the existing resume-by-file logic; this run only adds seeds 5-14).
