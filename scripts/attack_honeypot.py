@@ -1,8 +1,14 @@
-"""SSH brute-force against the LOCAL Cowrie honeypot (127.0.0.1:2222), to generate real honeypot telemetry.
+"""LAB-ONLY ATTACK TOOL. Do not point this at anything but the local lab honeypot.
 
-Safety (CLAUDE.md): attack tooling runs only against containers in this project. This script refuses any target
-that is not 127.0.0.1, checked on the *resolved* address so a hostname that points elsewhere is refused too, and it
-only ever uses a tiny built-in wordlist of common weak credentials (no real credentials).
+Per CLAUDE.md's safety constraints: the testbed is lab-internal only, and attack tooling runs
+only against containers in this compose project, validated against an allowlist before firing.
+This script enforces that in code, not just in this comment: `check_target` resolves the
+requested host and refuses to proceed unless it resolves to 127.0.0.1, so a hostname that
+points elsewhere is refused too. Never remove or bypass that check to point this at a real host.
+
+SSH brute-force against the LOCAL Cowrie honeypot (127.0.0.1:2222), to generate real honeypot
+telemetry. It only ever uses a tiny built-in wordlist of common weak credentials (no real
+credentials, no credentials from any real system).
 
     python scripts/attack_honeypot.py                       # 3 brute-force sessions, then a "post-login" session
     python scripts/attack_honeypot.py --sessions 6 --attempts 8
