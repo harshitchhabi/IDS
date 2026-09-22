@@ -1995,3 +1995,47 @@ defined above) replaces it as the primary capability-axis statistic in Section 3
 x-axis of Figure 3. Median distance is kept as a secondary/appendix figure, since it is still the
 right statistic for the far end of the grid where twin fraction is uniformly zero and cannot
 distinguish jitter 0.03 from jitter 1.5.
+
+### 26.5 Erratum to s23 ("two channels", "RF-only"): superseded by s26.1's Holm correction
+
+s23's "two channels" table and its "TPR channel is RF-only" finding predate the s26.1
+Holm-Bonferroni correction and read differently once the full 36-cell grid is corrected for
+multiple comparisons. This does not change s23's null-control result (prior shift and volume
+alone are null, label conflict is the mechanism -- that stands); it changes how the *surface* of
+the damage is described.
+
+**"Two channels" is retired.** There is one mechanism (label conflict) and one requirement
+(near-duplicate mimicry fidelity, s26.3's twin fraction). The threshold policy in force decides
+which metric shows the damage, not whether damage occurs: a fixed threshold takes it as a false
+positive, a recalibrated one takes it as lost detection (TPR). These were described as two
+separate "channels" in s23; they are one effect read through two measurement instruments.
+Recalibrating does not remove the damage, it relocates where it shows up -- s26.1's TPR numbers
+and s17/s26's FPR numbers are the same underlying rows, scored two ways.
+
+**"TPR channel is RF-only" does not survive s26.1's correction.** s23 read XGBoost as having "no
+TPR channel" from an uncorrected, single-cell comparison. s26.1's Holm-corrected table has
+XGBoost surviving at ratio 0.5, jitter 0 (t=-8.49, p=0.00105, rank 3 of 36) -- copy-level
+fidelity, the same regime as RF. XGBoost's own ratio-0.2, jitter-0 cell does not survive
+(t=-2.58, p=0.061), so the corrected statement is "confirmed for XGBoost at one of two poison
+ratios tested," not "none," and not "RF-only."
+
+**Figure 5's single-distance result needs to be read against both families it belongs to.** The
+mechanism-isolation bar (RF, recalibrated TPR, ratio 0.2, jitter 0.7, t=-6.3, p=0.0032, s23) is a
+pre-specified test in its own 4-arm family and clears even a Bonferroni threshold within that
+family (0.0125, s26.1). It is also cell (rf, 0.2, jitter=0.7) in the 36-cell grid family, where it
+does not survive Holm correction (rank 7 of 36, t=-6.34, p=0.00316, Holm threshold 0.00167,
+s26.1). Both statements are correct at once, for the same t-statistic, because they answer
+different questions under different correction: "does the conflict matter at this one
+pre-registered distance" (yes) versus "does damage at this distance generalise across a 36-point
+grid without inflating the false-positive rate of the test itself" (not confirmed). Five seeds is
+low power for either family; report the pre-specified result as **an effect found, not yet shown
+to generalise**, not as absent. s26.4 (if run) is the attempt to settle whether it generalises
+with more seeds and a smaller, pre-registered family at the same distances.
+
+**What changes in the paper:** drop "two channels, RF-only TPR channel, works at every distance"
+everywhere it appears (Table 2, s3's capability axis prose, s6, PAPER_PLAN.md's claim paragraph
+and contributions). Replace with: one mechanism, one requirement (twin fraction), surfaced as FPR
+under a fixed threshold or TPR loss under recalibration, confirmed at copy-level fidelity for both
+models (RF at both ratios tested, XGBoost at one of two), with a separate pre-specified
+single-distance result (RF, jitter 0.7) reported honestly as an effect not yet confirmed to
+generalise across the grid.
