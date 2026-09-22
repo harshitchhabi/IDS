@@ -3,6 +3,7 @@ name = "dloop"
 version = "0.0.0"
 description = "Deception Loop — deception-aware NIDS and its adversarial research harness"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "numpy>=2.1,<3",
