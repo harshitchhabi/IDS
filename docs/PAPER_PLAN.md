@@ -16,31 +16,37 @@ auto-labelled malicious by policy, as a free source of ground truth. Paragraph a
 Perdisci et al. showed this attack class on signature generators trained on
 honeynet-flagged traffic nearly two decades ago; current honeypot-fed ML retraining
 loops reintroduce the same design without evaluating the threat. We characterise the
-attack on a modern loop: one mechanism, label conflict, with two channels. The
-false-positive channel needs the attacker to reproduce benign traffic almost
-exactly (quantified as twin fraction, the share of poison within a tight distance of
-real benign traffic) and >=10-20% poison share; after Holm correction across the full
-grid, a random-forest detection-loss channel is confirmed only at that same
-copy-level fidelity, not at every distance tested, and an apparent recovery at large
-mimicry distance is reported as an unconfirmed pattern with no mechanism proposed.
-Label-consistency defenses fail structurally, because the poison agrees with the
-defender's own labelling policy. Cost-of-influence weighting, initially our proposed
-defense, is a measured negative result: it does not beat a no-skill baseline. A
-one-line cap on the honeypot's share of the training set is undominated by every
-defense we tested. Along the way we measure that CICIDS2017 is near-degenerate in
-flow-feature space, which limits what it can show, and that the FPR channel's damage
-on this dataset is driven by near-duplicates of real benign traffic rather than by
-literal duplicates.
+attack on a modern loop: one mechanism, label conflict, one requirement (near-
+duplicate mimicry, quantified as twin fraction: the poison needs to sit within a
+tight distance of real benign traffic, and needs >=10-20% poison share). The
+threshold policy decides where that damage surfaces, not whether it does:
+fixed-threshold detectors take it as false positives, recalibrated ones take it as
+lost detection (TPR); recalibrating moves the damage, it does not remove it. After
+Holm correction across the full grid, both models show the TPR-loss form of the
+damage at copy-level fidelity (RF at both poison ratios tested, XGBoost at one); a
+pre-specified single-distance test found an effect further out for RF, but the full
+grid sweep does not confirm it generalises past that one distance, at the power five
+seeds give it — reported as unconfirmed, not absent. Label-consistency defenses fail
+structurally, because the poison agrees with the defender's own labelling policy.
+Cost-of-influence weighting, initially our proposed defense, is a measured negative
+result: it does not beat a no-skill baseline. A one-line cap on the honeypot's share
+of the training set is undominated by every defense we tested. Along the way we
+measure that CICIDS2017 is near-degenerate in flow-feature space, which limits what
+it can show, and that the FPR channel's damage on this dataset is driven by
+near-duplicates of real benign traffic rather than by literal duplicates.
 
 ## Contributions
 1. Threat model: auto-labelled honeypot data as an attacker-controlled write channel
-   into IDS training, characterised (mechanism, channels, null controls) on a modern
-   honeypot-fed retraining loop, the design Paragraph/Perdisci's signature-generator
-   attack targeted but that current honeypot+ML systems reintroduce unevaluated.
-2. The attack characterised: one mechanism, two channels, isolated with matched null
-   controls; damage as a function of measured mimicry fidelity (twin fraction, not a
+   into IDS training, characterised (mechanism, requirement, null controls) on a
+   modern honeypot-fed retraining loop, the design Paragraph/Perdisci's
+   signature-generator attack targeted but that current honeypot+ML systems
+   reintroduce unevaluated.
+2. The attack characterised: one mechanism (label conflict) that surfaces as either
+   FPR or TPR damage depending on the threshold policy in force, not two independent
+   channels; damage as a function of measured mimicry fidelity (twin fraction, not a
    jitter knob or an unresolving median distance), held to a pre-registered,
-   multiple-comparison-corrected significance bar.
+   multiple-comparison-corrected significance bar, with a separate pre-specified
+   single-distance result reported honestly as unconfirmed at scale.
 3. The policy-consistency blind spot: why loss-based and other label-consistency
    defenses recover ~0% here.
 4. A defense comparison against a proper no-skill baseline: cost-of-influence
@@ -92,20 +98,25 @@ literal duplicates.
 
 ### 6. The attack — 1.5 pages
 - S0 works: honeypot_only 0.4 -> 0.99 on synthetic.
-- A1 damage vs mimicry distance: cliff at ~0.011-0.014 for the FPR channel.
-- Two channels (§26.1 Holm-corrected table): FPR needs copy fidelity (twin fraction
-  >>0) and >=10-20% poison; RF's TPR channel is confirmed only at copy fidelity after
-  Holm correction across the full grid, not at every distance tested; an apparent
-  recovery at large jitter is an observed, unconfirmed pattern, no mechanism
-  proposed; XGBoost has no TPR channel.
+- A1 damage vs mimicry fidelity (twin fraction, §26.3): a cliff, not a gradient.
+- One mechanism, one requirement, surfaced by the threshold policy (§26.1
+  Holm-corrected table): fixed threshold shows it as FPR; recalibration shows it as
+  TPR loss, in both models tested, at copy-level fidelity (RF both ratios, XGBoost
+  ratio 0.5). Recalibrating relocates the damage, it does not remove it.
+- Figure 5's pre-specified single-distance test (RF, ratio 0.2, jitter 0.7) found an
+  effect and clears its own 4-test family; the 36-test grid sweep does not confirm it
+  generalises past that one distance at 5-seed power — state both, call it
+  unconfirmed, not absent. (§26.4, if run: whether it now generalises.)
 - Mechanism isolation: a1truth, s0j, junk all null.
-- Recalibrating trades FPR damage for TPR loss.
 - XGBoost FPR channel seed-dependent, reported per seed.
-- Source: §17, §19, §22, §23, results/phase0/loop/, results/phase0/mechanism/.
-- Figure 3: damage vs realized mimicry distance.
+- Source: §17, §19, §22, §23, §26.1, §26.3, §26.4, results/phase0/loop/,
+  results/phase0/mechanism/, results/phase0/cicids/twin_fraction_by_jitter.csv.
+- Figure 3: damage vs twin fraction (cliff) and vs median realized distance (full
+  grid), side by side.
 - Figure 4: A1 trajectories, fixed vs recalibrated.
-- Figure 5: mechanism isolation bars.
-- Table 2: the two channels (from §23).
+- Figure 5: mechanism isolation bars, caption notes the single pre-specified
+  distance.
+- Table 2: one mechanism, two surfaces (from §26.1).
 
 ### 7. Defenses — 1.25 pages
 - Policy-consistency blind spot: loss filtering recovers ~0% (§23).
