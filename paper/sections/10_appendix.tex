@@ -1,10 +1,8 @@
 \section{Appendix}
 \label{sec:appendix}
-% Source: DECISIONS.md s1 (day-split robustness), s14 (burst splitting), s11 (guard (a) grid
-% sweep), s20 + s24 (D1 definition and full grid), s25.6 (XGBoost per-seed trajectories),
-% s21.6 (padding), s25.5 (full cap curve -- already in Figure~\ref{fig:f6-frontier}, main body).
-% TODO: prose, and decide which tables/figures move here vs. stay in the main body once the
-% page budget is known (docs/PAPER_PLAN.md "Confirm the venue, template and page limit").
+% Source: DECISIONS.md s14 (burst splitting), s11 (guard (a) grid sweep), s20 + s21.5 (D1
+% definition and full sensitivity grid), s25.6 (XGBoost per-seed trajectories), s21.6 (padding),
+% s25.5 (full cap curve -- already in Figure~\ref{fig:f6-frontier}, main body).
 
 \subsection{Twin fraction: sensitivity to the chosen delta}
 % Source: results/phase0/cicids/twin_fraction_by_jitter.csv (delta in {0.001, 0.0015, 0.003}).
@@ -93,8 +91,52 @@ the day, and the feature vector is still within noise of zero distance. The dege
 (Section~\ref{sec:degeneracy}) is a property of the feature representation these families
 produce, not an artifact of where or how the cut is drawn.
 
-\subsection{D1: full definition and grid}
-% TODO. Source: DECISIONS.md s20, s24.
+\subsection{D1: full definition and sensitivity grid}
+% Source: DECISIONS.md s20 (definition, pre-registered before any D1 result or implementation),
+% s21.5 (full 3x5 sensitivity grid + component ablation).
+D1 prices a honeypot row's influence by attacker effort. Per-flow cost is
+$x_i = (d_i, p_i, b_i, s_i)$ — duration, packet count, byte count, and protocol-state depth
+$s_i = \min(\text{fwd packets}, \text{bwd packets})$. Each component is scaled by its reference
+$r_k$, the median of that component over \texttt{seed\_train}'s benign rows (trusted, defender-owned):
+effort is the geometric mean $e_i = \prod_k (1 + x_{ik}/r_k)^{1/4} - 1$, so $e_i=0$ only if every
+component is zero, $e_i=1$ for a flow that costs a median benign flow's worth in every component,
+and $e_i$ is invariant to the units of each component. Weight saturates as
+$w_i = \min(1, (e_i/E^*)^\gamma)$; the pre-registered default $E^*=8,\gamma=2$ gives a median
+benign flow weight $(1/8)^2 = 0.016$ — full influence costs roughly an order of magnitude more
+effort than a typical legitimate flow.
+
+Table~\ref{tab:d1-grid} is the full pre-registered sensitivity grid (Section~\ref{sec:defenses}
+reports only the pass/fail count and the extremes). XGBoost, ratio 0.5, jitter 0 (raw fidelity,
+undefended damage $+0.563$). Bold cells are inside $2\sigma_{\text{control}}$ ($0.012$), the
+pre-registered "not sensitive" band.
+
+\begin{table}[t]
+  \centering
+  \caption{D1 FPR-rise sensitivity grid, XGBoost, ratio 0.5, raw fidelity. Bold: inside
+  $2\sigma_{\text{control}}$.}
+  \label{tab:d1-grid}
+  \small
+  \begin{tabular}{lrrrrr}
+    \toprule
+    $\gamma \backslash E^*$ & 2 & 4 & 8 & 16 & 32 \\
+    \midrule
+    1 & +0.340 & +0.081 & +0.053 & +0.030 & +0.015 \\
+    2 & +0.084 & +0.060 & +0.040 & +0.025 & \textbf{+0.005} \\
+    3 & +0.076 & +0.059 & +0.036 & +0.020 & \textbf{+0.003} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Only 2 of the 12 configurations in the pre-registered region ($E^*\ge4,\gamma\ge1$) clear the
+band, both at $E^*=32$; damage is monotone in both parameters, and even the weakest
+configuration in the region ($E^*=4,\gamma=1$) still removes 86\% of the undefended damage —
+D1 is insensitive in \emph{direction} and sensitive in \emph{magnitude}. A component ablation at
+the default $(E^*=8,\gamma=2)$ shows the equal-weight geometric mean is not the best available
+choice on this data: packets-only leaves a residual of $+0.011$ (inside the band), depth-only
+$+0.015$, bytes-only $+0.049$, duration-only $+0.066$, all four combined $+0.040$ — heavy-tailed
+benign flows with large byte counts or duration reach full weight under the combined effort more
+easily than packet count or protocol depth would let them. This is reported as a property of the
+data, not acted on: the pre-registered default is not re-tuned after seeing it.
 
 \subsection{XGBoost per-seed trajectories}
 % Source: DECISIONS.md s25.6. Full 8-round, both-model per-seed table; Section 6 summarizes
@@ -133,8 +175,38 @@ XGBoost number elsewhere in this paper should be read with that in mind.
   \end{tabular}
 \end{table}
 
-\subsection{Cost padding}
-% TODO. Source: DECISIONS.md s21.6.
+\subsection{Cost padding: the adversary's counter-move that does not work}
+% Source: DECISIONS.md s21.6.
+Section~\ref{sec:defenses} states that an attacker forced to keep copy-level fidelity cannot pad
+individual flows to buy D1 weight, because padding moves a flow away from that fidelity.
+Table~\ref{tab:padding} is the measurement this rests on: \texttt{cost\_padding}$=m$ scales
+duration, packets and bytes before jitter is applied, XGBoost, ratio 0.5.
+
+\begin{table}[t]
+  \centering
+  \caption{Padding vs.\ D1: realized fidelity, weight, and FPR rise, XGBoost, ratio 0.5.}
+  \label{tab:padding}
+  \small
+  \begin{tabular}{lrrrr}
+    \toprule
+    $m$ & Realized NN & Undefended: weight / $\Delta$FPR & D1: weight / $\Delta$FPR & Attacker bytes \\
+    \midrule
+    1  & 0.011 & 1.00 / $+0.563\pm0.457$ & 0.23 / $+0.040\pm0.043$ & $3.2\times10^8$ \\
+    2  & 0.135 & 1.00 / $+0.021\pm0.020$ & 0.31 / $+0.007\pm0.004$ & $6.4\times10^8$ \\
+    8  & 0.331 & 1.00 / $-0.003$          & 0.48 / $-0.001$          & $2.6\times10^9$ \\
+    32 & 0.532 & 1.00 / $-0.005$          & 0.90 / $-0.004$          & $1.0\times10^{10}$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Padding does raise D1's mean weight (0.23 to 0.90 from $m=1$ to $m=32$), but it moves the
+poison's realized distance from 0.011 to 0.53 — well past where A1's damage lives at all
+(Section~\ref{sec:attack}) — and the damage is gone regardless of defense. Critically, the
+padded attack \emph{also fails against the undefended loop} ($\Delta$FPR already down to
+$+0.021$ at $m=2$): padding is not evidence for D1's protection, because the fidelity break does
+that on its own, with or without a defense installed. The attacker's effective counter-move to
+D1 is volume, not padding (Section~\ref{sec:defenses}: 4--36$\times$ more copy-level flows).
+Padding only demonstrates that the cheaper evasion is not available.
 
 \subsection{Additional limitations}
 % Source: DECISIONS.md s14 erratum (file-order split), s25.5 (cap is model/dataset-specific),
