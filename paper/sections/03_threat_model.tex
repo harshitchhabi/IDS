@@ -45,9 +45,18 @@ cannot occur naturally on CICIDS2017, where every family runs on a single day
 (Section~\ref{sec:methodology}).
 
 % DECISIONS.md s18 "Realized fidelity, not the knob": the capability axis is a measured
-% distance, not an assumed one.
+% distance, not an assumed one. s26.2/26.3: median cannot resolve the FPR cliff; twin fraction,
+% a tail statistic, does.
 \textbf{Capability axis.} A1's only free parameter is how closely the attacker's traffic
 resembles genuine production benign traffic. We do not assume this from a generation setting;
 we measure it directly as the realized nearest-neighbour distance from the injected poison to
 trusted benign traffic (Section~\ref{sec:methodology}), and report damage as a function of that
-measured distance rather than of the knob that produced it.
+measured distance rather than of the knob that produced it. The median of this distance turns
+out to be too coarse a summary: it changes by about 1\% across the exact step where the FPR
+channel's damage collapses from catastrophic to noise-floor (Section~\ref{sec:attack}). We
+additionally report \emph{twin fraction} — the share of a poison batch whose nearest trusted-
+benign neighbour sits within a fixed RMS delta (0.0015, chosen from where the distribution's
+lower tail moves between the jitter steps that separate damaging from non-damaging poison,
+Section~\ref{sec:attack}) — which does track the collapse and is the primary axis for the FPR
+figure; median distance is kept as a secondary statistic since it still separates points once
+twin fraction has gone uniformly to zero.

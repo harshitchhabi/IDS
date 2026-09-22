@@ -1932,3 +1932,66 @@ is not a well-defined quantity from this data** -- damage disappears within a ji
 median barely moves, so "the cliff sits at realized 0.011-0.014" (s17, s26) should be read as
 "the cliff sits within the resolution of the median statistic," not as two comparable points on
 a continuous curve.
+
+### 26.3 Twin fraction: a tail statistic that resolves the cliff, and the exact-duplicate count
+
+s26.2 showed the median realized distance cannot resolve where the FPR cliff sits -- it moves by
+about 1% across the exact jitter range (0 to 0.002) where the damage collapses. This defines and
+measures a tail statistic that can, and answers the follow-up question of whether the near-jitter
+damage is driven by literal exact duplicates of production benign traffic or by close-but-not-
+identical near-twins.
+
+**Twin fraction** is the share of a poison batch's rows whose nearest trusted_eval benign
+neighbour (in normalized feature space, same RMS metric as the existing `FidelityMeter` guard-(c)
+check) is within `delta` of that neighbour. `delta = 0.0015` is the midpoint of jitter 0's p5
+(0.00093, s26.2) and jitter 0.002's p5 (0.00206, s26.2) -- the boundary of the regime change s26.2
+located, chosen from the data rather than an arbitrary round number. Computed once by
+`experiments/phase0_twin_fraction.py` over the full CICIDS honeypot pool (n=344,221 rows) at each
+jitter in the damage-vs-distance grid, committed to
+`results/phase0/cicids/twin_fraction_by_jitter.csv`:
+
+| jitter | median | p5 | twin fraction |
+|---:|---:|---:|---:|
+| 0.000 | 0.01068 | 0.00093 | **0.1053** |
+| 0.002 | 0.01083 | 0.00205 | 0.00345 |
+| 0.005 | 0.01159 | 0.00433 | 0.0 |
+| 0.010 | 0.01409 | 0.00798 | 0.0 |
+| 0.030 | 0.03099 | 0.02156 | 0.0 |
+| 0.100 | 0.09028 | 0.06554 | 0.0 |
+| 0.300 | 0.25368 | 0.18564 | 0.0 |
+| 0.700 | 0.55832 | 0.41116 | 0.0 |
+| 1.500 | 1.05490 | 0.77098 | 0.0 |
+
+**Twin fraction is a near-step function, and it lines up with where the FPR damage disappears.**
+At jitter 0 (raw copies of pool benign rows, no perturbation), 10.5% of the poison batch has a
+trusted-eval benign row within 0.0015 RMS distance -- these rows sit inside the tolerance a
+fixed-threshold detector cannot distinguish from a real user. By jitter 0.002 that has fallen to
+0.35%, and by jitter 0.005 it is exactly zero for the rest of the grid tested. This is the same
+collapse s26.2 located by the FPR numbers (RF ratio 0.2: delta_fpr +0.337 at jitter 0, +0.003 at
+jitter 0.002) but now stated as a property of the poison batch itself, independent of any
+downstream retraining run. Median distance cannot see this at all (0.0107 to 0.0108 across the
+same two jitters); twin fraction moves by 30x.
+
+**Exact-duplicate count: zero.** `assert_disjoint_from_eval` (already run at partition-build time
+to guarantee `trusted_eval` is untouched by the loop) was re-run here on the loop's own
+`pool_benign`/`trusted_eval` arrays and confirms no row in the honeypot pool is a float32
+content-identical duplicate of any trusted_eval benign row, at any jitter including 0. **The
+jitter-0 damage is therefore driven by near-duplicates within 0.0015 RMS distance, not literal
+copies.** This distinction matters for how the mechanism is described: the attacker does not need
+to replay byte-identical captured flows (which would require having recorded a real user's
+session); replaying pool-derived benign feature vectors with no added jitter already lands 10.5%
+of the batch inside the twin-fraction tolerance, because CICIDS2017's benign traffic is itself
+highly self-similar (s5, s16) -- many benign flows are near-duplicates of each other before any
+adversary touches the data. The channel needs the attacker to reproduce production-like benign
+*feature statistics* at high fidelity, not to exfiltrate specific victims' traffic; CICIDS makes
+that easy only because its benign class already sits in a narrow, repetitive region of feature
+space, which is a property of this dataset's generation process, not a general property of
+production network traffic. Whether real production benign traffic is similarly self-similar
+(and thus similarly exploitable) is untested and stated as a limitation, not assumed.
+
+**Consequence for the paper's capability axis and F3.** Median realized distance is dropped as
+the load-bearing x-axis for the fidelity/damage relationship; twin fraction (delta=0.0015,
+defined above) replaces it as the primary capability-axis statistic in Section 3 and the primary
+x-axis of Figure 3. Median distance is kept as a secondary/appendix figure, since it is still the
+right statistic for the far end of the grid where twin fraction is uniformly zero and cannot
+distinguish jitter 0.03 from jitter 1.5.
