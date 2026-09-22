@@ -68,9 +68,24 @@ seed\_train and honeypot\_pool, the literature's regime), \texttt{seed\_only} (A
 arm), \texttt{honeypot\_only} (the loop's most interesting arm: a family the detector saw only
 via the decoy), and \texttt{novel} (in neither).
 
+% DECISIONS.md s24(b) + synthetic.py docstring: the generator emits raw-CICIDS-shaped data
+% with well-separated class geometry (so a clean S0 loop can demonstrably improve) and injects
+% the same corruption classes the real CSVs carry (NaN/Inf rates, negative durations, duplicate
+% rows) so the cleaning pipeline is exercised end to end. It has no model of attacker effort or
+% cost -- every synthetic flow's duration/packets/bytes come from the same class-conditional
+% distribution regardless of scenario, which is why Section~\ref{sec:defenses}'s cost-based
+% defense cannot separate benign from attack rows on this dataset.
+The synthetic generator emits data in the same shape as the real CSVs, with well-separated
+class geometry so a clean loop can demonstrably improve, and injects the same corruption
+classes (non-finite rates, negative durations, duplicate rows) so the cleaning pipeline is
+exercised the same way on both datasets. It has no model of attacker cost: a flow's duration,
+packet count and byte count are drawn from the same class-conditional distribution regardless
+of which scenario produced it.
+
 \begin{table}[t]
   \centering
-  \caption{Partition sizes (rows). Attack rows have no \texttt{prod\_benign} share.}
+  \caption{Partition sizes (rows), near-duplicate grid 0.005. Attack rows have no
+  \texttt{prod\_benign} share.}
   % Source: results/phase0/cicids/partition_summary.csv, results/phase0/partition_summary.csv
   \label{tab:partitions}
   \small
@@ -89,19 +104,32 @@ via the decoy), and \texttt{novel} (in neither).
 
 \subsection{Leakage guards}
 % DECISIONS.md s2: three guards on within_day_temporal -- (a) global near-duplicate removal
-% (two half-offset grid snaps), (b) a temporal guard band around internal cut times, (c)
-% nearest-neighbour distance from every trusted_eval row to its nearest honeypot_pool row of
-% the same class, gating a leak_warning at a 0.25 threshold on the ATTACK class only (near-zero
-% benign NN distance is normal for real traffic, not evidence of memorization).
+% (two half-offset grid snaps, grid 0.005 -- s11, s15), (b) a temporal guard band around
+% internal cut times, (c) nearest-neighbour distance from every trusted_eval row to its
+% nearest honeypot_pool row of the same class, reported as a percentile distribution for BOTH
+% classes but gating leak_warning on the ATTACK class only.
 Three guards run on every partition build. (a) Near-duplicate rows are removed globally, before
-splitting, at a swept grid resolution (Appendix~\ref{sec:appendix}). (b) Rows within a buffer of
-an internal cut are dropped. (c) For every \texttt{trusted\_eval} row, the nearest-neighbour
-distance in normalized feature space to its nearest \texttt{honeypot\_pool} row of the same
-class is computed; the attack class alone gates a \texttt{leak\_warning} at 0.25, since two
-different benign flows can legitimately have identical flow statistics. Burst-level splitting
+splitting, at grid resolution 0.005 (swept in Appendix~\ref{sec:appendix}). (b) Rows within a
+buffer of an internal cut are dropped. (c) For every \texttt{trusted\_eval} row, the
+nearest-neighbour distance in normalized feature space to its nearest \texttt{honeypot\_pool}
+row of the same class is computed and reported for both classes. Burst-level splitting
 (assigning whole contiguous episodes, not individual rows, to one partition) was tried as a
-stronger guard and is reported in Appendix~\ref{sec:appendix}; it does not change the result in
-Section~\ref{sec:degeneracy}.
+stronger version of (b) and is reported in Appendix~\ref{sec:appendix}; it does not change the
+result in Section~\ref{sec:degeneracy}.
+% DECISIONS.md s2, s15: leak_warning is gated on the attack class only, because guard (c)'s
+% job there is to catch S0 passing by memorization -- and two different benign HTTP requests
+% can legitimately have identical flow statistics, so near-zero benign NN distance is not by
+% itself evidence of anything. That does NOT mean benign closeness is dismissed: it is measured
+% by the same guard, on the same scale, and Section 5 reports it and treats it as degeneracy,
+% because it bears directly on A1 (whose poison and whose damage are both benign-side) and on
+% threshold calibration below.
+\texttt{leak\_warning} is gated on the attack class alone, because guard (c)'s purpose here is
+to catch \texttt{S0} passing its checkpoint by memorization rather than learning, and two
+different benign flows can legitimately carry identical flow statistics — near-zero benign NN
+distance is not by itself evidence of a leak. That gate does not settle the benign side: guard
+(c) measures it on the same scale, and Section~\ref{sec:degeneracy} reports and uses that
+measurement, because it bears directly on A1 (whose poison and whose measured damage are both
+benign-side) and on the calibration fix below.
 
 \subsection{Threshold policy}
 % DECISIONS.md s5: calibrate to a target FPR (0.01) on a benign-stratified validation split
@@ -146,3 +174,56 @@ A1's mechanism with three matched null controls, each removing exactly one candi
 \texttt{s0j} (attack rows carrying A1's jitter, stamped malicious — same volume and class-prior
 shift, no label conflict), and \texttt{junk} (marginal-shuffled bulk, stamped malicious — volume
 with no structure at all).
+
+\subsection{Models, grids and metrics}
+% DECISIONS.md s24 "Grid": RF and XGBoost hyperparameters (FAST_HYPERPARAMS in
+% src/dloop/loop/rounds.py); 20 rounds, 5 seeds throughout.
+Two models are trained per round: a random forest (25 trees, max depth 16) and XGBoost (60
+trees), both at library defaults otherwise. Every result in this paper is 20 rounds, 5 seeds,
+unless stated otherwise.
+% src/dloop/loop/data.py LoopDataConfig defaults: seed_train_rows=30000,
+% eval_benign_rows=40000, eval_attack_cap_per_family=4000 -- the fixed subsample the loop runs
+% on each round (cheap enough to retrain from scratch every round, thousands of times over a
+% sweep), drawn once per dataset and shared by every arm/seed/round so seed-to-seed variance
+% reflects model and adversary randomness, not a changing evaluation set.
+Each round retrains on a fixed subsample of the partitions in Table~\ref{tab:partitions}: up to
+30{,}000 \texttt{seed\_train} rows, evaluated against up to 40{,}000 trusted benign rows and up
+to 4{,}000 \texttt{trusted\_eval} rows per attack family, drawn once per dataset (not per seed)
+so between-seed variance reflects model and adversary randomness rather than a moving
+evaluation target.
+% DECISIONS.md s4: A1 poison ratio grid is log-spaced, 0/0.005/0.01/0.02/0.05/0.1/0.2/0.5,
+% because if A1 does real damage it shows at the low end and that is where resolution matters.
+% Section 6's damage-vs-distance sweep uses ratios {0.05,0.1,0.2,0.5} and jitters
+% {0,0.01,0.03,0.1,0.3,0.7,1.5}; s18: jitter is roughly log-spaced in REALIZED distance, and
+% realized distance (not the jitter knob) is the reported x-axis.
+The A1 poison-ratio grid is log-spaced (finer at the low end, where damage first appears if it
+appears at all): $\{0, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5\}$ generally; the
+damage-versus-distance sweep in Section~\ref{sec:attack} uses ratios
+$\{0.05, 0.1, 0.2, 0.5\}$ and jitter $\{0, 0.01, 0.03, 0.1, 0.3, 0.7, 1.5\}$, roughly log-spaced
+in \emph{realized} distance.
+% DECISIONS.md s18 "Realized fidelity, not the knob": A1's x-axis is the median NN distance
+% from the injected poison to the FULL trusted_eval benign set (guard-(c) metric, normalized
+% space, per-feature RMS), computed per batch/round from the whole realized-distance
+% distribution (p0-p100 recorded, median used for the x-axis); asserted disjoint from
+% trusted_eval by row content.
+The jitter knob is a generation parameter, not what is reported: every A1 plot's x-axis is the
+\emph{realized} mimicry distance — the median nearest-neighbour distance (guard-(c) metric,
+per-feature RMS, normalized space) from the injected poison rows to the full trusted benign
+set, measured directly, not assumed from the jitter setting.
+% DECISIONS.md s24 "Axes": R = 1 - mean(dFPR_defended)/mean(dFPR_undefended), A1 raw fidelity
+% (jitter 0), ratio 0.5, fixed threshold. U = mean(gain_defended)/mean(gain_undefended), S0 on
+% synthetic, honeypot_only TPR gain over control, ratios 0.05 and 0.2, fixed threshold.
+Section~\ref{sec:defenses} reports two summary quantities against these arms. \emph{Recovery},
+$R = 1 - \overline{\Delta\text{FPR}}_{\text{defended}} / \overline{\Delta\text{FPR}}_{\text{undefended}}$,
+is measured on A1 at raw benign fidelity (jitter 0), poison ratio 0.5, fixed threshold — the
+setting where undefended damage is largest. \emph{Retention},
+$U = \overline{\text{gain}}_{\text{defended}} / \overline{\text{gain}}_{\text{undefended}}$, is
+the honest loop's own \texttt{honeypot\_only} TPR gain over control on S0 (synthetic, ratios
+0.05 and 0.2, fixed threshold), defended over undefended: how much of the honest loop's benefit
+a defense leaves intact.
+% DECISIONS.md s8: paired same-seed deltas at the final round; every table/figure delta in this
+% paper is arm_metric[seed] - control_metric[seed], same seed, same round, then mean/sd over
+% the 5 seeds and a paired t = mean / (sd / sqrt(5)).
+Every reported delta is paired by seed: for each of the 5 seeds, an arm's final-round metric
+minus the control's final-round metric at that same seed, then the mean, standard deviation and
+paired $t = \bar{d} / (s_d/\sqrt{5})$ over the 5 differences.

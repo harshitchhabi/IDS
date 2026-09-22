@@ -1,15 +1,140 @@
 \section{Defenses}
 \label{sec:defenses}
-% Budget: 1.25 pages. Source: DECISIONS.md s20, s21.5, s23, s24.1, s25.3, s25.5.
-% - Policy-consistency blind spot: loss filtering recovers ~0% (s23).
-% - D1 as pre-registered; missed its own sensitivity criterion (s20, s21.5).
-% - Frontier vs kNN and no-skill baselines; uniform fails at ratio 0.9 (s24.1).
-% - ShareCap: undominated in all 87 comparisons; cap curve (s25.3, s25.5).
-% - Overhead: D1 ~781x cheaper than kNN; ShareCap near zero.
-% - Counter-moves: padding (s21.6), volume (s21.4).
 % Writing rule (docs/PAPER_PLAN.md): never say D1 is effective, or that ShareCap "beats"
 % others (it is undominated, not shown superior in every comparison).
-% TODO: prose.
+
+\subsection{The policy-consistency blind spot}
+% DECISIONS.md s21.1, s23: loss-based filtering (out-of-fold XGBoost, 3-fold, honeypot rows
+% with p(stamped label) < 0.1 get weight 0) fails wherever there is damage -- its zero-weight
+% fraction falls as poison density rises (60% dropped at 5% poison, 33% at 10%, 1.5% at 20%,
+% 0% at 50%), because a dense block of identically-stamped rows teaches the auxiliary model
+% its own label, so out-of-fold loss stops flagging it. This is NOT because the poison is
+% "correctly labelled": it is wrong against ground truth (benign rows stamped malicious) but
+% consistent with the defender's own labelling policy, and dense enough to be self-consistent.
+A generic defense that checks a honeypot label's consistency against the loop's own data fails
+here, and not because the label is correct. A1's poison is wrong against ground truth — benign
+rows stamped malicious — but it is \emph{consistent with the defender's own labelling policy},
+and once there is enough of it, that consistency is self-reinforcing: a model fit on the loop's
+data learns the stamped label as its own. Loss-based filtering (an auxiliary model's out-of-fold
+probability of the stamped label, dropping rows it scores low) demonstrates exactly this
+failure mode: it drops 60\% of poison at 5\% ratio, 33\% at 10\%, 1.5\% at 20\%, and 0\% at 50\%
+— it weakens precisely as the poison becomes dense enough to matter, and recovers essentially
+none of the damage anywhere damage exists (Table~\ref{tab:loss-filter}). It is not that the
+poison is correctly labelled; it is that a filter trained on the loop's own labels cannot see
+past a label the loop itself supplied consistently.
+% DECISIONS.md s21.1: kNN sanitization (k=10 against the TRUSTED seed set, drop if fewer than
+% half neighbours agree with the stamped label) does NOT fail, because it anchors outside the
+% loop -- to seed_train's ground-truth labels, not the loop's own poisoned data. It drops 98.5%
+% of A1 poison. This falsifies the blanket claim "generic defenses fail because poison is
+% policy-consistent" -- the failure is specific to defenses that learn from the poisoned data.
+kNN sanitization, anchored instead to the trusted \texttt{seed\_train} labels rather than to
+the loop's own data, does not fail this way: it drops 98.5\% of A1's poison, because it can see
+that the poison sits among \emph{benign} seed neighbours despite carrying a malicious stamp.
+The blanket claim "generic defenses fail because the poison is policy-consistent" is therefore
+false — the failure is specific to defenses that learn from the data the loop itself produced,
+not to label-consistency checking in general.
+
+\begin{table}[t]
+  \centering
+  \caption{Loss-filter recovery of A1 damage by poison ratio (fixed threshold, CICIDS). No
+  recovery is reported at 5\%: there is no undefended damage there to recover.}
+  % Source: DECISIONS.md s21.1, s23 tables (results/phase0/defense/).
+  \label{tab:loss-filter}
+  \small
+  \begin{tabular}{lrrr}
+    \toprule
+    Poison ratio & RF recovery & XGBoost recovery & Share of poison dropped \\
+    \midrule
+    0.05 & (no damage) & (no damage) & 60\% \\
+    0.10 & $-$10\%     & 18\%        & 33\% \\
+    0.20 & 2\%          & $-$1\%      & 1.5\% \\
+    0.50 & 0\%          & 0\%         & 0\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{D1: cost-of-influence weighting}
+% DECISIONS.md s20: D1 weights a honeypot row's sample_weight by attacker effort,
+% w = min(1, (e/E*)^gamma), e = geometric-mean of (1 + cost_k / median_benign_cost_k) - 1
+% over (duration, packets, bytes, protocol-state depth). Pre-registered default E*=8, gamma=2,
+% fixed before any D1 result or implementation.
+D1 prices a honeypot row's influence on the retrained model by what it cost the attacker to
+produce. Each row's \emph{effort} is a geometric mean, over duration, packet count, byte count
+and protocol-state depth, of that row's cost relative to a median trusted benign flow's cost in
+the same component; its \texttt{sample\_weight} saturates to 1 once effort clears a threshold
+$E^*$ and is 0 for a free interaction. $E^*=8,\gamma=2$ — full influence costs roughly an order
+of magnitude more than a typical legitimate flow — was fixed, in DECISIONS.md, before D1 was
+implemented or any defended run existed.
+% DECISIONS.md s20 "Sensitivity protocol (pre-registered)": "not sensitive" iff A1 FPR damage
+% stays within 2 sigma_control over the region E*>=4, gamma>=1. s21.5: met in 2 of 12
+% configurations (E*=32, g in {2,3}); damage is monotone in both parameters; every
+% configuration in the region still recovers >=86% of undefended damage, but the residual at
+% 50% poison scales with E* and gamma and is not negligible. Criterion recorded as failed, not
+% revised after the fact (DECISIONS.md s25.1(3)).
+D1 was pre-registered to be judged against its own stated criterion: "not sensitive" if A1's
+FPR damage stays within $2\sigma$ of the control's noise floor across $E^*\ge4,\gamma\ge1$.
+\textbf{That criterion was not met.} Only 2 of the 12 configurations in that region satisfy it
+(both at $E^*=32$); damage is monotone in both parameters, and while every configuration still
+removes at least 86\% of the undefended damage, the residual at 50\% poison scales with $E^*$
+and $\gamma$ rather than vanishing. This is reported as a failed pre-registered test, and the
+criterion is not revised after seeing the result.
+
+\subsection{The frontier, and the right no-skill baseline}
+% DECISIONS.md s24.1: XGBoost, 5 seeds, tau=0.1. Recovery = A1 raw fidelity, ratio 0.5 (0.9
+% where run), fixed threshold. Retention = share of undefended S0 honeypot_only gain kept,
+% synthetic (0.05/0.2) and CICIDS (0.2). Finding 1: no D1 setting dominates kNN. Finding 3:
+% fixed-weight uniform down-weighting matches kNN at ratio 0.5 (recovery 98.9-99.8%, better
+% retention) but collapses at ratio 0.9 (43-52% vs kNN/D1q's 99%) -- it caps effective share
+% below the damage onset only while the nominal ratio is itself below that cap's regime.
+Recovery ($R$) and retention ($U$, Section~\ref{sec:methodology}) place every defense on one
+frontier (Figure~\ref{fig:f6-frontier}). No setting of pre-registered D1 dominates kNN
+sanitization on this grid; the pre-registered point itself is the worst tested on synthetic
+retention. A defense using no cost information at all — a fixed weight on every honeypot row —
+is a real comparator here, not a strawman: at poison ratio 0.5 it matches kNN's recovery
+(98.9--99.8\%) while keeping more of the honest loop's gain. It stops working once the poison
+ratio itself rises: at ratio 0.9 fixed uniform weighting recovers only 43--52\%, where kNN and
+the best D1q setting both recover \textasciitilde99\%. A defense that must work at a poison
+ratio the defender does not control cannot be a single fixed weight; it has to respond to how
+much of the training set the honeypot actually is.
+% DECISIONS.md s25.2-25.3, s25.5: ShareCap caps the honeypot's EFFECTIVE share of the training
+% set at c (recomputed every retrain), rather than every row's weight. It is undominated by
+% every D1 variant, kNN and fixed uniform weight in all 87 (setting, retention-axis)
+% comparisons, and protects at both ratios where fixed uniform weighting does not -- because it
+% responds to the actual poison share rather than assuming one. The full cap curve (Figure 6,
+% bottom row / s25.5) shows this protection holds through c<=0.10 and degrades between 0.10 and
+% 0.20 for this model and dataset; there is no cap that is simultaneously maximally protective
+% and maximally retentive.
+\textbf{ShareCap} — cap the honeypot's \emph{effective} share of the training set at $c$,
+recomputed every retrain, rather than fix every row's weight — responds to exactly the quantity
+fixed uniform weighting cannot see. It is \textbf{undominated} by every D1 variant, kNN and
+fixed uniform weighting across all 87 (setting, retention-axis) comparisons tested, and it
+protects at both poison ratios tested, where fixed uniform weighting does not
+(Figure~\ref{fig:f6-frontier}, bottom row). This is not a claim that ShareCap beats every other
+defense in every comparison — undominated means no alternative is at least as good on both
+recovery and retention, not that ShareCap is strictly better on each axis individually. The cap
+itself is a tuning knob: the full cap-sensitivity curve holds through roughly $c\le0.10$ for
+this model and dataset and degrades between $c=0.10$ and $c=0.20$; there is no cap that is
+simultaneously maximally protective and maximally retentive, and the safe range is
+model-and-dataset-dependent, not a universal constant.
+% DECISIONS.md s21.3, s25.1: D1 overhead 0.000216 s/round vs kNN 0.168 s/round at ratio 0.5,
+% 781x (95% bootstrap 735-837x); ShareCap has no cost model and no auxiliary computation, so
+% its per-round cost is dominated by the same weight recomputation D1 already does.
+D1's measured overhead advantage stands regardless of the dominance result: 0.000216 s per
+round against kNN's 0.168 s at ratio 0.5, a 781$\times$ ratio (95\% bootstrap 735--837$\times$).
+ShareCap's overhead is of the same order as D1's — a weight recomputation, no auxiliary model,
+no per-row distance query — and needs no cost model, no trusted reference beyond the cap value
+itself, and no knowledge of the poison ratio.
+% DECISIONS.md s21.4, s21.6: attacker cost to reach the same damage target under D1 rises
+% 4x-36x in flows (bracketed by the ratio grid). Padding (scaling duration/packets/bytes) raises
+% D1's weight on poison but moves it off copy fidelity, where A1's damage already lives -- so
+% padding fails against the UNDEFENDED loop too, and is not itself evidence for D1: the
+% fidelity break does that on its own. The attacker's real counter-move is volume, not padding.
+Against D1 specifically, an attacker forced to keep copy-level fidelity (where A1's damage
+lives, Section~\ref{sec:attack}) cannot pad individual flows to buy weight, because padding
+moves a flow away from the copy-level fidelity the damage depends on — a padded attack fails
+against the \emph{undefended} loop too, so padding is not itself evidence for D1's protection.
+The available counter-move is volume: reaching the same damage under D1 costs 4--36$\times$
+more flows, bracketed by the ratio grid tested (Appendix~\ref{sec:appendix}).
 
 \begin{figure*}[t]
   \centering
@@ -33,28 +158,30 @@
   \label{fig:f6-frontier}
 \end{figure*}
 
-\begin{table}[t]
-  \centering
-  \caption{TODO: loss-filter recovery by ratio. Source: DECISIONS.md s23.}
-  \label{tab:loss-filter}
-  \begin{tabular}{lrr}
-    \toprule
-    Poison ratio & Recovery & Notes \\
-    \midrule
-    TODO & TODO & TODO \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
 \begin{table*}[t]
   \centering
-  \caption{TODO: defense comparison. Source: DECISIONS.md s24.1, s25.3.}
+  \caption{Defense comparison, XGBoost, 5 seeds, tau=0.1 calibration. Retention (synthetic) is
+  reported at ratio 0.05 / 0.2; retention (CICIDS) at ratio 0.2. ShareCap's overhead is of the
+  same order as D1's (a weight recomputation, no auxiliary model); not separately profiled.}
+  % Source: results/phase0/frontier/frontier_points.csv (recovery_r0.5, recovery_r0.9,
+  % retention_synthetic/cicids columns -- DECISIONS.md s24.1 table) + s21.3/s25.1 overhead
+  % (D1 0.000216 s/round, kNN 0.168 s/round at ratio 0.5, loss filter 53% of fit time).
+  % ShareCap c=0.05 row: DECISIONS.md s25.3 (recomputed fresh from raw job CSVs in
+  % experiments/paper_figures.py:_sharecap_curve, not from frontier_points.csv's cap subset).
   \label{tab:defense-comparison}
+  \small
   \begin{tabular}{lrrrrr}
     \toprule
-    Defense & Recovery r0.5 & Recovery r0.9 & Retention CICIDS & Retention synthetic & Overhead / round \\
+    Defense & Recovery r0.5 & Recovery r0.9 & Retention CICIDS 0.2 & Retention synthetic 0.05 / 0.2 & Overhead / round \\
     \midrule
-    TODO & TODO & TODO & TODO & TODO & TODO \\
+    Loss filter                        & $-$0.5\% & n/a   & 98\% & 100\% / 100\% & 0.68\,s (53\% of fit) \\
+    Uniform $w=0.05$ (no skill)        & 99.8\%   & 52\%  & 71\% & 71\% / 96\%   & negligible \\
+    Uniform $w=0.1$ (no skill)         & 98.9\%   & 43\%  & 74\% & 91\% / 98\%   & negligible \\
+    kNN sanitize                       & 98.9\%   & 99.1\% & 66\% & 42\% / 78\%  & 0.168\,s \\
+    D1 (pre-registered)                & 92.9\%   & 86.3\% & 66\% & 10\% / 58\%   & 0.000216\,s \\
+    D1q ($q{=}0.99,\gamma{=}2$)        & 100\%    & 98.7\% & 65\% & 67\% / 94\%   & 0.000216\,s \\
+    D1fixed (no trusted data)          & 94.2\%   & n/a    & 65\% & 56\% / 93\%   & 0.000216\,s \\
+    ShareCap ($c=0.05$)                & 99.9\%   & 100.0\% & 81\% & 100\% / 99\%  & $\sim$D1 \\
     \bottomrule
   \end{tabular}
 \end{table*}

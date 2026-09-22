@@ -321,11 +321,11 @@ def _f6_panel(ax, tab, sc, ycol: str, xcol: str, zoom: dict | None = None) -> No
             pre = s.defense == "d1_E8_g2"
             a.scatter(xscale * s.loc[~pre, xcol], yscale * s.loc[~pre, ycol], s=16 * marker_scale,
                      color=_F6_COL.get(fam, "#333333"), marker={"kNN sanitize": "D"}.get(fam, "o"),
-                     edgecolor="white", linewidth=0.4, label=fam, zorder=3)
+                     edgecolor="white", linewidth=0.4, label=fam, zorder=4)
             if pre.any():
                 p = s[pre]
                 a.scatter(xscale * p[xcol], yscale * p[ycol], s=95 * marker_scale, facecolor="none",
-                         edgecolor="black", linewidth=1.2, marker="o", zorder=4)
+                         edgecolor="black", linewidth=1.2, marker="o", zorder=5)
         u = tab[tab.family == "uniform"].dropna(subset=[xcol, ycol]).sort_values(xcol) if xcol in tab else tab.iloc[0:0]
         if len(u) > 1:
             a.plot(xscale * u[xcol], yscale * u[ycol], color=_F6_COL["uniform"], lw=1.0, ls=":", zorder=2)
@@ -335,12 +335,14 @@ def _f6_panel(ax, tab, sc, ycol: str, xcol: str, zoom: dict | None = None) -> No
             a.scatter(xscale * s6[xcol], yscale * s6[ycol], s=18 * marker_scale, color=_F6_COL["ShareCap"],
                      marker="s", edgecolor="white", linewidth=0.4, label="ShareCap (cap curve)", zorder=3)
             if annotate:
+                offsets = [(4, -10), (4, 3), (4, 16)]
                 for i, cap in enumerate(_F6_CAPS_TO_LABEL):
                     row = s6[np.isclose(s6.cap, cap)]
                     if len(row):
+                        dx, dy = offsets[i % len(offsets)]
                         a.annotate(f"c={cap:g}", (xscale * row[xcol].iloc[0], yscale * row[ycol].iloc[0]),
-                                  fontsize=5, color=_F6_COL["ShareCap"], xytext=(3, -7 + 9 * i),
-                                  textcoords="offset points", ha="left", va="center")
+                                  fontsize=5, color=_F6_COL["ShareCap"], xytext=(dx, dy),
+                                  textcoords="offset points", ha="left" if dx >= 0 else "right", va="center")
 
     # Cap labels go in whichever view (the main panel, or the zoomed inset) has room for them.
     draw(ax, xscale=100, yscale=100, annotate=zoom is None)
@@ -366,7 +368,7 @@ def fig_f6() -> None:
 
     # (retention axis label, x column, inset zoom into the crowded top-right corner or None)
     panels = [("CICIDS r0.2", "retention_cicids r0.2",
-              {"pos": [0.42, 0.06, 0.55, 0.5], "xlim": (55, 102), "ylim": (78, 103)}),
+              {"pos": [0.03, 0.42, 0.5, 0.55], "xlim": (55, 102), "ylim": (78, 103)}),
              ("synthetic r0.05", "retention_synthetic r0.05",
               {"pos": [0.06, 0.06, 0.55, 0.5], "xlim": (85, 102), "ylim": (82, 103)}),
              ("synthetic r0.2", "retention_synthetic r0.2",
