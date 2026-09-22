@@ -1847,3 +1847,42 @@ settings, t up to +7.4): whatever is happening there is not an attack effect, an
 repeat at ratio 0.5 (same jitters: |t| < 2, mixed sign). Reading XGBoost's row as "noise" is
 imprecise; the honest statement is "no channel in the damaging direction, though the model's
 TPR is not perfectly stable under poisoning either" -- s6 is corrected to say this.
+
+### 26.2 Locating the cliff finer: the median x-axis cannot resolve it; p5 can
+
+Optional follow-up to s26: two finer jitter settings (0.002, 0.005), ratios 0.2 and 0.5, RF and
+XGBoost, fixed threshold, to place the cliff's location more precisely between realized 0.011
+(raw) and 0.014 (jitter 0.01). It does not sit in between.
+
+| model | ratio | jitter | realized median | realized p5 | delta_fpr |
+|---|---:|---:|---:|---:|---:|
+| rf | 0.2 | 0.000 | 0.0111 | 0.0010 | +0.337 |
+| rf | 0.2 | 0.002 | 0.0112 | 0.0021 | +0.003 |
+| rf | 0.2 | 0.005 | 0.0119 | -- | +0.003 |
+| rf | 0.2 | 0.010 | 0.0144 | 0.0079 | +0.004 |
+| rf | 0.5 | 0.000 | 0.0108 | -- | +0.880 |
+| rf | 0.5 | 0.002 | 0.0110 | -- | +0.004 |
+| rf | 0.5 | 0.005 | 0.0117 | -- | +0.003 |
+| xgboost | 0.2 | 0.000 | 0.0111 | -- | +0.279 |
+| xgboost | 0.2 | 0.002 | 0.0112 | -- | -0.004 |
+
+**The median barely moves (0.0108-0.0119 across jitter 0-0.01) while the damage collapses
+entirely between jitter 0 and jitter 0.002** -- RF ratio 0.2 goes from +0.337 to +0.003, inside
+the noise floor, at a jitter so small the median realized distance changes by about 1%.
+Jitter 0's 5th-percentile realized distance is 0.0010; jitter 0.002's is already 0.0021 --
+roughly doubled. **The median (this paper's x-axis for every A1 figure) is the wrong ruler for
+where the cliff sits; the lower-tail p5 is the one that moves when the damage does.** This is
+consistent with, and sharpens, s17's original observation ("the cliff is the removal of the
+lower tail of near-exact twins") -- it is not simply consistent with it, it shows the median
+plot (Figure 3, `paper/figures/F3_damage_vs_fidelity.pdf`) *cannot* resolve the cliff's location
+at all: on a median-distance x-axis, jitter 0/0.002/0.005 all but coincide, yet two of those
+three points show catastrophic damage and one does not. F3 is regenerated with these two points
+included (ratios 0.2 and 0.5 only, since that is what was run) precisely so this is visible
+rather than papered over by the x-axis choice. A p5-based x-axis was not substituted for the
+median one already used everywhere else in this paper's tables and prior sections; doing so
+would require re-deriving every earlier cliff statement, which is out of scope for an optional
+follow-up. The honest statement is: **the median distance at which A1's FPR damage disappears
+is not a well-defined quantity from this data** -- damage disappears within a jitter step whose
+median barely moves, so "the cliff sits at realized 0.011-0.014" (s17, s26) should be read as
+"the cliff sits within the resolution of the median statistic," not as two comparable points on
+a continuous curve.
