@@ -17,3 +17,10 @@ alternative we compared it against without needing any of the information those 
 require. The honest version of this loop works — that was never in question — but the design
 that makes it convenient, a public rule that trusts a decoy's traffic unconditionally, is the
 same design that makes it attackable, and the fix costs almost nothing to add.
+
+\textbf{Artifact availability.} The code, every committed result CSV this paper's numbers trace
+to, and \texttt{DECISIONS.md} — the full methodology and findings log referenced throughout, kept
+as we worked rather than reconstructed afterward — are at
+\url{https://github.com/harshitchhabi/IDS}. Every figure in this paper regenerates from the
+committed CSVs with a single command (\texttt{python scripts/run.py figures}); no experiment
+needs to be re-run to reproduce a figure from its underlying numbers.
