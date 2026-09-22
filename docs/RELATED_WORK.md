@@ -15,12 +15,27 @@ search summary alone.
 
 The category our threat model belongs to is thin in the peer-reviewed literature; most
 honeypot+ML work goes the *other* direction (ML detecting attacks against the honeypot, or ML
-*as* the honeypot), not honeypot data feeding a retrained detector's training set.
+*as* the honeypot), not honeypot data feeding a retrained detector's training set. Of the five
+rows below, only the last two actually close the loop we attack — a classifier trained or
+retrained on honeypot-derived data and then used for detection. `yugai2024honeypot` and
+`abdou2021honeymodels` are adjacent (honeypot-plus-ML systems in the same threat surface) but
+do not retrain a detector on honeypot output, so they motivate the category without being
+direct instances of the design we evaluate; they are kept here for that reason, not cited in
+§1 as retraining systems.
 
 | Title | Authors | Venue | Year | Checked |
 |---|---|---|---|---|
 | Using Machine Learning Algorithms and Honeypot Systems to Detect Adversarial Attacks on Intrusion Detection Systems (`yugai2024honeypot`) | P. E. Yugai, D. A. Moskvin | Automatic Control and Computer Sciences 58, 1226–1233 | 2024 | link.springer.com/article/10.3103/S014641162470086X |
 | HoneyModels: Machine Learning Honeypots (`abdou2021honeymodels`) | Ahmed Abdou, Ryan Sheatsley, Yohan Beugin, Tyler Shipp, Patrick McDaniel | MILCOM 2021 | 2021 | arxiv.org/abs/2202.10309 |
+| Creating an Adaptive Defense Architecture Using an Adaptive Honeypot Algorithm and Network Traffic Classifier (`matcheswala2024creating`) | Mohammed Shaad Mehboob Matcheswala, Amir Javed | AI Applications in Cyber Security and Communication Networks (ICCS 2023), Springer LNNS vol. 1032 | 2024 | link.springer.com/chapter/10.1007/978-981-99-3608-3_1 ; two independent search snippets agreeing on authors/venue/year (publisher page did not return full text to automated fetch) |
+| Intelligent Threat Detection — AI-Driven Analysis of Honeypot Data to Counter Cyber Threats (`lanka2024intelligent`) | Poojitha Lanka, Kishor Datta Gupta, Cihan Varol | Electronics 13(13), article 2465 | 2024 | mdpi.com/2079-9292/13/13/2465 ; two independent search snippets agreeing on authors/venue/year (MDPI page returned 403 to automated fetch, confirmed instead via doi.org/10.3390/electronics13132465 metadata and a second independent snippet) |
+
+These two are the "at least two concrete recent systems (2023-2026) that retrain a detector on
+honeypot data" cited in §1: `matcheswala2024creating` trains a network traffic classifier on
+honeypot-labelled traffic as part of an adaptive defense architecture, and `lanka2024intelligent`
+applies AI/ML analysis to honeypot-collected data for threat detection. Neither paper evaluates
+whether an adversary who knows the labelling policy can corrupt that channel — that gap is
+exactly our threat model.
 
 ## B. Adaptive / LLM honeypots
 
