@@ -94,7 +94,11 @@ def _load_jobs(dataset: str, root: Path = ROOT / "loop") -> pd.DataFrame:
 # scenarios {control, a1}, ratios {0.05, 0.1, 0.2, 0.5}, jitter {0, 0.01, 0.03, 0.1, 0.3, 0.7,
 # 1.5}, 5 seeds, RF + XGBoost, both threshold modes, tau=0.1, results/phase0/loop/cicids_recal.
 _RECAL_RATIOS = (0.05, 0.1, 0.2, 0.5)
-_RECAL_JITTERS = (0.0, 0.01, 0.03, 0.1, 0.3, 0.7, 1.5)
+# 0.002/0.005 (ratios 0.2, 0.5 only) were added to locate the cliff finer -- DECISIONS.md s26.2:
+# they showed the MEDIAN barely moves (0.011 -> 0.012) while the damage already collapses, so
+# the cliff is governed by the lower-tail p5 of the realized-distance distribution, not the
+# median this figure's x-axis uses.
+_RECAL_JITTERS = (0.0, 0.002, 0.005, 0.01, 0.03, 0.1, 0.3, 0.7, 1.5)
 
 
 def _load_recal(root: Path = ROOT / "loop" / "cicids_recal") -> pd.DataFrame:
