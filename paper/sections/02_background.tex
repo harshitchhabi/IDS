@@ -1,10 +1,81 @@
 \section{Background and Related Work}
 \label{sec:background}
-% Budget: 1 page. Four paragraphs:
-%   1. Honeypot-ML integrations (cite closed-loop honeypot->IDS retraining papers).
-%   2. Adaptive / LLM honeypots.
-%   3. Poisoning of network classifiers.
-%   4. Poisoning defenses.
-% Plus two sentences on IDS dataset critiques (CICIDS2017 in particular -- ties to s5).
-% End with the gap: nobody treats the honeypot's labels as untrusted.
-% TODO: prose. TODO: references.bib entries.
+% Source: docs/RELATED_WORK.md (24 verified papers, categories A-F, overlap section).
+% Organised around the overlap list: one sentence per closest paper on how this work differs.
+
+\textbf{Honeypot-fed ML and closed-loop retraining.} Systems that feed honeypot traffic into a
+machine-learning detector are an active design pattern, but almost all of them run the
+dependency the other way from what we attack: the honeypot supplies data that trains or informs
+a classifier, and the classifier's job is to detect attacks, not to question the honeypot's
+labels. Two papers from 2024 retrain a network-traffic classifier on honeypot-collected data as
+part of an active defense: \citet{matcheswala2024creating} pairs an adaptive honeypot with a
+network traffic classifier trained on what it collects, and \citet{lanka2024intelligent} applies
+AI-driven analysis to honeypot data for threat detection. Neither evaluates whether an attacker
+who knows the labelling policy can shape what the classifier learns — the closed loop is
+assumed trustworthy because its input is a decoy, which is exactly the assumption this paper
+tests. \citet{yugai2024honeypot} and \citet{abdou2021honeymodels} put "honeypot" and "machine
+learning" together most literally but point the other way: the former uses a honeypot plus a
+classifier to detect adversarial evasion attempts against an IDS, and HoneyModels deploys ML
+models \emph{as} decoys to attract and study adversarial examples against the model itself. In
+neither case is the honeypot's output treated as an adversarial input channel into a defender's
+training set.
+
+\textbf{Adaptive and LLM-driven honeypots.} A separate, larger literature makes honeypots
+themselves smarter — more convincing, harder to fingerprint, cheaper to operate — without
+changing what happens to their output. LLM-backed shells and terminals raise interaction
+fidelity \cite{fan2024honeyllm,wang2024honeygpt,otal2024llmhoneypot}, reinforcement learning
+tunes engagement policy \cite{huang2019adaptive}, and a recent survey maps the space
+\cite{bridges2025sok}. \citet{srinivasa2023gotta} studies an attacker fingerprinting honeypots
+to decide whether to engage them at all — relevant to selective disclosure (A4) and persona
+defenses (D3), which this paper scopes out, but orthogonal to A1: fingerprinting decides whether
+traffic reaches the decoy, not what happens to the label once it does. None of this work asks
+whether a smarter honeypot produces safer training labels; convincing the honeypot's human or
+automated operator is a different problem from convincing the auto-labeller downstream.
+
+\textbf{Poisoning of continuously-retrained classifiers.} The mechanism we attack — an automated
+learner retrained on traffic an adversary can shape — is not new; only "honeypot" and "LLM" are.
+\citet{newsome2006paragraph} and \citet{perdisci2006misleading} attack Polygraph's worm-signature
+learner, trained on flows a honeynet or IDS flags as suspicious, with crafted noise; the closest
+older analog to this paper, but aimed at evading detection of one worm through a signature
+matcher, not at raising false positives on unrelated production traffic through a retrained
+statistical classifier, and without a persistent multi-round loop that accumulates a poison
+share over time. \citet{nelson2008exploiting} degrades a continuously-retrained Bayesian spam
+filter through a write channel — user feedback that becomes training data — that keeps
+retraining on the stream it poisons; the closest continuous-retraining analog, but the channel
+is inbox placement, not a honeypot with a public, deterministic labelling policy the attacker
+can read in advance. \citet{rubinstein2009antidote} and \citet{kloft2012security} poison
+online/continuously-updated anomaly detectors with traffic injected directly into what the
+detector monitors; structurally our loop, but with no honeypot, no deception element, and no
+public labelling policy — the attacker there must evade the detector's own scoring to get poison
+admitted, rather than simply reaching a decoy that labels everything malicious by design.
+\citet{biggio2012poisoning} formalizes poisoning as bilevel optimization against a retrained
+SVM, a generic method this paper's threat model does not need: A1 requires no model access, only
+knowledge of the public labelling policy.
+
+\textbf{Poisoning defenses.} \citet{barreno2006can} lays out the taxonomy this whole line of
+work sits inside — causative and exploratory attacks, targeted and indiscriminate, and the RONI
+defense — as a general framework with no honeypot-specific threat model; this paper specializes
+one causative instance end to end. \citet{paudice2018label} sanitizes labels by $k$NN vote
+against a trusted reference, the same mechanism as this paper's kNN comparator baseline
+(Section~\ref{sec:defenses}), but evaluated against generic label-flipping poisoning rather than
+a honeypot-sourced channel whose poison is consistent with the defender's own labelling policy;
+it does not surface the policy-consistency blind spot this paper reports for loss-based
+filtering, because its threat model has no "the label is wrong but policy-consistent" case to
+fail on. \citet{biggio2018wild} and \citet{cina2023wild} survey the broader adversarial-ML
+landscape without a honeypot-specific instance.
+
+\textbf{IDS dataset critiques.} CICIDS2017 has been criticised before for labeling and
+extraction errors \cite{engelen2021troubleshooting,lanvin2022errors,rosay2022network}; this
+paper adds a distinct, narrower finding — every family with usable evaluation volume, benign
+traffic included, sits far below a leakage threshold in flow-feature space regardless of how the
+data is partitioned (Section~\ref{sec:degeneracy}) — that constrains what any learning claim on
+this dataset, ours included, can support.
+
+\textbf{The gap.} None of the above treats the honeypot's auto-generated label as an untrusted
+input to a system that keeps learning from it. The closest work either attacks a different
+target (a signature matcher, a spam filter, an anomaly detector scored on real production
+traffic it must evade) or builds a better honeypot without asking what happens to its output
+downstream. This paper characterises the attack this gap implies on a modern, flow-based NIDS
+retraining loop: the mechanism, the fidelity requirement it needs, a defense comparison against
+a proper no-skill baseline, and a dataset-specific measurement of why the attack is unusually
+cheap on the benchmark most available to reproduce it on.

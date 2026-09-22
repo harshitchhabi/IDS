@@ -164,7 +164,10 @@ D1 definition and full grid (§20, §24); XGBoost per-seed trajectories; padding
   the source next to each.
 - Do not claim: D1 is effective; ShareCap "beats" others (it's undominated); real
   attackers do this; the cliff location generalises across datasets; any S0 learning
-  claim on CICIDS; session-level cost weighting works; the CICIDS split is temporal.
+  claim on CICIDS; session-level cost weighting works; the CICIDS split is temporal;
+  the attack works at distance (confirmed only at copy-level fidelity, RF's far-jitter
+  pattern is unconfirmed pending §26.6); a model-dependent ("RF-only") TPR channel
+  (XGBoost survives Holm correction at ratio 0.5, jitter 0).
 
 ## Open items
 - [x] §25.5 cap curve
