@@ -13,6 +13,17 @@
 \renewcommand\footnotetextcopyrightpermission[1]{}
 \pagestyle{plain}
 
+% ---- Figure 1 (loop diagram): TikZ, colors matched to experiments/paper_figures.py's palette
+% (BLUE/RED/MUT) so F1 reads as the same document as F2-F6. ----------------------------------
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, fit, backgrounds, calc}
+\definecolor{loopblue}{HTML}{2A78D6}
+\definecolor{loopred}{HTML}{E34948}
+\definecolor{loopmut}{HTML}{8A8A86}
+\definecolor{loopbluebg}{HTML}{EAF1FC}
+\definecolor{loopredbg}{HTML}{FCEBEA}
+\newcommand{\lbl}[1]{{\scriptsize\color{black!65}#1}}
+
 % ---- venue / title / authors (placeholders; DECIDE at "Venue, template and page limit
 % confirmed", docs/PAPER_PLAN.md "Open items") ----------------------------------------------
 \acmConference[AISec '26]{ACM Workshop on Artificial Intelligence and Security}{TBD}{TBD}
