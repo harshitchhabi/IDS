@@ -88,13 +88,65 @@ degeneracy, not a general claim about production network traffic.
     (Section~\ref{sec:degeneracy}).
 \end{enumerate}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  % TODO (F1): loop / threat diagram, drawn (not generated from data). Boxes: seed data +
-  % honeypot -> auto-label malicious -> retrain -> IDS guarding production, with the
-  % attacker-controlled segment marked. Source: CLAUDE.md architecture diagram + threat model.
-  \fbox{\parbox{0.9\linewidth}{\centering\vspace{2cm}TODO: F1, loop/threat diagram (drawn, not generated)\vspace{2cm}}}
-  \caption{The retraining loop, with the attacker-controlled segment marked: everything the
-  honeypot logs, auto-labeled malicious, feeds the same retraining step as trusted seed data.}
+  % F1: loop/threat diagram, drawn in TikZ (vector, no external tooling), not generated from
+  % data. Colors match experiments/paper_figures.py's palette (loopblue = BLUE #2A78D6,
+  % loopred = RED #E34948, loopmut = MUT #8A8A86, defined in main.tex) so F1 reads as the same
+  % document as F2-F6. Source: CLAUDE.md architecture diagram + Section~\ref{sec:threat-model}.
+  % Tried single-column (3.33in) first; two labeled inputs, a 4-stage pipeline, and two separate
+  % evaluation callouts do not stay legible at that width, so this is figure* (full width).
+  \begin{tikzpicture}[
+      font=\sffamily\footnotesize,
+      node distance=6mm and 7mm,
+      box/.style={draw=loopblue, fill=loopbluebg, rounded corners=2pt, minimum height=8mm,
+                  text width=20mm, align=center, thick, inner sep=2pt},
+      hpbox/.style={box, draw=loopred},
+      evalbox/.style={draw=loopmut, fill=white, dashed, rounded corners=2pt, minimum height=8mm,
+                       text width=20mm, align=center, inner sep=2pt},
+      arr/.style={-{Stealth[length=2mm]}, thick, draw=black!70},
+    ]
+    % --- inputs ---
+    \node[box] (seed) {\texttt{seed\_train}\\[1pt]\lbl{trusted, defender-controlled}};
+    \node[hpbox, below=of seed] (pool) {\texttt{honeypot\_pool}\\[1pt]\lbl{attacker sends traffic here}};
+
+    % --- attacker-controlled pipeline ---
+    \node[hpbox, right=of pool] (label) {auto-label\\[1pt]``malicious''};
+    \node[box, right=of label] (defense) {defense hook\\[1pt]\lbl{optional, e.g. ShareCap}};
+
+    % --- shared pipeline ---
+    \node[box, right=16mm of $(label)!0.5!(defense)$, yshift=9mm] (accum) {accumulate};
+    \node[box, right=of accum] (retrain) {retrain\\[1pt]\lbl{cold-start each round}};
+    \node[box, right=of retrain] (detector) {detector};
+    \node[box, right=of detector, text width=24mm] (score) {scores production traffic};
+
+    % --- evaluation, off to the side, never touched by the loop ---
+    \node[evalbox, below=10mm of detector] (evalset) {\texttt{trusted\_eval}\\[1pt]\lbl{held out, never written by the loop}};
+    \node[evalbox, right=of evalset, text width=24mm] (thresh) {fixed vs.\ recalibrated threshold};
+
+    % --- arrows ---
+    \draw[arr] (seed.east) -| ($(seed.east)!0.5!(accum.west)$) |- (accum.west);
+    \draw[arr] (pool) -- (label);
+    \draw[arr] (label) -- (defense);
+    \draw[arr] (defense.east) -| ($(defense.east)!0.5!(accum.west)$) |- (accum.west);
+    \draw[arr] (accum) -- (retrain);
+    \draw[arr] (retrain) -- (detector);
+    \draw[arr] (detector) -- (score);
+    \draw[arr] (evalset) -- (thresh);
+    \draw[arr, loopmut] (evalset.north) -- (detector.south);
+    \draw[arr, loopred, dashed] ($(pool.west)+(-9mm,3mm)$) node[font=\sffamily\scriptsize, loopred, anchor=east]{attacker} -- (pool.west);
+
+    % --- attacker-controlled segment, marked ---
+    \begin{pgfonlayer}{background}
+      \node[draw=loopred, dashed, thick, rounded corners=4pt, fit=(pool)(label)(defense),
+            inner sep=3mm, label={[loopred, font=\sffamily\scriptsize]above:attacker-controlled segment}] {};
+    \end{pgfonlayer}
+  \end{tikzpicture}
+  \caption{The retraining loop. Everything the honeypot logs is auto-labeled malicious by a
+  public policy and feeds the same \texttt{accumulate} step as trusted seed data (dashed red
+  box: the attacker-controlled segment — the only traffic the attacker chooses is what the
+  decoy sees, and that traffic becomes training data unconditionally). \texttt{trusted\_eval} is
+  held out and never written by the loop; every result in this paper is scored against it under
+  both a fixed and a recalibrated detection threshold.}
   \label{fig:loop-diagram}
-\end{figure}
+\end{figure*}
