@@ -35,9 +35,26 @@
 \email{TBD}
 
 \begin{abstract}
-% docs/PAPER_PLAN.md "The claim, in one paragraph" -- draft here once prose starts.
-% Do not draft prose yet (per instruction); this is a structural placeholder only.
-TODO: abstract.
+% Source: docs/PAPER_PLAN.md "The claim, in one paragraph", corrected per DECISIONS.md s26.1/s26.5.
+Honeypot-fed intrusion detectors retrain on decoy traffic auto-labeled malicious by policy, on
+the argument that anything a decoy sees is unsolicited and therefore free ground truth. That
+argument assumes the label is trustworthy because the source is a decoy; it is not, because the
+labelling policy is public and the attacker chooses exactly what the decoy sees. We characterise
+the resulting attack on a modern, flow-based retraining loop: one mechanism, a label that
+contradicts its neighbourhood, that a fixed detection threshold surfaces as false positives and
+a recalibrated one surfaces as lost detection, not two independent effects. The attack needs
+near-duplicate mimicry fidelity and at least 10--20\% of the training set poisoned; after
+Holm-Bonferroni correction across the full grid we test, both models we evaluate show
+detection-loss damage at that same fidelity level, and a separate, pre-specified result at
+greater mimicry distance is reported honestly as an effect found but not yet confirmed to
+generalise, rather than rounded up to a second channel. A generic label-consistency defense
+fails structurally, because the poison agrees with the defender's own labelling policy; the
+cost-of-influence defense we set out to propose does not beat a matched no-skill baseline, a
+negative result we report rather than paper over. A one-line cap on the honeypot's effective
+training-set share is undominated by every alternative we test and costs almost nothing to run.
+We additionally measure that CICIDS2017's benign traffic is narrow enough that an attacker
+reaches damaging fidelity largely for free, which bounds what this widely used benchmark can
+demonstrate about the attack's cost in general.
 \end{abstract}
 
 \begin{document}

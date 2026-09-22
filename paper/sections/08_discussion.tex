@@ -1,10 +1,39 @@
 \section{Discussion and Limitations}
 \label{sec:discussion}
-% Budget: 0.5 page.
-% - When it matters: low-entropy benign traffic (IoT, ICS, automated services).
-% - Advice: cap the honeypot's share; don't trust label-consistency checks.
-% - Limitations: offline simulation; flow features only; CICIDS degenerate and synthetic has
-%   no attacker-cost profile; no timestamps (file-order split, s14 erratum); 5 seeds,
-%   XGBoost seed-dependent (s25.6); ShareCap cap is model/dataset-dependent (s25.5); no
-%   adaptive attacker against ShareCap beyond filling the cap.
-% TODO: prose.
+% Budget: 0.5 page. Source: DECISIONS.md s16, s25.5, s25.6, s26.3, s26.5, s14 erratum.
+
+\textbf{When this matters.} The attack needs benign traffic the adversary can reproduce with
+near-duplicate fidelity, and CICIDS2017 makes that cheap because its own benign class is narrow
+and repetitive (Section~\ref{sec:degeneracy}) — replaying the pool's own statistics with no
+perturbation already lands one row in ten within twin-fraction range
+(Section~\ref{sec:attack}). Production networks with genuinely diverse, high-entropy benign
+traffic would raise the fidelity bar the attacker has to clear; networks that do not — IoT
+fleets, ICS traffic, automated service-to-service calls, anything whose "normal" is a small set
+of repeated request shapes — are closer to CICIDS2017's regime than to a diverse enterprise
+network, and are where this channel should be expected to be cheapest to exploit. We do not
+measure this on production traffic; it is a prediction from the mechanism, not a finding.
+
+\textbf{Practical advice.} Cap the honeypot's effective share of the training set; it is the one
+defense here that costs nothing to deploy, needs no label information or trusted reference data
+beyond the cap value, and is undominated by every alternative we test
+(Section~\ref{sec:defenses}). Do not trust a label-consistency check that learns from the loop's
+own data to catch this poison — it cannot, because the poison is consistent with the loop's own
+labelling policy by construction; a check anchored to data outside the loop can.
+
+\textbf{Limitations.} This is an offline simulation of the loop, not a deployed system: the
+adversary's batches are drawn from a fixed pool rather than generated against a live honeypot,
+and there is no network-level cost to reaching the decoy in the first place. We measure flow
+features only, not payload content, so any attack or defense that depends on packet contents is
+out of scope. CICIDS2017 answers the degeneracy measurement and the fidelity-versus-damage curve
+but carries no learning claim (Section~\ref{sec:degeneracy}); the synthetic dataset answers the
+honest-loop learning claim but has no attacker-cost profile of its own. The partition is by file
+order, not by a verified capture timestamp — CICIDS2017's public release does not carry one — so
+"day split" in this paper means the dataset's own file boundaries, not confirmed calendar time;
+a burst-aware split gives comparable results but is not independent evidence of temporal
+separation. Five seeds is enough to establish some effects and not others: XGBoost's
+fixed-threshold FPR trajectory splits into two distinct per-seed groups rather than clustering
+around a mean (Section~\ref{sec:attack}), and RF's apparent damage at large mimicry distance
+remains unconfirmed at this seed count after correcting for the number of comparisons made
+(Section~\ref{sec:attack}). ShareCap's safe cap range is measured for one model and one dataset
+at a time and is not a universal constant; we do not test an adaptive attacker who tunes its
+poison ratio specifically to fill the cap rather than exceed it.

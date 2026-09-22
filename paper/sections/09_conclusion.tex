@@ -1,3 +1,19 @@
 \section{Conclusion}
 \label{sec:conclusion}
-% Budget: 0.25 page. TODO: prose.
+% Budget: 0.25 page.
+
+Auto-labeling a honeypot's traffic and retraining a detector on it treats the label as free
+because the source is a decoy. It is not free: the labelling policy is public, the attacker
+chooses exactly what the decoy sees, and the honeypot becomes a write channel into the
+defender's training set that the defender opened on purpose. We showed this channel is
+exploitable on a modern, flow-based retraining loop with a single mechanism — a label that
+contradicts its neighbourhood — that a fixed detection threshold reads as false positives and a
+recalibrated one reads as lost detection, not two separate effects. The attack needs near-copy
+mimicry fidelity and nothing else: no model access, no knowledge of the poison ratio, no cost
+beyond producing traffic that already resembles what the network generates. A generic
+label-consistency defense cannot see this poison because it agrees with the defender's own
+policy; a one-line cap on the honeypot's share of the training set can, and beats every
+alternative we compared it against without needing any of the information those alternatives
+require. The honest version of this loop works — that was never in question — but the design
+that makes it convenient, a public rule that trusts a decoy's traffic unconditionally, is the
+same design that makes it attackable, and the fix costs almost nothing to add.

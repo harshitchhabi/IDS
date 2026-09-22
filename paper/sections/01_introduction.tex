@@ -1,10 +1,90 @@
 \section{Introduction}
 \label{sec:introduction}
-% Source: related-work table, DECISIONS.md s23, s25. Budget: 1 page.
-% - Honeypot data as free labels for IDS retraining (cite closed-loop papers).
-% - The inversion: the defender opens a labelled write channel and calls it ground truth.
-% - One sentence per result, then the contribution list below.
-% TODO: prose.
+% Source: docs/RELATED_WORK.md category A, DECISIONS.md s23, s26.1, s26.3, s26.5. Budget: 1 page.
+
+A machine-learning intrusion detector needs labeled malicious traffic to train on, and labeled
+malicious traffic is expensive: someone has to attack the network, or wait for someone else to,
+and then confirm what happened. Honeypots offer an appealing shortcut. A decoy has no production
+purpose, so nothing legitimate should ever reach it; whatever does is unsolicited by definition,
+and can be auto-labeled malicious with no human in the loop. Feed that traffic into a detector's
+training set and retrain periodically, and the detector adapts to new attack traffic without
+anyone hand-labeling a single flow. This design is not hypothetical. Recent systems build
+exactly this loop: \citet{matcheswala2024creating} pairs an adaptive honeypot with a network
+traffic classifier trained on what the honeypot collects, and \citet{lanka2024intelligent}
+applies machine-learning analysis to honeypot-collected data for threat detection. Neither
+system asks what happens if the traffic reaching the decoy is not what the auto-labelling policy
+assumes it is.
+
+The assumption the whole design rests on is that the label is trustworthy \emph{because} the
+source is a decoy. That assumption does not survive contact with an adversary who knows the
+policy. The labelling rule — "everything the honeypot sees is malicious" — is public by
+construction; there is no way to run the defense without publishing it, since the honeypot has
+to be reachable to do its job. An attacker who knows the rule does not need to compromise
+anything to write into the defender's training set: sending traffic to the decoy \emph{is}
+writing to the training set, with a label the defender chooses to trust unconditionally. The
+honeypot is not a passive sensor in this design; it is a write channel the defender opens on
+purpose, and the poison budget available through it is not a fraction an attacker has to fight
+for — it is the entire honeypot-derived share of the training set, by construction
+(Section~\ref{sec:threat-model}).
+
+This paper characterises that channel on a modern, flow-based network intrusion detection loop:
+seed data plus honeypot traffic, retrained periodically, scored against held-out production
+traffic. We confirm first that the loop does what it claims when the honeypot sees genuine
+attacks — the honest case, S0, has to work before an attack on it means anything
+(Section~\ref{sec:attack}). We then attack it with A1, benign mimicry: point the same traffic
+generator that produces legitimate benign flows at the honeypot instead of production, and let
+the auto-labeller do the rest. The result is one mechanism — a label that contradicts the
+neighbourhood it sits in — that surfaces as false positives under a fixed detection threshold or
+as lost detection under a recalibrated one, not two independent effects; recalibrating relocates
+where the damage shows up, it does not remove it. On CICIDS2017 the attack requires
+near-duplicate mimicry fidelity and needs no model access, no knowledge of the poison ratio, and
+no cost to the attacker beyond producing traffic that already looks like traffic the network
+generates for free. We hold every quantitative claim in this paper to a pre-registered,
+multiple-comparison-corrected significance bar, and where a pattern in the data does not clear
+that bar we report it as unconfirmed rather than round it up to a finding.
+
+We then evaluate defenses. A generic label-consistency check — does this row's stamped label
+agree with a model fit on the loop's own data — fails structurally against this attack, because
+the poison is not inconsistent with anything the loop itself believes; it agrees with the
+defender's own labelling policy, which is exactly what makes it hard to catch from inside the
+loop. Cost-of-influence weighting, which we set out to propose as this paper's defense, does not
+survive its own pre-registered evaluation: it fails a sensitivity criterion fixed in advance and
+does not beat a matched no-skill baseline. What does work, and costs almost nothing to deploy,
+is capping the honeypot's effective share of the training set — a one-line change that needs no
+label information, no trusted reference data beyond the cap value itself, and no estimate of the
+poison ratio, and that no alternative we test dominates. Along the way, measuring the attack on
+CICIDS2017 exposes a property of the dataset itself: its benign traffic is narrow and repetitive
+enough that an attacker gets most of the way to the damaging fidelity level for free, simply by
+replaying the pool's own statistics with no perturbation at all — a fact about this benchmark's
+degeneracy, not a general claim about production network traffic.
+
+\subsection*{Contributions}
+\begin{enumerate}
+  \item A threat model for auto-labelled honeypot data as an attacker-controlled write channel
+    into IDS training, characterised — mechanism, fidelity requirement, matched null controls —
+    on a modern honeypot-fed retraining loop: the design that older signature-generator attacks
+    targeted in a different form \cite{newsome2006paragraph,perdisci2006misleading}, and that
+    current honeypot-plus-ML systems reintroduce without evaluating the threat
+    (Section~\ref{sec:threat-model}).
+  \item The attack characterised as one mechanism, surfaced as either false positives or lost
+    detection depending on the threshold policy in force, not two independent channels; damage
+    reported as a function of measured mimicry fidelity (twin fraction, not a jitter knob or a
+    median distance too coarse to resolve the effect), held to a pre-registered,
+    multiple-comparison-corrected significance bar, with a separate pre-specified single-distance
+    result reported honestly as unconfirmed at scale (Section~\ref{sec:attack}).
+  \item The policy-consistency blind spot: why a defense that checks a label's consistency
+    against the loop's own data cannot catch poison that agrees with the loop's own labelling
+    policy, and why a defense anchored to trusted data outside the loop can
+    (Section~\ref{sec:defenses}).
+  \item A defense comparison against a proper no-skill baseline: cost-of-influence weighting, our
+    original proposal, is a measured negative result that does not beat it; a one-line cap on the
+    honeypot's training-set share is undominated by every alternative tested and costs almost
+    nothing to run (Section~\ref{sec:defenses}).
+  \item A measurement of CICIDS2017's near-degeneracy under standard flow features, including
+    that the attack's damage on this dataset traces to near-duplicate, not exact-duplicate,
+    benign traffic, and what that implies for which claims this benchmark can and cannot support
+    (Section~\ref{sec:degeneracy}).
+\end{enumerate}
 
 \begin{figure}[t]
   \centering
@@ -12,16 +92,7 @@
   % honeypot -> auto-label malicious -> retrain -> IDS guarding production, with the
   % attacker-controlled segment marked. Source: CLAUDE.md architecture diagram + threat model.
   \fbox{\parbox{0.9\linewidth}{\centering\vspace{2cm}TODO: F1, loop/threat diagram (drawn, not generated)\vspace{2cm}}}
-  \caption{TODO caption. Source: CLAUDE.md architecture + threat model sections.}
+  \caption{The retraining loop, with the attacker-controlled segment marked: everything the
+  honeypot logs, auto-labeled malicious, feeds the same retraining step as trusted seed data.}
   \label{fig:loop-diagram}
 \end{figure}
-
-\subsection*{Contributions}
-% docs/PAPER_PLAN.md "Contributions" -- five items, condense to prose bullets here.
-\begin{enumerate}
-  \item TODO: threat model contribution.
-  \item TODO: attack characterisation contribution.
-  \item TODO: policy-consistency blind spot contribution.
-  \item TODO: defense comparison contribution.
-  \item TODO: CICIDS2017 degeneracy measurement contribution.
-\end{enumerate}
