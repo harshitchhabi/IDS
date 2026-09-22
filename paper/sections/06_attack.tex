@@ -1,15 +1,120 @@
 \section{The Attack}
 \label{sec:attack}
-% Budget: 1.5 pages. Source: DECISIONS.md s17, s19, s22, s23; results/phase0/loop/,
-% results/phase0/mechanism/.
-% - S0 works: honeypot_only 0.4 -> 0.99 on synthetic.
-% - A1 damage vs mimicry distance: cliff at ~0.011-0.014 for the FPR channel.
-% - Two channels (s23 table): FPR needs copy fidelity and >=10-20% poison; RF's TPR channel
-%   works at every distance tested; XGBoost has no TPR channel.
-% - Mechanism isolation: a1truth, s0j, junk all null.
-% - Recalibrating trades FPR damage for TPR loss.
-% - XGBoost FPR channel seed-dependent, reported per seed (DECISIONS.md s25.6).
-% TODO: prose.
+
+\subsection{S0: the honest loop works}
+% DECISIONS.md s17 point 5: synthetic, fixed threshold, ratio 0.2, within 1-2 rounds.
+% honeypot_only: 0.39 (control) -> 0.997 (RF), 0.34 -> 0.994 (XGBoost). seen_both: 0.946->0.961
+% (RF), 0.950->0.963 (XGB), above the control band. seed_only flat at ~0.997 (A4's arm,
+% untouched as intended). Cost: fixed FPR at 50% rises to 0.024, the class-prior-shift effect
+% present with no attacker at all.
+Before any attack means anything, the clean loop has to improve the detector. On synthetic
+data, at poison ratio 0.2, it does, within one to two rounds: \texttt{honeypot\_only} TPR — the
+arm the detector saw only through the decoy — rises from 0.39 (control) to 0.997 for RF and
+0.34 to 0.994 for XGBoost. \texttt{seen\_both} rises more modestly (0.946$\to$0.961 RF,
+0.950$\to$0.963 XGBoost) and \texttt{seed\_only} stays flat near its ceiling, untouched, as
+A4's controlled arm should be. This has a small cost even with no attacker present: fixed
+threshold FPR at 50\% honeypot share rises to 0.024, the class-prior-shift cost of retraining
+on more positives.
+
+\subsection{A1: a cliff at copy-level fidelity}
+% DECISIONS.md s17, s26 (the tau=0.1 re-run): the FPR channel needs realized mimicry distance
+% <~0.011-0.014 (raw benign fidelity to the first jitter step) AND >=10-20% poison; damage is
+% catastrophic at jitter 0 (RF +0.337/+0.880 at ratio 0.2/0.5) and inside 2 sigma_control
+% (0.009 RF, 0.012 XGB) at every jitter >=0.01 tested, for every ratio tested. This SUPERSEDES
+% s17's old-calibration table (e.g. +0.468 at 5%) per s19.1/s23; do not use those numbers.
+A1's damage on the FPR channel appears at exactly one place: copy-level mimicry fidelity, and
+only once enough of the training set is honeypot-derived. At raw benign fidelity (jitter 0,
+realized nearest-neighbour distance to trusted benign $\approx0.011$) fixed-threshold FPR rises
+catastrophically with poison ratio — RF +0.009/+0.025/+0.337/+0.880 and XGBoost
++0.005/+0.014/+0.279/+0.563 at ratios 0.05/0.1/0.2/0.5 — but at every jitter setting we tested
+beyond that (realized distance $\ge0.014$), the same ratios sit inside $2\sigma$ of the
+control's own noise for both models, at every ratio tested (Figure~\ref{fig:f3-damage-vs-fidelity}).
+There is no gradient to read a distance threshold from: damage does not fall off gradually past
+the guard-(c) leakage line (0.25); it is already gone eighteen to twenty-five times closer to
+raw benign than that. \emph{These numbers supersede an earlier, miscalibrated pass through this
+same sweep (Section~\ref{sec:methodology}); a threshold calibrated on a validation split full of
+near-copies of training rows read this cliff as a gentler, flatter effect than it is.}
+
+\subsection{Two channels, one mechanism}
+% DECISIONS.md s23: one mechanism (label conflict: benign-populated rows stamped malicious),
+% two channels. FPR needs copy fidelity + >=10-20% poison (confirmed above). TPR (recalibrated
+% threshold) channel is RF-only and works at every distance tested -- s26's full grid: RF ratio
+% 0.2 delta_tpr goes -0.140 (raw) -> -0.053 -> -0.012 -> -0.051 -> -0.074 -> -0.109 -> -0.103 as
+% jitter rises 0->0.01->0.03->0.1->0.3->0.7->1.5: dips near the cliff, rises again at distance
+% (the "saturating near -0.10" shape). XGBoost's TPR delta at the same ratio stays within
+% roughly +/-0.08 with no consistent sign -- no channel, not a smaller one.
+The same underlying mechanism — rows that sit in benign-populated feature space, stamped
+malicious by the auto-labeller, regardless of how far they sit from anything else — produces
+two distinguishable channels, and they behave differently with distance. The FPR channel, just
+described, needs copy-level fidelity. The TPR channel, measured under the recalibrated
+threshold, is different: for RF it is present at \emph{every} distance we tested, not only at
+the cliff. At ratio 0.2, RF's $\Delta$TPR moves from $-0.140$ at raw fidelity, dips toward zero
+near the cliff ($-0.012$ at realized 0.031), then grows again with distance: $-0.051$, $-0.074$,
+$-0.109$, $-0.103$ at realized 0.09, 0.25, 0.56, 1.06 — the U-shape is visible across the whole
+grid (Figure~\ref{fig:f3-damage-vs-fidelity}, right column; Figure~\ref{fig:f4-trajectory}).
+XGBoost shows no comparable channel: its $\Delta$TPR at the same ratio stays within roughly
+$\pm0.08$ with no consistent sign across the grid — noise, not a smaller effect in the same
+direction (Table~\ref{tab:two-channels}).
+
+\begin{table}[t]
+  \centering
+  \caption{The two channels A1's single mechanism produces.}
+  % Source: DECISIONS.md s23 table, s26 (full-grid confirmation).
+  \label{tab:two-channels}
+  \small
+  \begin{tabular}{p{0.16\linewidth}p{0.36\linewidth}p{0.36\linewidth}}
+    \toprule
+    Channel & Needs & Model \\
+    \midrule
+    FPR (fixed threshold)  & Copy-level fidelity (realized NN $\lesssim0.011$--$0.014$); $\ge$10--20\% poison & RF and XGBoost \\
+    TPR (recalibrated threshold) & Nothing beyond rows in benign-populated regions; present at every distance tested & RF only \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% DECISIONS.md s25.6: per-seed fixed-threshold FPR at ratio 0.5, jitter 0 (raw fidelity), rounds
+% 10 and 20. XGBoost is bimodal (seeds 2,4 climb early; 1,5 stay flat through round 10; 3 jumps
+% late); RF climbs on all 5 seeds. 5 seeds is too few to characterize XGBoost's response; report
+% per-seed, not mean+/-sd. Full 8-round table in Appendix A.4.
+\textbf{The FPR channel's XGBoost trajectory is seed-dependent, and 5 seeds is too few to
+characterize it.} At ratio 0.5, raw fidelity, fixed threshold (Table~\ref{tab:xgb-seeds}),
+XGBoost's per-seed FPR at round 10 splits into two groups rather than clustering around the
+mean: two seeds have already reached 82--91\%, two sit at 0.6--0.7\%, and one is midway. RF
+climbs on every one of the 5 seeds. A mean-over-seeds table hides this — it reads as one noisy
+estimate of a common trajectory, and it is not. Every mean XGBoost number elsewhere in this
+paper should be read with that in mind; the full 8-round table is in
+Appendix~\ref{sec:appendix}.
+
+\begin{table}[t]
+  \centering
+  \caption{XGBoost fixed-threshold FPR by seed, ratio 0.5, raw fidelity.}
+  % Source: DECISIONS.md s25.6 (results/phase0/loop/cicids_recal/jobs/a1_xgboost_s*_j0.0_r0.5_vt0.1.csv).
+  \label{tab:xgb-seeds}
+  \small
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Round & Seed 1 & Seed 2 & Seed 3 & Seed 4 & Seed 5 \\
+    \midrule
+    10 & 0.006 & 0.823 & 0.693 & 0.908 & 0.007 \\
+    20 & 0.019 & 0.955 & 0.800 & 0.958 & 0.117 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Mechanism isolation}
+% DECISIONS.md s23 "Prior shift is null" table + s7 (this paper's Figure 5 / F5). RF,
+% recalibrated threshold, ratio 0.2, realized NN ~0.56, 5 seeds. A1 -0.109+/-0.038 (t=-6.3);
+% a1truth +0.014+/-0.029 (n.s.); s0j -0.002+/-0.029 (n.s.); junk +0.015+/-0.033 (n.s., separate
+% jitter-1.5 run).
+Three matched null controls (Section~\ref{sec:methodology}) isolate which part of A1 is doing
+the work. \texttt{a1truth} — A1's own rows, correctly labelled — removes the label conflict and
+the effect vanishes ($+0.014\pm0.029$, not significant). \texttt{s0j} — attack rows carrying
+A1's jitter, stamped malicious — keeps the volume and the class-prior shift but not the
+conflict, and it too is null ($-0.002\pm0.029$). \texttt{junk} — marginal-shuffled bulk, stamped
+malicious — tests volume alone and is also null ($+0.015\pm0.033$). Only A1 itself, which keeps
+the label conflict, clears the control's own $\pm2\sigma$ band ($-0.109\pm0.038$,
+Figure~\ref{fig:f5-mechanism}). Prior shift and raw volume are not the mechanism; the label
+conflict is.
 
 \begin{figure*}[t]
   \centering
@@ -55,17 +160,3 @@
   conflict — moves outside it.}
   \label{fig:f5-mechanism}
 \end{figure}
-
-\begin{table}[t]
-  \centering
-  \caption{TODO: the two channels. Source: DECISIONS.md s23 table.}
-  \label{tab:two-channels}
-  \begin{tabular}{lll}
-    \toprule
-    Channel & Model & Behavior \\
-    \midrule
-    FPR (false alarms) & RF, XGBoost & TODO \\
-    TPR (detection loss) & RF only & TODO \\
-    \bottomrule
-  \end{tabular}
-\end{table}
