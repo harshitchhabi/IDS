@@ -90,23 +90,37 @@ Applying a Holm-Bonferroni step-down correction (family-wise $\alpha=0.05$) to a
 only three survive, and all three are at raw copy fidelity (jitter 0): RF at ratio 0.2
 ($t=-20.3$) and ratio 0.5 ($t=-16.6$), and XGBoost at ratio 0.5 ($t=-8.5$) — XGBoost's own
 ratio-0.2, jitter-0 cell does not clear even its \emph{uncorrected} threshold ($t=-2.6$,
-$p=0.06$). Nothing at realized distance $\ge0.25$ survives, at either ratio, for either model
-(Table~\ref{tab:two-channels}). \textbf{"Present at every distance tested," "significant near and
-significant far," and "the TPR effect is RF-only" — all stated in an earlier reading of this
-data — are withdrawn.} The corrected statement is: TPR loss at copy-level fidelity is confirmed
-for RF at both poison ratios tested and for XGBoost at one of two. RF's raw means do show damage
-recovering at large jitter (Figure~\ref{fig:f3-damage-vs-fidelity}, right column;
-Figure~\ref{fig:f4-trajectory}), and it reproduces at both ratios, but 36 simultaneous
-comparisons is enough multiplicity that this correction cannot separate it from chance. We
-report it as an observed, unconfirmed pattern and propose no mechanism for it. XGBoost shows no
-comparable damaging effect anywhere else on the grid; several of its mid-range points are
-individually significant before correction, but in the \emph{improving} direction, and none of
-them survives correction either.
+$p=0.06$). Nothing at realized distance $\ge0.25$ survives within this 36-cell family, at either ratio, for
+either model (Table~\ref{tab:two-channels}). \textbf{"Present at every distance tested,"
+"significant near and significant far," and "the TPR effect is RF-only" — all stated in an
+earlier reading of this data — are withdrawn as claims made \emph{from this family of tests}.}
+The corrected statement, at this correction level: TPR loss at copy-level fidelity is confirmed
+for RF at both poison ratios tested and for XGBoost at one of two.
+% DECISIONS.md s26.6 (pre-registered before running), s26.8 (result): RF, recalibrated TPR,
+% jitter in {0.3,0.7,1.5} x ratio in {0.2,0.5}, 15 seeds (5 existing + 10 new), Holm within this
+% 6-cell family. All 6 survive (p from 3.1e-3 to 1.5e-9). Confirmation bar (>=2 adjacent jitters
+% at both ratios) exceeded: all 3 jitters, both ratios.
+RF's raw means also show damage at large jitter (Figure~\ref{fig:f3-damage-vs-fidelity}, right
+column; Figure~\ref{fig:f4-trajectory}), and a separate, smaller, pre-registered follow-up
+resolves what the 36-cell family's power could not: RF, recalibrated TPR, jitter
+$\in\{0.3,0.7,1.5\}$ at ratios $\{0.2,0.5\}$, 15 seeds, Holm-corrected within this 6-cell family
+alone. \textbf{All six cells survive} ($p$ from $3.1\times10^{-3}$ to $1.5\times10^{-9}$),
+exceeding the pre-registered confirmation bar (at least two adjacent jitters at both ratios). RF's
+TPR-loss damage is therefore confirmed across the far-jitter range tested, 0.3 through 1.5, not
+only at copy fidelity — the effect at distance is real, not a multiple-comparisons artifact; more
+seeds and a smaller, targeted family were what the original 36-cell sweep lacked to show it. No
+mechanism is proposed for why the effect holds across this range rather than only at copy
+fidelity; that is confirmed as real, not explained. This result does not extend to XGBoost (not
+tested in the follow-up family) or to the FPR channel, which still needs copy-level fidelity
+regardless of threshold policy. XGBoost shows no comparable damaging effect anywhere on the
+original 36-cell grid; several of its mid-range points are individually significant before
+correction, but in the \emph{improving} direction, and none of them survives correction either.
 
 \begin{table}[t]
   \centering
-  \caption{One mechanism, two surfaces, after Holm correction across the full grid.}
-  % Source: DECISIONS.md s23, s26.1, s26.5 (Holm-Bonferroni, 36 cells, family-wise alpha=0.05).
+  \caption{One mechanism, two surfaces, after Holm correction. FPR/TPR-at-copy-fidelity: 36-cell
+  grid family. RF-at-distance: separate, smaller, pre-registered 6-cell family (s26.6/s26.8).}
+  % Source: DECISIONS.md s23, s26.1, s26.5 (36-cell grid); s26.6/s26.8 (6-cell distance follow-up).
   \label{tab:two-channels}
   \small
   \begin{tabular}{p{0.16\linewidth}p{0.36\linewidth}p{0.36\linewidth}}
@@ -115,6 +129,7 @@ them survives correction either.
     \midrule
     FPR (fixed threshold)  & Copy-level fidelity (twin fraction $\gg0$: 0.105 at raw jitter, 0.0 by jitter 0.005, Section~\ref{sec:threat-model}); $\ge$10--20\% poison & RF and XGBoost, both ratios tested \\
     TPR loss (recalibrated threshold) & Copy-level fidelity, same regime as FPR & RF, both ratios; XGBoost, one of two ratios tested \\
+    TPR loss, RF, at distance (jitter 0.3--1.5) & No copy-level fidelity needed; confirmed by a separate 15-seed, 6-cell family (not the 36-cell grid) & RF, all 3 jitters tested, both ratios (not tested for XGBoost) \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -170,14 +185,13 @@ conflict is.
 This test was run at one pre-specified jitter (0.7), not swept across the grid in
 Section~\ref{sec:attack}'s correction; as a family of four comparisons it needs no correction
 beyond what it already clears, even judged by the stricter of the two standards used in this
-paper. Section~\ref{sec:attack}'s broader grid sweep, judged against the much larger family of
-36 simultaneous tests it runs, could not confirm a damaging effect at this same distance on its
-own — the two results do not disagree; they answer different questions (whether the conflict
-matters at one pre-registered distance, versus whether damage at that distance is confirmed
-against the larger family the grid sweep tests) held to the correction each question's own
-family of tests requires. Five seeds is low statistical power for either family. The honest
-reading is that this test \textbf{found an effect at one pre-specified distance that the grid
-sweep has not yet confirmed generalises} — unconfirmed, not absent.
+paper. Section~\ref{sec:attack}'s broader 36-cell grid sweep, at 5 seeds, could not confirm a
+damaging effect at this same distance on its own — not because the effect is absent, but because
+that family's power was too low at that seed count. A dedicated 15-seed follow-up targeted
+exactly this question (RF, jitter 0.3--1.5, both ratios, a 6-cell family) and confirms it: all
+six cells survive Holm correction (Section~\ref{sec:attack}). The two readings do not disagree;
+the smaller, better-powered family answers the question the larger one lacked the seeds to
+settle.
 
 \begin{figure*}[t]
   \centering
@@ -198,24 +212,26 @@ sweep has not yet confirmed generalises} — unconfirmed, not absent.
   \textbf{(b)} Median realized distance (log), this paper's original capability axis: it still
   separates the far end of the grid (e.g.\ jitter 0.03 from 1.5), where twin fraction is
   uniformly zero, but it cannot resolve the cliff itself — it moves by about 1\% across the same
-  jitter step where the FPR damage collapses. RF's TPR drop, after Holm correction
-  (Section~\ref{sec:attack}), is confirmed only at raw fidelity as well; the apparent recovery at
-  large jitter visible here is an observed, unconfirmed pattern.}
+  jitter step where the FPR damage collapses. RF's TPR drop is confirmed, after Holm correction,
+  both at raw fidelity (36-cell grid family) and across jitter 0.3--1.5 (separate, better-powered
+  15-seed follow-up, Section~\ref{sec:attack}); the FPR channel does not share this — it remains
+  confirmed only at copy-level fidelity.}
   \label{fig:f3-damage-vs-fidelity}
 \end{figure*}
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/F4_a1_trajectory.pdf}
-  % Source: results/phase0/loop/cicids/jobs/*.csv (per-seed, per-round; undefended, tau=0).
+  % Source: results/phase0/loop/cicids_recal/jobs/*.csv (per-seed, per-round; tau=0.1, DECISIONS.md s26).
   % Regenerated by: python scripts/run.py figures --only F4  (experiments/paper_figures.py:fig_f4)
   \caption{A1 on CICIDS2017 at poison ratio 0.2, per round: fixed-threshold FPR (left) and
   recalibrated-threshold TPR (right), RF and XGBoost, by realized mimicry fidelity (light to
   dark). Dashed: control mean $\pm2$\,sd across seeds. Only the two lowest-fidelity curves
-  (realized NN 0.011, 0.014) separate from control on FPR. On RF's TPR, only the lowest-fidelity
-  curve is confirmed after Holm correction (Section~\ref{sec:attack}); other curves move in the
-  raw means shown here but that movement is not distinguishable from chance at this correction
-  level.}
+  (realized NN 0.011, 0.014) separate from control on FPR — the FPR channel is confirmed only at
+  copy-level fidelity. RF's TPR is different: confirmed both at the lowest-fidelity curve and,
+  by a separate 15-seed follow-up (Section~\ref{sec:attack}), across jitter 0.3--1.5 — visible
+  here as every mid-to-high-fidelity curve moving together, which is now a confirmed effect, not
+  raw-mean noise.}
   \label{fig:f4-trajectory}
 \end{figure*}
 
@@ -235,8 +251,9 @@ sweep has not yet confirmed generalises} — unconfirmed, not absent.
   stamped malicious. \textbf{junk}: marginal-shuffled bulk, stamped malicious (run under the
   separate jitter-1.5 sweep). Error bars: sd over seeds. Band: the control's own $\pm2\sigma$.
   Only A1 — the arm with the label conflict — moves outside it, and clears its own pre-specified
-  4-test family; the same cell does not survive the larger 36-test grid-sweep correction
-  (Section~\ref{sec:attack}), so this result is reported as an effect found at this one distance,
-  not yet confirmed to generalise.}
+  4-test family; the same cell did not survive the larger, lower-power 36-test grid-sweep
+  correction, but a dedicated 15-seed follow-up targeting this same distance range confirms the
+  effect generalises across jitter 0.3--1.5, not just at this one point
+  (Section~\ref{sec:attack}).}
   \label{fig:f5-mechanism}
 \end{figure}

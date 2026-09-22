@@ -23,10 +23,12 @@ threshold policy decides where that damage surfaces, not whether it does:
 fixed-threshold detectors take it as false positives, recalibrated ones take it as
 lost detection (TPR); recalibrating moves the damage, it does not remove it. After
 Holm correction across the full grid, both models show the TPR-loss form of the
-damage at copy-level fidelity (RF at both poison ratios tested, XGBoost at one); a
-pre-specified single-distance test found an effect further out for RF, but the full
-grid sweep does not confirm it generalises past that one distance, at the power five
-seeds give it — reported as unconfirmed, not absent. Label-consistency defenses fail
+damage at copy-level fidelity (RF at both poison ratios tested, XGBoost at one). For
+RF specifically, a separate, targeted 15-seed follow-up confirms the TPR-loss form
+also holds across a far-jitter range (0.3-1.5) that a lower-powered 36-cell sweep at
+5 seeds could not resolve — not a second mechanism, the same one, present at more of
+the distance range than the first pass could show. The FPR channel does not share
+this: it stays confirmed only at copy-level fidelity, for both models. Label-consistency defenses fail
 structurally, because the poison agrees with the defender's own labelling policy.
 Cost-of-influence weighting, initially our proposed defense, is a measured negative
 result: it does not beat a no-skill baseline. A one-line cap on the honeypot's share
@@ -45,8 +47,9 @@ near-duplicates of real benign traffic rather than by literal duplicates.
    FPR or TPR damage depending on the threshold policy in force, not two independent
    channels; damage as a function of measured mimicry fidelity (twin fraction, not a
    jitter knob or an unresolving median distance), held to a pre-registered,
-   multiple-comparison-corrected significance bar, with a separate pre-specified
-   single-distance result reported honestly as unconfirmed at scale.
+   multiple-comparison-corrected significance bar throughout, including a targeted
+   15-seed follow-up that confirms RF's TPR-loss damage at distance (jitter 0.3-1.5),
+   not only at copy fidelity, where a larger but lower-powered family could not.
 3. The policy-consistency blind spot: why loss-based and other label-consistency
    defenses recover ~0% here.
 4. A defense comparison against a proper no-skill baseline: cost-of-influence
@@ -104,9 +107,10 @@ near-duplicates of real benign traffic rather than by literal duplicates.
   TPR loss, in both models tested, at copy-level fidelity (RF both ratios, XGBoost
   ratio 0.5). Recalibrating relocates the damage, it does not remove it.
 - Figure 5's pre-specified single-distance test (RF, ratio 0.2, jitter 0.7) found an
-  effect and clears its own 4-test family; the 36-test grid sweep does not confirm it
-  generalises past that one distance at 5-seed power — state both, call it
-  unconfirmed, not absent. (§26.4, if run: whether it now generalises.)
+  effect and clears its own 4-test family; the 36-test grid sweep at 5 seeds could not
+  confirm it generalises past that one distance. §26.6/§26.8's targeted 15-seed
+  follow-up (6-cell family, jitter 0.3-1.5 x ratio 0.2/0.5) settles it: all 6 cells
+  survive Holm correction — confirmed, not the earlier "unconfirmed."
 - Mechanism isolation: a1truth, s0j, junk all null.
 - XGBoost FPR channel seed-dependent, reported per seed.
 - Source: §17, §19, §22, §23, §26.1, §26.3, §26.4, results/phase0/loop/,
@@ -165,9 +169,12 @@ D1 definition and full grid (§20, §24); XGBoost per-seed trajectories; padding
 - Do not claim: D1 is effective; ShareCap "beats" others (it's undominated); real
   attackers do this; the cliff location generalises across datasets; any S0 learning
   claim on CICIDS; session-level cost weighting works; the CICIDS split is temporal;
-  the attack works at distance (confirmed only at copy-level fidelity, RF's far-jitter
-  pattern is unconfirmed pending §26.6); a model-dependent ("RF-only") TPR channel
-  (XGBoost survives Holm correction at ratio 0.5, jitter 0).
+  the FPR channel works at distance (confirmed only at copy-level fidelity, for both
+  models); a model-dependent ("RF-only") TPR channel (XGBoost survives Holm correction
+  at ratio 0.5, jitter 0); XGBoost's TPR channel works at distance (not tested — the
+  §26.6/§26.8 distance follow-up covers RF only). RF's TPR-loss channel at distance
+  (jitter 0.3-1.5) IS confirmed (§26.8, 15 seeds, 6-cell Holm family) — do not
+  undersell this one back down to "unconfirmed."
 
 ## Open items
 - [x] §25.5 cap curve
