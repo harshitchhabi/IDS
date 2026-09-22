@@ -2178,3 +2178,32 @@ new run. This includes the explicitly-noted open questions already on record: ji
 damage status at higher seed count, XGBoost's at-distance TPR behaviour, and any mechanism for
 why RF's confirmed at-distance effect (s26.8/s26.9) holds across 0.3-1.5 rather than only at copy
 fidelity. The remaining work is drafting, verification, and packaging.
+
+### 26.11 Verification-pass corrections: three small transcription errors found and fixed
+
+Full-paper number-check (every number against its cited source), requested before freezing.
+Found four small discrepancies, three pre-existing in this log and one specific to the new
+distance-follow-up table; all are rounding/transcription errors of at most 1 percentage point,
+none change any conclusion. Fixed at the paper level; recorded here since two originate in this
+log's own tables.
+
+1. **s26.8/s26.9's "-0.101" (jitter 0.3, ratio 0.2, 15 seeds, mean delta_tpr) should be -0.100.**
+   `results/phase0/loop/s26_distance_followup.csv` computes -0.1004998..., which rounds to
+   -0.100, not -0.101. Transcription error when the table was first written; does not change
+   significance (t=-6.68 either way) or the confirmation result.
+2. **s24.1's defense-comparison table: loss filter's CICIDS retention is 97%, not 98%.**
+   `frontier_points.csv` gives `retention_cicids r0.2 = 0.9748` for the loss defense, which
+   rounds to 97%.
+3. **s24.1: D1q (q=0.99, gamma=2)'s CICIDS retention is 64%, not 65%.**
+   `frontier_points.csv` gives `retention_cicids r0.2 = 0.6446` for `d1q_q0.99_g2`, which rounds
+   to 64%.
+4. **The "53% of fit" figure for loss filter's overhead (used in an uncited spot in s24.1) does
+   not match any source and is dropped.** `results/phase0/defense/overhead.csv` gives loss
+   filter's overhead as 30% of fit time for RF and 56% for XGBoost (s21.3's own "0.68s (30% RF,
+   56% XGBoost)" already had this right); the defense-comparison table is XGBoost throughout, so
+   the paper now cites 56%, sourced directly from overhead.csv rather than repeating the
+   unsourced 53%.
+
+None of these bear on any confirmed/unconfirmed claim, correction result, or defense ranking in
+this paper -- they are cosmetic rounding fixes caught by an exhaustive number-check pass, listed
+here for the record per this project's "every number traces" rule.
