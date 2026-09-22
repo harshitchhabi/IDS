@@ -134,6 +134,11 @@ def cmd_cowrie(a) -> int:
     return cowrie_control(a.action)
 
 
+def cmd_figures(a) -> int:
+    from experiments.paper_figures import main as figures_main
+    return figures_main(["--only", *a.only] if a.only else [])
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -150,6 +155,9 @@ def main() -> int:
     c = sub.add_parser("cowrie")
     c.add_argument("action", nargs="?", default="up", choices=["up", "down", "status"])
     c.set_defaults(fn=cmd_cowrie)
+    f = sub.add_parser("figures", help="regenerate every paper figure from committed CSVs (no re-runs)")
+    f.add_argument("--only", nargs="+", choices=["F2", "F3", "F4", "F5", "F6"], default=None)
+    f.set_defaults(fn=cmd_figures)
     a = ap.parse_args()
     return a.fn(a)
 

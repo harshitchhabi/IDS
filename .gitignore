@@ -29,3 +29,7 @@ htmlcov/
 
 # Experiment scratch
 /results/**/*.tmp
+
+# LaTeX toolchain (downloaded locally, not part of the repo) and build output
+.tools/
+paper/main.pdf

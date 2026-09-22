@@ -1,0 +1,28 @@
+\section{Methodology}
+\label{sec:methodology}
+% Budget: 1.25 pages.
+% - The loop: rounds, retention, budget mode, cold-start retraining. DECISIONS.md s7, s18.
+% - Datasets and partitions: four disjoint partitions, (day, family) split, four eval arms.
+%   DECISIONS.md s1, s3, s10.
+% - Leakage guards (s2, s11); burst splitting to appendix (s14).
+% - Threshold policy: fixed vs recalibrated, twin-free calibration fix. s5, s19.1.
+% - One weight channel (s6). Seeds, determinism (s8).
+% - Arms: control, S0, A1, plus null controls a1truth, s0j, junk. s19.2, s23.
+% TODO: prose.
+
+\begin{table}[t]
+  \centering
+  \caption{TODO: partitions and row counts per dataset. Source: results/phase0/*/partition\_summary.csv,
+  results/phase0/*/partitions.md (condensed).}
+  \label{tab:partitions}
+  \begin{tabular}{lrr}
+    \toprule
+    Partition & CICIDS2017 & Synthetic \\
+    \midrule
+    seed\_train & TODO & TODO \\
+    prod\_benign & TODO & TODO \\
+    honeypot\_pool & TODO & TODO \\
+    trusted\_eval & TODO & TODO \\
+    \bottomrule
+  \end{tabular}
+\end{table}
