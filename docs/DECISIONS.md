@@ -1848,6 +1848,52 @@ repeat at ratio 0.5 (same jitters: |t| < 2, mixed sign). Reading XGBoost's row a
 imprecise; the honest statement is "no channel in the damaging direction, though the model's
 TPR is not perfectly stable under poisoning either" -- s6 is corrected to say this.
 
+**Erratum to the two paragraphs above: the significance calls do not survive correction for
+multiple comparisons.** The 28 tests in the table (later extended to 36 with the two jitters
+added in s26.2) are one family -- the claim under test is "does A1 damage the TPR channel
+anywhere on this grid" -- and reading off which individual cells clear an uncorrected p < 0.05
+inflates the false-positive rate across 28-36 simultaneous tests well past 5%. Holm-Bonferroni
+step-down correction (family-wise alpha = 0.05, ranked by p-value, `p_(k) < 0.05 / (m - k + 1)`)
+applied to all 36 (model x ratio x jitter) cells for delta_tpr:
+
+| rank | model | ratio | jitter | mean delta_tpr | t | p | Holm threshold | survives |
+|---:|---|---:|---:|---:|---:|---:|---:|---|
+| 1 | rf | 0.2 | 0.000 | -0.140 | -20.32 | 0.00003 | 0.00139 | **yes** |
+| 2 | rf | 0.5 | 0.000 | -0.282 | -16.57 | 0.00008 | 0.00143 | **yes** |
+| 3 | xgboost | 0.5 | 0.000 | -0.219 | -8.49 | 0.00105 | 0.00147 | **yes** |
+| 4 | xgboost | 0.2 | 0.030 | +0.077 | +7.35 | 0.00182 | 0.00152 | no |
+| 5 | xgboost | 0.2 | 0.010 | +0.073 | +7.15 | 0.00203 | 0.00156 | no |
+| 6 | rf | 0.5 | 1.500 | -0.095 | -6.95 | 0.00225 | 0.00161 | no |
+| 7 | rf | 0.2 | 0.700 | -0.109 | -6.34 | 0.00316 | 0.00167 | no |
+| 8 | rf | 0.2 | 1.500 | -0.103 | -6.02 | 0.00382 | 0.00172 | no |
+| ... | | | | (28 more, all p >= 0.004, all fail) | | | | no |
+
+**Only three of 36 cells survive: RF at both ratios and XGBoost at ratio 0.5, all at jitter 0
+(raw copy fidelity).** Nothing at the far end of the grid survives -- not rank 6, 7, or 8 above,
+not any jitter >= 0.3 at either ratio for either model. The pre-registered bar set for this
+correction (agreed before running it: the far-end claim stands only if it holds at both ratios
+and at least two adjacent jitters, after correction) is not met. **"Works at every distance
+tested" and "present at the near and far ends of the grid" (both stated above, and in s6) are
+withdrawn.** What is left, at the correction level this family of tests supports: a robust TPR
+effect at raw copy fidelity, for RF at both ratios and XGBoost at one of two ratios tested (not
+at ratio 0.2 -- XGBoost's own jitter-0 cell, t = -2.58, p = 0.061, does not clear even its own
+uncorrected threshold). The apparent recovery at large jitter in RF's raw means (Figure 3,
+right column) is visually real and reproduces at both ratios, but this correction cannot
+distinguish it from chance given the number of comparisons made; it is reported as an
+**observed, unconfirmed pattern**, not a second established channel. No mechanism for it is
+proposed.
+
+**A separate, smaller family is not affected by this.** Section 6's mechanism-isolation result
+(a1 vs. a1truth vs. s0j vs. junk, one fixed jitter, ratio 0.2, Figure 5) tests four arms against
+each other under a design that holds jitter fixed and varies only what the poison *is* -- a
+family of 4 comparisons, not 36, and even a Bonferroni correction within that family of 4
+(threshold 0.0125) is cleared by a1's t = -6.3, p = 0.0032. That result stands on its own terms.
+It happens to use the same underlying (rf, ratio 0.2, jitter 0.7) cell that fails the 36-test
+correction above -- the same t-statistic is significant or not depending on which family of
+tests it is judged against, which is not a contradiction, it is what multiple-comparison
+correction means: the mechanism-isolation section asked one pre-specified question at one
+distance, and this section swept a whole grid.
+
 ### 26.2 Locating the cliff finer: the median x-axis cannot resolve it; p5 can
 
 Optional follow-up to s26: two finer jitter settings (0.002, 0.005), ratios 0.2 and 0.5, RF and
