@@ -193,8 +193,58 @@ def fig_f2() -> None:
     save(fig, "F2_nn_by_family")
 
 
-# ---- F3: damage vs realized mimicry distance (tau=0.1 re-run) ---------------------------------
+def _twin_fraction_by_jitter() -> pd.Series:
+    """DECISIONS.md s26.3: twin fraction (share of poison rows within RMS delta=0.0015 of a
+    trusted_eval benign row) by jitter, from the committed CSV -- delta chosen from the s26.2
+    p5 gap between jitter 0 and jitter 0.002, not re-derived here."""
+    tf = pd.read_csv(ROOT / "cicids" / "twin_fraction_by_jitter.csv")
+    return tf.set_index("jitter")["twin_fraction"]
+
+
+# ---- F3: damage vs twin fraction (tau=0.1 re-run) ----------------------------------------------
 def fig_f3() -> None:
+    """Primary capability-axis figure: twin fraction (s26.3), a near-step function of jitter that
+    resolves the cliff the median distance cannot (s26.2). Median distance is kept as the
+    appendix figure `fig_f3_median_appendix`."""
+    df = _load_recal()
+    floor = _control_floor_recal(df)
+    dm = _paired_damage_recal(df, floor)
+    twin = _twin_fraction_by_jitter()
+    dm["twin_fraction"] = dm.jitter.map(twin)
+    ratios = sorted(dm.poison_ratio.unique())
+    models = ("rf", "xgboost")
+    # symlog: twin fraction is exactly 0 for jitter >= 0.005 (s26.3), so a log axis cannot be
+    # used directly; linthresh sits an order of magnitude below the smallest nonzero value
+    # (0.00345 at jitter 0.002) so that value still resolves off the zero line.
+    linthresh = 3e-4
+    fig, axes = plt.subplots(2, 2, figsize=(PAGE_W, 4.9), sharex=True)
+    for i, model in enumerate(models):
+        for j, (mode, col, ylab, sgn) in enumerate((
+                ("fixed", "delta_fpr", "FPR increase vs control", 1),
+                ("recalibrated", "delta_tpr", "TPR drop vs control", -1))):
+            ax = axes[i, j]
+            sub = dm[(dm.model == model) & (dm.threshold_mode == mode)]
+            sig = sub["sigma_control_fpr" if mode == "fixed" else "sigma_control_tpr"].iloc[0]
+            ax.axhspan(-2 * sig, 2 * sig, color=MUT, alpha=0.2, lw=0)
+            for k, r in enumerate(ratios):
+                g = sub[np.isclose(sub.poison_ratio, r)].sort_values("twin_fraction")
+                ax.plot(g.twin_fraction, sgn * g[col], marker="o", ms=3.5, lw=1.3,
+                        color=SEQ_BLUE[min(k, len(SEQ_BLUE) - 1)], label=f"ratio {r:g}")
+            ax.set_xscale("symlog", linthresh=linthresh)
+            ax.set_xlim(-linthresh * 0.5, 0.2)
+            ax.set_title(f"{model}: {ylab}", fontsize=8.5, loc="left")
+            _style(ax)
+    for ax in axes[1]:
+        ax.set_xlabel("twin fraction (share within 0.0015 RMS\nof a trusted benign row, symlog)", fontsize=8)
+    axes[0, 0].legend(fontsize=6, frameon=False, title="final poison ratio", title_fontsize=6, ncol=2)
+    fig.tight_layout()
+    save(fig, "F3_damage_vs_fidelity")
+
+
+# ---- F3 appendix: damage vs median realized distance (superseded primary axis, s26.2/26.3) -----
+def fig_f3_median_appendix() -> None:
+    """Kept as an appendix figure: median realized distance still separates the far end of the
+    grid (jitter 0.03 vs 1.5) where twin fraction is uniformly zero and cannot. s26.2/26.3."""
     df = _load_recal()
     floor = _control_floor_recal(df)
     dm = _paired_damage_recal(df, floor)
@@ -218,10 +268,10 @@ def fig_f3() -> None:
             ax.set_title(f"{model}: {ylab}", fontsize=8.5, loc="left")
             _style(ax)
     for ax in axes[1]:
-        ax.set_xlabel("realized mimicry distance (log)", fontsize=8)
+        ax.set_xlabel("realized mimicry distance, median (log)", fontsize=8)
     axes[0, 0].legend(fontsize=6, frameon=False, title="final poison ratio", title_fontsize=6, ncol=2)
     fig.tight_layout()
-    save(fig, "F3_damage_vs_fidelity")
+    save(fig, "F3b_damage_vs_median_distance_appendix")
 
 
 # ---- F4: A1 trajectories, fixed vs recalibrated (tau=0.1 re-run) ------------------------------
@@ -459,7 +509,8 @@ def fig_f6() -> None:
     save(fig, "F6_frontier")
 
 
-FIGURES = {"F2": fig_f2, "F3": fig_f3, "F4": fig_f4, "F5": fig_f5, "F6": fig_f6}
+FIGURES = {"F2": fig_f2, "F3": fig_f3, "F3b": fig_f3_median_appendix, "F4": fig_f4, "F5": fig_f5,
+          "F6": fig_f6}
 
 
 def main(argv: list[str] | None = None) -> int:

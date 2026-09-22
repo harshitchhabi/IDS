@@ -12,28 +12,43 @@ template and page limit before day 4 — the page budgets below assume 8 pages.
 
 ## The claim, in one paragraph
 Honeypot–IDS integrations increasingly retrain the detector on honeypot traffic,
-auto-labelled malicious by policy, as a free source of ground truth. That turns the
-honeypot into a write channel the attacker controls. We show the resulting attack
-works through one mechanism, label conflict, with two channels: a false-positive
-channel that needs the attacker to reproduce benign traffic almost exactly, and a
-detection-loss channel (in random forests) that works at any distance we tested.
+auto-labelled malicious by policy, as a free source of ground truth. Paragraph and
+Perdisci et al. showed this attack class on signature generators trained on
+honeynet-flagged traffic nearly two decades ago; current honeypot-fed ML retraining
+loops reintroduce the same design without evaluating the threat. We characterise the
+attack on a modern loop: one mechanism, label conflict, with two channels. The
+false-positive channel needs the attacker to reproduce benign traffic almost
+exactly (quantified as twin fraction, the share of poison within a tight distance of
+real benign traffic) and >=10-20% poison share; after Holm correction across the full
+grid, a random-forest detection-loss channel is confirmed only at that same
+copy-level fidelity, not at every distance tested, and an apparent recovery at large
+mimicry distance is reported as an unconfirmed pattern with no mechanism proposed.
 Label-consistency defenses fail structurally, because the poison agrees with the
-defender's own labelling policy. Cost-of-influence weighting, our proposed defense,
-does not beat a no-skill baseline; a one-line cap on the honeypot's share of the
-training set is undominated by every defense we tested. Along the way we measure that
-CICIDS2017 is near-degenerate in flow-feature space, which limits what it can show.
+defender's own labelling policy. Cost-of-influence weighting, initially our proposed
+defense, is a measured negative result: it does not beat a no-skill baseline. A
+one-line cap on the honeypot's share of the training set is undominated by every
+defense we tested. Along the way we measure that CICIDS2017 is near-degenerate in
+flow-feature space, which limits what it can show, and that the FPR channel's damage
+on this dataset is driven by near-duplicates of real benign traffic rather than by
+literal duplicates.
 
 ## Contributions
 1. Threat model: auto-labelled honeypot data as an attacker-controlled write channel
-   into IDS training.
+   into IDS training, characterised (mechanism, channels, null controls) on a modern
+   honeypot-fed retraining loop, the design Paragraph/Perdisci's signature-generator
+   attack targeted but that current honeypot+ML systems reintroduce unevaluated.
 2. The attack characterised: one mechanism, two channels, isolated with matched null
-   controls; damage as a function of measured mimicry distance, not a jitter knob.
+   controls; damage as a function of measured mimicry fidelity (twin fraction, not a
+   jitter knob or an unresolving median distance), held to a pre-registered,
+   multiple-comparison-corrected significance bar.
 3. The policy-consistency blind spot: why loss-based and other label-consistency
    defenses recover ~0% here.
-4. A defense comparison against a proper no-skill baseline: cost weighting fails to
-   beat it; a share cap is undominated and costs essentially nothing.
-5. A measurement of CICIDS2017 degeneracy under CICFlowMeter features, and what that
-   means for claims made on it.
+4. A defense comparison against a proper no-skill baseline: cost-of-influence
+   weighting (not claimed as a novel contribution — a measured negative result) fails
+   to beat it; a share cap is undominated and costs essentially nothing.
+5. A measurement of CICIDS2017 degeneracy under CICFlowMeter features, including that
+   the FPR channel's damage traces to near-duplicate (not exact-duplicate) benign
+   rows, and what that means for claims made on it.
 
 ## Sections
 
@@ -78,8 +93,11 @@ CICIDS2017 is near-degenerate in flow-feature space, which limits what it can sh
 ### 6. The attack — 1.5 pages
 - S0 works: honeypot_only 0.4 -> 0.99 on synthetic.
 - A1 damage vs mimicry distance: cliff at ~0.011-0.014 for the FPR channel.
-- Two channels (§23 table): FPR needs copy fidelity and >=10-20% poison; RF's TPR
-  channel works at every distance tested; XGBoost has no TPR channel.
+- Two channels (§26.1 Holm-corrected table): FPR needs copy fidelity (twin fraction
+  >>0) and >=10-20% poison; RF's TPR channel is confirmed only at copy fidelity after
+  Holm correction across the full grid, not at every distance tested; an apparent
+  recovery at large jitter is an observed, unconfirmed pattern, no mechanism
+  proposed; XGBoost has no TPR channel.
 - Mechanism isolation: a1truth, s0j, junk all null.
 - Recalibrating trades FPR damage for TPR loss.
 - XGBoost FPR channel seed-dependent, reported per seed.
