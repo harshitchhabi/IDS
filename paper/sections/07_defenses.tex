@@ -164,22 +164,26 @@ more flows, bracketed by the ratio grid tested (Appendix~\ref{sec:appendix}).
   reported at ratio 0.05 / 0.2; retention (CICIDS) at ratio 0.2. ShareCap's overhead is of the
   same order as D1's (a weight recomputation, no auxiliary model); not separately profiled.}
   % Source: results/phase0/frontier/frontier_points.csv (recovery_r0.5, recovery_r0.9,
-  % retention_synthetic/cicids columns -- DECISIONS.md s24.1 table) + s21.3/s25.1 overhead
-  % (D1 0.000216 s/round, kNN 0.168 s/round at ratio 0.5, loss filter 53% of fit time).
+  % retention_synthetic/cicids columns) + results/phase0/defense/overhead.csv (D1 0.000216
+  % s/round, kNN 0.168 s/round at ratio 0.5, loss filter 0.676 s/round, 56% of XGBoost's own
+  % fit time -- 30% for RF, not used here since this table is XGBoost throughout; DECISIONS.md
+  % s21.3 erratum corrects an earlier, uncited "53%" figure).
   % ShareCap c=0.05 row: DECISIONS.md s25.3 (recomputed fresh from raw job CSVs in
   % experiments/paper_figures.py:_sharecap_curve, not from frontier_points.csv's cap subset).
+  % Retention CICIDS 0.2: loss filter 97% (0.9748, not 98%) and D1q 64% (0.6446, not 65%)
+  % corrected against frontier_points.csv (DECISIONS.md s24.1 erratum).
   \label{tab:defense-comparison}
   \small
   \begin{tabular}{lrrrrr}
     \toprule
     Defense & Recovery r0.5 & Recovery r0.9 & Retention CICIDS 0.2 & Retention synthetic 0.05 / 0.2 & Overhead / round \\
     \midrule
-    Loss filter                        & $-$0.5\% & n/a   & 98\% & 100\% / 100\% & 0.68\,s (53\% of fit) \\
+    Loss filter                        & $-$0.5\% & n/a   & 97\% & 100\% / 100\% & 0.68\,s (56\% of fit) \\
     Uniform $w=0.05$ (no skill)        & 99.8\%   & 52\%  & 71\% & 71\% / 96\%   & negligible \\
     Uniform $w=0.1$ (no skill)         & 98.9\%   & 43\%  & 74\% & 91\% / 98\%   & negligible \\
     kNN sanitize                       & 98.9\%   & 99.1\% & 66\% & 42\% / 78\%  & 0.168\,s \\
     D1 (pre-registered)                & 92.9\%   & 86.3\% & 66\% & 10\% / 58\%   & 0.000216\,s \\
-    D1q ($q{=}0.99,\gamma{=}2$)        & 100\%    & 98.7\% & 65\% & 67\% / 94\%   & 0.000216\,s \\
+    D1q ($q{=}0.99,\gamma{=}2$)        & 100\%    & 98.7\% & 64\% & 67\% / 94\%   & 0.000216\,s \\
     D1fixed (no trusted data)          & 94.2\%   & n/a    & 65\% & 56\% / 93\%   & 0.000216\,s \\
     ShareCap ($c=0.05$)                & 99.9\%   & 100.0\% & 81\% & 100\% / 99\%  & $\sim$D1 \\
     \bottomrule
