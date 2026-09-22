@@ -2092,3 +2092,43 @@ delta chosen too loosely lags the effect it is meant to track. This is reported 
 paper (the appendix delta-sensitivity table in the appendix) rather than described as "robust
 to the choice of delta" -- it is robust to a 1.5x change (0.0015 -> 0.001) but not to a 2x change
 in the other direction (0.0015 -> 0.003).
+
+### 26.8 The RF at-distance follow-up (s26.6) result: confirmed
+
+Ran the pre-registered family (s26.6): RF, recalibrated TPR, jitter $\in\{0.3,0.7,1.5\}$ x ratio
+$\in\{0.2,0.5\}$, 15 seeds (5 existing + 10 new), paired t (A1 vs. same-seed control, final
+round), Holm-Bonferroni within this 6-cell family only.
+
+| rank | jitter | ratio | n seeds | mean delta_tpr | t | p | Holm threshold | survives |
+|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 1 | 1.5 | 0.5 | 15 | -0.114 | -13.81 | 1.5e-09 | 0.00833 | **yes** |
+| 2 | 1.5 | 0.2 | 15 | -0.116 | -11.75 | 1.2e-08 | 0.01000 | **yes** |
+| 3 | 0.7 | 0.2 | 15 | -0.126 | -11.28 | 2.1e-08 | 0.01250 | **yes** |
+| 4 | 0.7 | 0.5 | 15 | -0.130 | -6.82  | 8.3e-06 | 0.01667 | **yes** |
+| 5 | 0.3 | 0.2 | 15 | -0.101 | -6.68  | 1.0e-05 | 0.02500 | **yes** |
+| 6 | 0.3 | 0.5 | 15 | -0.047 | -3.56  | 3.1e-03 | 0.05000 | **yes** |
+
+**All six cells survive.** The pre-registered confirmation bar -- at least 2 adjacent jitters
+surviving at both ratios -- is exceeded: all 3 jitters tested (0.3, 0.7, 1.5) survive at both
+ratios. **RF's at-distance TPR-loss pattern is confirmed**, at 15 seeds, across the whole
+far-jitter range tested (0.3 through 1.5), not just at copy-level fidelity. This reverses the
+"unconfirmed, not absent" reading in s26.1/s26.5, which was based on 5 seeds and a 36-cell
+family; more seeds and a smaller, targeted family were enough to resolve what the larger,
+lower-power family could not. No mechanism is proposed for why the effect is present across
+0.3-1.5 rather than only at copy fidelity; that remains an open question this result does not
+answer, only confirms is real.
+
+**What this does not change:** the FPR channel (fixed threshold) still needs copy-level fidelity
+-- this result is specific to RF's recalibrated-threshold TPR channel and does not extend to
+FPR, and does not extend to XGBoost (not tested in this family; s26.1 found no XGBoost effect at
+any distance in the original 36-cell sweep). It also does not relabel Figure 5's single-distance
+result as newly significant -- that result (jitter 0.7, ratio 0.2, original 5 seeds) was already
+significant within its own small family; what changes is that the broader question the 36-cell
+family could not answer ("does this generalise across the grid") now has a confirmed yes, at
+higher seed count, for RF's recalibrated TPR specifically.
+
+**Paper update:** Table 2, Section 6's "one mechanism, surfaced by the threshold policy"
+subsection, and PAPER_PLAN.md are updated to state RF's TPR-loss channel is confirmed across the
+tested far-jitter range (0.3-1.5), not just at copy fidelity, with the 15-seed, 6-cell,
+Holm-corrected result cited. The single-distance framing for Figure 5 stays as previously
+written since it is a different (smaller, older) test.
