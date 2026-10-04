@@ -98,7 +98,8 @@ D1 prices a honeypot row's influence by attacker effort. Per-flow cost is
 $x_i = (d_i, p_i, b_i, s_i)$ — duration, packet count, byte count, and protocol-state depth
 $s_i = \min(\text{fwd packets}, \text{bwd packets})$. Each component is scaled by its reference
 $r_k$, the median of that component over \texttt{seed\_train}'s benign rows (trusted, defender-owned):
-effort is the geometric mean $e_i = \prod_k (1 + x_{ik}/r_k)^{1/4} - 1$, so $e_i=0$ only if every
+effort is the geometric mean $e_i = \left[\prod_k \left(1 + x_{ik}/r_k\right)^{1/4}\right] - 1$,
+so $e_i=0$ only if every
 component is zero, $e_i=1$ for a flow that costs a median benign flow's worth in every component,
 and $e_i$ is invariant to the units of each component. Weight saturates as
 $w_i = \min(1, (e_i/E^*)^\gamma)$; the pre-registered default $E^*=8,\gamma=2$ gives a median
@@ -151,10 +152,13 @@ hides this: XGBoost's round-10 mean is dragged up by two seeds while three show 
 all, which is a bimodal outcome, not a noisy estimate of one common trajectory. Every mean
 XGBoost number elsewhere in this paper should be read with that in mind.
 
-\begin{table}[t]
+\begin{table*}[t]
   \centering
   \caption{Fixed-threshold FPR by seed and round, ratio 0.5, raw fidelity, both models.}
   % Source: DECISIONS.md s25.6 (results/phase0/loop/cicids_recal/jobs/a1_{model}_s*_j0.0_r0.5_vt0.1.csv).
+  % table* (full width): 10 columns did not fit a single acmart column at \small and silently
+  % overflowed into the adjacent column instead of wrapping -- caught in a page-by-page visual
+  % check, not by a LaTeX warning.
   \label{tab:xgb-seeds-full}
   \small
   \begin{tabular}{llrrrrrrrr}
@@ -173,7 +177,7 @@ XGBoost number elsewhere in this paper should be read with that in mind.
     RF & 5 & 0.042 & 0.284 & 0.647 & 0.729 & 0.779 & 0.836 & 0.880 & 0.917 \\
     \bottomrule
   \end{tabular}
-\end{table}
+\end{table*}
 
 \subsection{Cost padding: the adversary's counter-move that does not work}
 % Source: DECISIONS.md s21.6.
