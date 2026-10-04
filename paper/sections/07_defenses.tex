@@ -129,10 +129,11 @@ itself, and no knowledge of the poison ratio.
 % D1's weight on poison but moves it off copy fidelity, where A1's damage already lives -- so
 % padding fails against the UNDEFENDED loop too, and is not itself evidence for D1: the
 % fidelity break does that on its own. The attacker's real counter-move is volume, not padding.
-Against D1 specifically, an attacker forced to keep copy-level fidelity (where A1's damage
-lives, Section~\ref{sec:attack}) cannot pad individual flows to buy weight, because padding
-moves a flow away from the copy-level fidelity the damage depends on — a padded attack fails
-against the \emph{undefended} loop too, so padding is not itself evidence for D1's protection.
+Against D1 specifically, an attacker forced to keep copy-level fidelity — where the FPR channel's
+damage lives, the surface this defense comparison measures (Section~\ref{sec:attack}) — cannot
+pad individual flows to buy weight, because padding moves a flow away from the copy-level
+fidelity that damage depends on — a padded attack fails against the \emph{undefended} loop too,
+so padding is not itself evidence for D1's protection.
 The available counter-move is volume: reaching the same damage under D1 costs 4--36$\times$
 more flows, bracketed by the ratio grid tested (Appendix~\ref{sec:appendix}).
 

@@ -11,17 +11,13 @@ Intrusion Detectors" — see `paper/main.tex`'s title comment.)
 
 ## Author / affiliation
 
-`paper/main.tex` still has placeholder values (`Author One`, institution/city/country/email all
-`TBD`) — these were never filled in during drafting because they're your identity to supply, not
-something to infer or invent. Before submitting, fill in:
-- Author name(s), in the order they should appear
-- Affiliation (institution, city, country)
-- Contact email
-- The venue line (`\acmConference[AISec '26]{...}{TBD}{TBD}`) can stay as a preprint-only
-  placeholder or be removed entirely for an arXiv-only preprint — ACM's own guidance is that a
-  preprint should not claim ACM's conference formatting metadata (ISBN/DOI) until accepted, so
-  the `\acmISBN{TBD}` / `\acmDOI{TBD}` lines should either stay `TBD` or be deleted for the arXiv
-  version, not filled with placeholder-looking real-format values.
+`paper/main.tex` now has: **Harshit Chhabi, Vellore Institute of Technology, Vellore, India**,
+email `harshitchhabi@gmail.com`. City is VIT's main campus — check that's the right campus to
+list if that matters to you (VIT also has Chennai, Bhopal and AP campuses). The venue line
+(`\acmConference[AISec '26]{...}{TBD}{TBD}`) and `\acmISBN{TBD}`/`\acmDOI{TBD}` are left as TBD
+on purpose — ACM's own guidance is that a preprint should not claim ACM's conference formatting
+metadata until accepted, so these should stay `TBD` or be deleted for the arXiv version, not
+filled with placeholder-looking real-format values.
 
 ## Abstract (plain text, no LaTeX macros)
 

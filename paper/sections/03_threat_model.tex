@@ -1,48 +1,96 @@
 \section{Threat Model}
 \label{sec:threat-model}
 % CLAUDE.md threat model: honeypot-ML integrations retrain the detector on decoy traffic,
-% auto-labelled malicious by policy ("everything the honeypot sees is malicious", public), as
-% free ground truth. The unexamined assumption is that the label is trustworthy because the
-% source is a decoy; the attacker controls exactly what the decoy sees, so the honeypot is a
-% write channel into the defender's training set that the defender opens deliberately. The
-% poison budget is not a fraction the attacker must fight for -- it is the entire
-% honeypot-derived share of the training set.
+% auto-labelled malicious by policy ("everything the honeypot sees is malicious"), as free ground
+% truth. The unexamined assumption is that the label is trustworthy because the source is a
+% decoy; an attacker who knows or can infer that policy controls exactly what the decoy sees, so
+% the honeypot is a write channel into the defender's training set that the defender opens
+% deliberately. The poison budget is not a fraction the attacker must fight for -- it is the
+% entire honeypot-derived share of the training set that the attacker's traffic is admitted into.
+% Narrowed per external review: the labelling policy need not be literally public for the attack
+% to work, only known or reliably inferable by the attacker -- see "Attacker knowledge" below.
 The systems we attack retrain on two sources: a trusted seed set the defender controls, and
-whatever traffic reaches a honeypot, auto-labelled malicious by a public policy — anything a
-decoy sees is unsolicited by definition, so the argument goes, and therefore free
-ground-truth-malicious data. That argument holds only if the label is trustworthy because the
-source is a decoy. It is not: the attacker chooses exactly what the decoy sees, and the
-labelling policy is public. The honeypot is a write channel into the defender's training set,
-opened by the defender's own design. The poison budget is not a fraction the attacker has to
-fight for against a defended channel; it is the entire honeypot-derived share of the training
-set, by construction.
+whatever traffic reaches a honeypot, auto-labelled malicious by policy — anything a decoy sees is
+unsolicited by definition, so the argument goes, and therefore free ground-truth-malicious data.
+That argument holds only if the label is trustworthy because the source is a decoy. It is not,
+whenever the attacker knows or can reliably infer that policy: it can then choose exactly what
+the decoy sees, with a label it knows the defender will trust. The honeypot becomes a write
+channel into the defender's training set, opened by the defender's own design. The poison budget
+is not a fraction the attacker has to fight for against a defended channel; it is the entire
+honeypot-derived share of the training set that the attacker's admitted traffic reaches, by
+construction of the design — what fraction of \emph{all} traffic entering retraining that share
+amounts to is a separate, measured quantity (realized poison ratio, below).
 
 % DECISIONS.md s4: attacker capability. Can send arbitrary traffic to the decoy; the pool is
 % two-class (benign-shaped and attack-shaped) so A1 (point the benign generator at the decoy)
 % and S0/A4 can both be expressed from the same adversary interface; sized (~20k rows) so
 % poison ratios up to 50% are reachable with FRESH rows, not resampled duplicates -- a
 % resampled duplicate is closer to upweighting an existing sample than to injecting new poison.
-\textbf{Attacker capability.} The attacker can send arbitrary traffic to the honeypot and knows
-the public labelling policy, but cannot touch \texttt{seed\_train}, \texttt{trusted\_eval}, or
-the model directly — every effect it has on the deployed detector routes through what the
-honeypot logs. The pool it draws from is two-class, sized so poison ratios up to 50\% of the
-training set are reachable with fresh rows rather than resampled duplicates; for a tree model, a
-resampled duplicate is closer to upweighting a sample already present than to injecting new
-poison, which would understate what the attack can do.
+\textbf{Attacker capability.} The attacker can send arbitrary traffic to the honeypot, but cannot
+touch \texttt{seed\_train}, \texttt{trusted\_eval}, or the model directly — every effect it has
+on the deployed detector routes through what the honeypot logs. The pool it draws from is
+two-class, sized so poison ratios up to 50\% of the training set are reachable with fresh rows
+rather than resampled duplicates; for a tree model, a resampled duplicate is closer to
+upweighting a sample already present than to injecting new poison, which would understate what
+the attack can do.
+
+% Added per external review: knowledge was an unstated assumption; make each axis explicit and
+% say plainly which level A1 as implemented needs, rather than leaving "public" to do that work.
+\textbf{Attacker knowledge.} We separate what the attacker needs to know along four axes, rather
+than bundling them into one assumption.
+\emph{Labelling-policy knowledge} is the one the attack depends on most, and we model it at four
+levels: \emph{unknown} (the attacker has no information about how honeypot traffic is used);
+\emph{inferred} (the attacker suspects or deduces, from observing honeypot behaviour or general
+knowledge of how such systems are built, that anything the decoy logs is treated as malicious
+ground truth); \emph{known} (the attacker knows this outright, because the design is published —
+an academic description, vendor documentation, an open-source implementation — or because a
+honeypot that must be reachable to do its job cannot keep that much secret); and \emph{known +
+retraining-aware} (the attacker additionally knows or tracks the defender's retraining schedule
+well enough to time its traffic). A1 as implemented assumes the \emph{known} level: it requires
+that the attacker knows, not merely suspects, that honeypot traffic is auto-labelled malicious
+and fed into training, but it needs nothing beyond that — no retraining-schedule awareness, no
+behavioural inference from a black-box honeypot. This is a real assumption, not a vacuous one: an
+attacker who only observes the honeypot's external behaviour, without access to a description of
+the design, would have to infer the policy rather than know it, and we do not evaluate how much
+harder that makes the attack.
+\emph{Model knowledge}: none. A1 never queries the detector, computes a gradient against it, or
+otherwise interacts with it; everything it needs routes through the honeypot.
+\emph{Benign-distribution knowledge}: A1 as implemented draws its poison from benign \emph{feature
+rows} already in the attacker's reach in our experiments — the same pool the defender's own
+traffic generator uses — which assumes access to the benign class's statistics in the detector's
+own feature space. Realizing equivalent mimicry from packet-level traffic alone, without that
+feature-space access, is not demonstrated here and is left as future work
+(Section~\ref{sec:discussion}).
+\emph{Retraining-schedule knowledge}: none needed. The attack is agnostic to when retraining
+happens; it only needs its traffic admitted into whatever batch is next retrained on.
 
 % CLAUDE.md scenarios table.
 \textbf{Attacker goal.} Raise the detector's false-positive rate on production traffic, or
 suppress its detection of a real attack. \textbf{A1 (benign mimicry)}, this paper's subject,
 does the first: point the same kind of traffic generator that produces legitimate benign flows
 at the honeypot instead of production, and let the auto-labeller stamp the result malicious.
-Nothing about A1 requires the attacker to know anything about the model; it needs only to know
-the labelling policy, which is public by the design being attacked. \textbf{S0 (clean)} — the
-honeypot sees genuine attacks, correctly labelled — is not an attack; it is the sanity check
-this design has to pass before any attack against it means anything (Section~\ref{sec:attack}).
-\textbf{A2 (boundary drift)} and \textbf{A4 (fingerprint-and-split)} are scoped out: A2 needs a
-gradual multi-round adversary this paper does not build, and A4's controlled measurement arm
-cannot occur naturally on CICIDS2017, where every family runs on a single day
-(Section~\ref{sec:methodology}).
+\textbf{S0 (clean)} — the honeypot sees genuine attacks, correctly labelled — is not an attack;
+it is the sanity check this design has to pass before any attack against it means anything
+(Section~\ref{sec:attack}). \textbf{A2 (boundary drift)} and \textbf{A4 (fingerprint-and-split)}
+are scoped out: A2 needs a gradual multi-round adversary this paper does not build, and A4's
+controlled measurement arm cannot occur naturally on CICIDS2017, where every family runs on a
+single day (Section~\ref{sec:methodology}).
+
+% Added per external review: "realized poison ratio" was used throughout without an operational
+% definition.
+\textbf{Realized poison ratio.} Where this paper reports a poison ratio, it means the operational
+quantity: attacker-admitted honeypot samples divided by all samples entering that round's
+retraining (seed plus honeypot, admitted after any defense hook). It is realized, not nominal —
+the target ratios named in Section~\ref{sec:methodology} are generation targets that the loop's
+batch sizing is tuned to reach by the final round, not a guarantee independent of what else is
+happening in the honeypot. In particular this ratio depends on two things we do not model: how
+much background (non-adversarial) traffic the honeypot also receives, which would dilute the
+attacker's share of what enters training, and any rate limiting the honeypot or its ingestion
+pipeline applies, which would cap how much poison the attacker can inject per round regardless of
+how much traffic it sends. Every ratio reported in this paper is the realized value measured
+directly from the loop's own admitted batches, not back-computed from a generation target, but
+it is realized against a honeypot with no competing traffic and no rate limit — a best case for
+the attacker that a deployed honeypot need not offer.
 
 % DECISIONS.md s18 "Realized fidelity, not the knob": the capability axis is a measured
 % distance, not an assumed one. s26.2/26.3: median cannot resolve the FPR cliff; twin fraction,

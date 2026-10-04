@@ -16,15 +16,18 @@ system asks what happens if the traffic reaching the decoy is not what the auto-
 assumes it is.
 
 The assumption the whole design rests on is that the label is trustworthy \emph{because} the
-source is a decoy. That assumption does not survive contact with an adversary who knows the
-policy. The labelling rule — "everything the honeypot sees is malicious" — is public by
-construction; there is no way to run the defense without publishing it, since the honeypot has
-to be reachable to do its job. An attacker who knows the rule does not need to compromise
-anything to write into the defender's training set: sending traffic to the decoy \emph{is}
-writing to the training set, with a label the defender chooses to trust unconditionally. The
-honeypot is not a passive sensor in this design; it is a write channel the defender opens on
-purpose, and the poison budget available through it is not a fraction an attacker has to fight
-for — it is the entire honeypot-derived share of the training set, by construction
+source is a decoy. That assumption does not survive contact with an adversary who knows, or can
+reliably infer, the policy. The labelling rule — "everything the honeypot sees is malicious" — is
+not a secret that technical means protect: a honeypot has to be reachable to do its job, and the
+design itself is describable in a paper, a product page, or open-source code, so an attacker does
+not need privileged access to learn it, only the kind of knowledge that is often freely available
+(we make this an explicit axis in Section~\ref{sec:threat-model} rather than an unstated
+assumption). An attacker who has that knowledge does not need to compromise anything to write
+into the defender's training set: sending traffic to the decoy \emph{is} writing to the training
+set, with a label the defender chooses to trust unconditionally. The honeypot is not a passive
+sensor in this design; it is a write channel the defender opens on purpose, and the poison budget
+available through it, once reached, is not a fraction an attacker has to fight for — it is the
+entire honeypot-derived share of the training set that the attacker's traffic is admitted into
 (Section~\ref{sec:threat-model}).
 
 This paper characterises that channel on a modern, flow-based network intrusion detection loop:
@@ -36,12 +39,16 @@ generator that produces legitimate benign flows at the honeypot instead of produ
 the auto-labeller do the rest. The result is one mechanism — a label that contradicts the
 neighbourhood it sits in — that surfaces as false positives under a fixed detection threshold or
 as lost detection under a recalibrated one, not two independent effects; recalibrating relocates
-where the damage shows up, it does not remove it. On CICIDS2017 the attack requires
-near-duplicate mimicry fidelity and needs no model access, no knowledge of the poison ratio, and
-no cost to the attacker beyond producing traffic that already looks like traffic the network
-generates for free. We hold every quantitative claim in this paper to a pre-registered,
-multiple-comparison-corrected significance bar, and where a pattern in the data does not clear
-that bar we report it as unconfirmed rather than round it up to a finding.
+where the damage shows up, it does not remove it. The two surfaces need different fidelity: on
+CICIDS2017, the false-positive surface needs near-duplicate mimicry fidelity and collapses to
+nothing beyond it, while the detection-loss surface, confirmed for one of our two models, holds
+across a much wider range of mimicry fidelity (realized distance 0.25--1.05, not just
+near-duplicate). Neither needs model access or knowledge of the poison ratio, and neither costs
+the attacker more than generating traffic that already resembles what the network produces — a
+low marginal cost under the conditions we test, not a formally zero one. We hold every
+quantitative claim in this paper to a pre-registered, multiple-comparison-corrected significance
+bar, and where a pattern in the data does not clear that bar we report it as unconfirmed rather
+than round it up to a finding.
 
 We then evaluate defenses. A generic label-consistency check — does this row's stamped label
 agree with a model fit on the loop's own data — fails structurally against this attack, because
@@ -54,9 +61,10 @@ is capping the honeypot's effective share of the training set — a one-line cha
 label information, no trusted reference data beyond the cap value itself, and no estimate of the
 poison ratio, and that no alternative we test dominates. Along the way, measuring the attack on
 CICIDS2017 exposes a property of the dataset itself: its benign traffic is narrow and repetitive
-enough that an attacker gets most of the way to the damaging fidelity level for free, simply by
-replaying the pool's own statistics with no perturbation at all — a fact about this benchmark's
-degeneracy, not a general claim about production network traffic.
+enough that an attacker gets most of the way to the damaging fidelity level at low marginal
+traffic-generation cost, simply by replaying the pool's own statistics with no perturbation at
+all — a fact about this benchmark's degeneracy, not a general claim about production network
+traffic.
 
 \subsection*{Contributions}
 \begin{enumerate}
@@ -143,9 +151,10 @@ degeneracy, not a general claim about production network traffic.
     \end{pgfonlayer}
   \end{tikzpicture}
   \caption{The retraining loop. Everything the honeypot logs is auto-labeled malicious by a
-  public policy and feeds the same \texttt{accumulate} step as trusted seed data (dashed red
-  box: the attacker-controlled segment — the only traffic the attacker chooses is what the
-  decoy sees, and that traffic becomes training data unconditionally). \texttt{trusted\_eval} is
+  policy an attacker who knows the design can predict, and feeds the same \texttt{accumulate}
+  step as trusted seed data (dashed red box: the attacker-controlled segment — the only traffic
+  the attacker chooses is what the decoy sees, and that traffic becomes training data
+  unconditionally). \texttt{trusted\_eval} is
   held out and never written by the loop; every result in this paper is scored against it under
   both a fixed and a recalibrated detection threshold.}
   \label{fig:loop-diagram}

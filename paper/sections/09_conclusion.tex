@@ -3,20 +3,24 @@
 % Budget: 0.25 page.
 
 Auto-labeling a honeypot's traffic and retraining a detector on it treats the label as free
-because the source is a decoy. It is not free: the labelling policy is public, the attacker
-chooses exactly what the decoy sees, and the honeypot becomes a write channel into the
-defender's training set that the defender opened on purpose. We showed this channel is
-exploitable on a modern, flow-based retraining loop with a single mechanism — a label that
-contradicts its neighbourhood — that a fixed detection threshold reads as false positives and a
-recalibrated one reads as lost detection, not two separate effects. The attack needs near-copy
-mimicry fidelity and nothing else: no model access, no knowledge of the poison ratio, no cost
-beyond producing traffic that already resembles what the network generates. A generic
-label-consistency defense cannot see this poison because it agrees with the defender's own
-policy; a one-line cap on the honeypot's share of the training set can, and beats every
-alternative we compared it against without needing any of the information those alternatives
-require. The honest version of this loop works — that was never in question — but the design
-that makes it convenient, a public rule that trusts a decoy's traffic unconditionally, is the
-same design that makes it attackable, and the fix costs almost nothing to add.
+because the source is a decoy. It is not free whenever the attacker knows, or can reliably
+infer, the labelling policy: it can then choose exactly what the decoy sees, and the honeypot
+becomes a write channel into the defender's training set that the defender opened on purpose. We
+showed this channel is exploitable on a modern, flow-based retraining loop with a single
+mechanism — a label that contradicts its neighbourhood — that a fixed detection threshold reads
+as false positives and a recalibrated one reads as lost detection, not two separate effects. The
+false-positive surface needs near-copy mimicry fidelity; the detection-loss surface, for the one
+model where we confirm it generalises, does not, holding across a much wider fidelity range.
+Neither needs model access or knowledge of the poison ratio, and neither costs the attacker more
+than producing traffic that already resembles what the network generates — under the conditions
+we test, not as a formally zero cost. A generic label-consistency defense cannot see this poison
+because it agrees with the defender's own policy; a one-line cap on the honeypot's share of the
+training set can, and is Pareto-undominated over every recovery-retention configuration we
+evaluate it against — no alternative is at least as good on both axes — without needing any of
+the information those alternatives require. The honest version of this loop works — that was
+never in question — but the design that makes it convenient, a rule that trusts a decoy's
+traffic unconditionally once an attacker knows that is the rule, is the same design that makes
+it attackable, and the fix costs almost nothing to add.
 
 \textbf{Artifact availability.} The code, every committed result CSV this paper's numbers trace
 to, and \texttt{DECISIONS.md} — the full methodology and findings log referenced throughout, kept
