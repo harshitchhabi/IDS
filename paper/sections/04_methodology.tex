@@ -313,8 +313,8 @@ each case, stated once rather than re-derived per section.
     (+10-new check) & paired $t$ + permutation & Holm, family of 6 & Confirmatory
     (pre-registered, Section~\ref{sec:attack}) \\
     Mechanism isolation & The label conflict, not volume or prior shift, drives A1's damage & 4
-    & 5 & paired $t$ + permutation & Bonferroni, family of 4 & Confirmatory (pre-specified arms,
-    one fixed distance) \\
+    & 15 (5 original + 10-new check, Section~\ref{sec:attack}) & paired $t$ + permutation &
+    Bonferroni, family of 4 & Confirmed by both tests (pre-specified arms, one fixed distance) \\
     Defense sweeps & Setting $X$ dominates a baseline on both recovery and retention & varies
     (D1's $3\times5$ grid, frontier comparisons) & 5 & seed-bootstrap dominance probability, not
     a $t$/permutation family & n/a (a resampling probability, not a corrected $p$-value) &
@@ -338,8 +338,17 @@ $p$ below 0.0625 — a floor above even an uncorrected $\alpha=0.05$ — regardl
 This is a general property of $n=5$ matched-pair sign tests ($2^{1-n}$ is the minimum achievable
 exact $p$ at $n$ pairs), not a defect of any particular result, and it means the permutation test
 is not a strictly more conservative substitute for the $t$-test at this sample size: it is a
-less powerful one, reported for transparency. The 15-seed family does not hit this floor
-($2^{-14}\approx6\times10^{-5}$, well below the Monte Carlo resolution used) and its permutation
-$p$-values corroborate its $t$-test conclusions without qualification
-(Section~\ref{sec:attack}). Where the two tests disagree on a 5-seed cell, both are reported and
+less powerful one, reported for transparency. A paired $t$-test's and a permutation test's
+$p$-values track each other closely in rank regardless: Pearson $r=0.875$ between
+$-\log_{10}(p_t)$ and $-\log_{10}(p_{\rm perm})$ across the 71 cells in this paper with both
+values strictly positive. Families at $n=15$ do not hit the $n=5$ floor
+($2^{-14}\approx6\times10^{-5}$, well below the Monte Carlo resolution used) and their
+permutation $p$-values corroborate their $t$-test conclusions without qualification — this
+includes the mechanism-isolation family, which the $n=5$ floor left genuinely unresolved by the
+permutation test until a targeted 15-seed re-run (the one exception made to this paper's
+otherwise-closed experiment set, pre-registered before running) confirmed it by both tests
+(Section~\ref{sec:attack}). A permutation $p$-value of exactly 0 (no resampled sign pattern in
+$10^4$ Monte Carlo draws matched or exceeded the observed effect) is reported as
+"$p<0.0001$," never as "$p=0$" — a zero count means the true $p$ is below the resolution, not
+that it is exactly zero. Where the two tests disagree on a 5-seed cell, both are reported and
 neither is treated as silently superseding the other.

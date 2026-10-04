@@ -2251,10 +2251,11 @@ Concretely, this means:
 
 **What this does not mean:** it does not mean the t-test conclusions were wrong, or that
 normality is violated -- the permutation and t-test p-values track each other closely in rank
-across every cell in every family (Pearson correlation of $-\log_{10}(p_t)$ against
-$-\log_{10}(p_{\rm perm})$, computed informally from the output, is high; the permutation test
-simply saturates at 0.0625 for every $n=5$ cell whose t-test p-value is small enough that the
-sign pattern is unanimous). It does mean the permutation test is not a more conservative
+across every cell in every family (Pearson $r=0.875$ between $-\log_{10}(p_t)$ and
+$-\log_{10}(p_{\rm perm})$ over the 71 cells with both p-values strictly positive, s28.2; the
+permutation test simply saturates at 0.0625 for every $n=5$ cell whose t-test p-value is small
+enough that the sign pattern is unanimous). It does mean the permutation test is not a more
+conservative
 drop-in replacement for the t-test at this seed count -- it is a different, less powerful
 instrument here, reported for transparency rather than as the primary significance claim, per
 the pre-registered correction standard each family already committed to (t-test + Holm, within
@@ -2262,8 +2263,9 @@ each family's own pre-specified bar).
 
 **The 6-cell RF follow-up ($n=15$) does not hit this floor.** Exact permutation space at $n=15$
 is $2^{15}=32{,}768$; Monte Carlo at $10^4$ resamples resolves down to $p=0.0001$, and four of
-six cells hit that floor (reported as $p_{\rm perm}=0$ in the raw output, meaning no resampled
-sign pattern in $10^4$ draws matched or exceeded the observed mean). The two remaining cells
+six cells hit that resolution limit (reported as $p_{\rm perm}<0.0001$, not $p_{\rm perm}=0$ --
+a Monte Carlo count of 0 in $10^4$ draws means the true $p$ is below the resolution, not that it
+is exactly zero). The two remaining cells
 (ratio 0.2/jitter 0.3: $p_{\rm perm}=0.0001$; ratio 0.5/jitter 0.3: $p_{\rm perm}=0.0013$) still
 clear the family's Holm thresholds by either test. **The RF at-distance confirmation (s26.8/26.9)
 is unaffected by this floor issue and is corroborated, not merely matched, by the permutation
@@ -2329,3 +2331,43 @@ scoped to exactly this cell; no further experiments follow from it either way. I
 and the stat-families table move the mechanism-isolation family from "t-test only" to "confirmed
 by both tests, 15 seeds." If not confirmed, the specific failing condition is stated plainly and
 the claim is narrowed to what the data supports -- not papered over.
+
+### 28.1 Result: confirmed, by both tests, all three conditions met
+
+Ran the pre-registered family (s28): RF, recalibrated TPR, ratio 0.2, jitter 0.7. a1 reused from
+the s26.6/s26.8 follow-up (15 seeds, already existed); a1truth, s0j, junk each got 10 new seeds
+(6-15), identical configs to the original 5. Source:
+`results/phase0/loop/s27_permutation_tests.csv` (family `mechanism15`), computed by
+`experiments/phase0_stats_recompute.py`.
+
+| arm | n | mean $\Delta$TPR | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ |
+|---|---:|---:|---:|---:|---:|---:|
+| a1 | 15 | -0.1257 | [-0.1495, -0.1018] | -11.279 | $2.1\times10^{-8}$ | $<0.0001$ |
+| a1truth | 15 | -0.0124 | [-0.0387, 0.0139] | -1.015 | 0.328 | 0.330 |
+| s0j | 15 | -0.0158 | [-0.0396, 0.0080] | -1.421 | 0.177 | 0.174 |
+| junk | 15 | 0.0003 | [-0.0206, 0.0213] | 0.034 | 0.974 | 0.971 |
+
+**All three pre-registered conditions are met.**
+(a) a1 clears the family's Bonferroni threshold ($\alpha/4=0.0125$) by **both** tests: $p_t =
+2.1\times10^{-8}$ and $p_{\rm perm}<0.0001$, neither hitting any floor at $n=15$.
+(b) Every null arm's 95% CI includes 0: a1truth $[-0.0387, 0.0139]$, s0j $[-0.0396, 0.0080]$,
+junk $[-0.0206, 0.0213]$.
+
+**The mechanism-isolation family is confirmed at 15 seeds, by both tests.** This moves the
+family's status in the s27.3 stat-families table from "confirmatory (t-test only, n=5 permutation
+floor unresolved)" to "confirmed by both tests, 15 seeds." The qualitative finding from s23 does
+not change -- the label conflict, not volume or prior shift, is the mechanism -- but it is no
+longer resting on a 5-seed $t$-test alone; the permutation test the s27.1 floor could not
+validate at $n=5$ now validates it directly at $n=15$.
+
+Null-arm point estimates moved slightly with the 10 new seeds (a1truth from $+0.014$ at 5 seeds
+to $-0.012$ at 15; s0j from $-0.002$ to $-0.016$) but stayed well inside the null band at every
+seed count checked -- consistent with sampling noise around zero, not a hidden effect the
+original 5 seeds missed.
+
+### 28.2 Correlation between t-test and permutation p-values, numerically (supersedes s27.1's
+"computed informally")
+
+Pearson correlation of $-\log_{10}(p_t)$ against $-\log_{10}(p_{\rm perm})$, over all 71 cells
+across every family with both p-values strictly positive (excluding the 4 grid6\_15seed cells
+whose Monte Carlo count hit 0, reported as $<0.0001$ rather than a point value): $r = 0.875$.

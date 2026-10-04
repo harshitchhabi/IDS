@@ -302,22 +302,44 @@ def fig_f4(ratio: float = 0.2) -> None:
 
 # ---- F5: mechanism isolation -------------------------------------------------------------------
 def _mechanism_rows() -> pd.DataFrame:
-    """The four F5 bars: RF, recalibrated threshold, ratio 0.2, honest calibration (cicids_recal).
-    A1 / a1truth / s0j share the jitter-0.70 run (realized NN ~0.56, DECISIONS.md s23); junk has no
-    jitter parameter of its own but was launched under that same jitter-1.5 sweep config."""
-    d = pd.read_csv(ROOT / "export" / "summary.csv")
-    d = d[(d.model == "rf") & (d.threshold_mode == "recalibrated") & (d.target_poison_ratio == 0.2)
-         & (d.defense.fillna("none") == "none") & (d.run_dir == "cicids_recal")]
-    picks = [("a1", 0.70, RED), ("a1truth", 0.70, MUT), ("s0j", 0.70, MUT), ("junk", -1.00, MUT)]
+    """The four F5 bars: RF, recalibrated threshold, ratio 0.2, honest calibration (cicids_recal),
+    15 seeds (DECISIONS.md s28: a1 reused from the s26.6 distance follow-up, a1truth/s0j/junk each
+    given 10 new seeds so all four arms are now at the same seed count). Computed directly from
+    the per-seed job CSVs, not results/phase0/export/summary.csv, which still reflects the
+    original 5-seed run and was not regenerated for this follow-up.
+    A1 / a1truth / s0j share the jitter-0.70 run (realized NN ~0.56, DECISIONS.md s23); junk has
+    no jitter parameter of its own but was launched under that same jitter-1.5 sweep config."""
+    files = glob.glob(str(ROOT / "loop" / "cicids_recal" / "jobs" / "*.csv"))
+    df = pd.concat((pd.read_csv(f) for f in files), ignore_index=True)
+    df = df[(df.model == "rf") & (df.threshold_mode == "recalibrated")
+           & (df.defense.fillna("none") == "none") & (df.cost_padding.fillna(1.0) == 1.0)
+           & (df.val_min_nn_distance.fillna(0.0) == 0.1)]
+
+    ctrl = df[(df.scenario == "control") & np.isclose(df.target_poison_ratio, 0.0)]
+    ctrl_last = ctrl[ctrl["round"] == ctrl.groupby("seed")["round"].transform("max")].set_index("seed")
+    # sigma_control: round-to-round control noise, rounds >=11 only (matches _control_floor_recal's
+    # convention elsewhere in this file), not the raw std across all rounds including transients.
+    sigma_control_tpr = ctrl[ctrl["round"] >= 11].tpr.std(ddof=1) if len(ctrl) else np.nan
+
+    picks = [("a1", 0.70, 0.2, RED), ("a1truth", 0.70, 0.2, MUT), ("s0j", 0.70, 0.2, MUT),
+            ("junk", 0.0, 0.2, MUT)]
     rows = []
-    for sc, jit, color in picks:
-        r = d[(d.scenario == sc) & np.isclose(d.jitter, jit)]
-        if len(r) != 1:
-            raise ValueError(f"expected exactly one row for {sc} jitter={jit}, got {len(r)}")
-        r = r.iloc[0]
-        rows.append({"scenario": sc, "mean": r.delta_tpr_mean, "sd": r.delta_tpr_std, "n": r.n_seeds,
-                    "sigma_control": r.sigma_control_tpr, "fidelity_median": r.fidelity_median_mean,
-                    "color": color})
+    for sc, jit, ratio, color in picks:
+        g = df[(df.scenario == sc) & np.isclose(df.jitter.fillna(0.0), jit)
+              & np.isclose(df.target_poison_ratio, ratio)]
+        g = g[g["round"] == g.groupby("seed")["round"].transform("max")]
+        deltas, fid = [], []
+        for s in sorted(g.seed.unique()):
+            row = g[g.seed == s].iloc[0]
+            if s not in ctrl_last.index:
+                continue
+            deltas.append(row.tpr - ctrl_last.loc[s, "tpr"])
+            if not pd.isna(row.get("fidelity_median", np.nan)):
+                fid.append(row.fidelity_median)
+        deltas = np.array(deltas)
+        rows.append({"scenario": sc, "mean": deltas.mean(), "sd": deltas.std(ddof=1), "n": len(deltas),
+                    "sigma_control": sigma_control_tpr,
+                    "fidelity_median": np.median(fid) if fid else np.nan, "color": color})
     return pd.DataFrame(rows)
 
 
@@ -338,7 +360,7 @@ def fig_f5() -> None:
     ax.set_xlim(-0.6, len(t) - 0.4)
     ax.text(0.02, 0.965, "control ±2σ", color="#5a5a5a", fontsize=6, transform=ax.transAxes,
            va="top", ha="left")
-    ax.set_ylabel("Δ TPR vs control (RF, recal.,\nratio 0.2, n=5 seeds)", fontsize=7)
+    ax.set_ylabel("Δ TPR vs control (RF, recal.,\nratio 0.2, n=15 seeds)", fontsize=7)
     _style(ax)
     fig.tight_layout()
     save(fig, "F5_mechanism_isolation")

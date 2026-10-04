@@ -63,7 +63,8 @@ def paired_permutation_p(d: np.ndarray, n_mc: int = 10_000, seed: int = 0) -> tu
     """Exact sign-flip test for n<=12 (2^n enumerations); Monte Carlo (n_mc draws) above that.
     Two-sided: fraction of |mean of sign-flipped d| >= |observed mean|. At n=5 the minimum
     achievable p is 2/32=0.0625 (the two unanimous-sign patterns) -- a floor, not a bug;
-    see DECISIONS.md s27.1."""
+    see DECISIONS.md s27.1. When the Monte Carlo count is 0, the true p is unknown below the
+    resolution 1/n_mc, not exactly 0 -- callers should report it as "< 1/n_mc", never "0"."""
     n = len(d)
     obs = abs(d.mean())
     if n <= 12:
@@ -89,10 +90,14 @@ def report_cell(d: np.ndarray, label: str) -> dict:
     ci_half = stats.t.ppf(0.975, n - 1) * (sd / np.sqrt(n))
     t, p_t = stats.ttest_1samp(d, 0.0)
     p_perm, n_perm = paired_permutation_p(d)
+    # A Monte Carlo count of 0 means p < 1/n_perm, not p == 0 -- report it as a bound, not a value.
+    p_perm_display = f"<{1 / n_perm:.4g}" if p_perm == 0 and n > 12 else f"{p_perm:.6g}"
+    p_perm_is_bound = bool(p_perm == 0 and n > 12)
     print(f"{label}: n={n} mean={mean:.4f} sd={sd:.4f} ci95=[{mean - ci_half:.4f},{mean + ci_half:.4f}] "
-          f"t={t:.3f} p_t={p_t:.6g} p_perm={p_perm:.6g} (perm_total={n_perm})")
+          f"t={t:.3f} p_t={p_t:.6g} p_perm={p_perm_display} (perm_total={n_perm})")
     return {"label": label, "n": n, "mean": mean, "sd": sd, "ci_lo": mean - ci_half,
-            "ci_hi": mean + ci_half, "t": t, "p_t": p_t, "p_perm": p_perm, "n_perm": n_perm}
+            "ci_hi": mean + ci_half, "t": t, "p_t": p_t, "p_perm": p_perm, "n_perm": n_perm,
+            "p_perm_is_bound": p_perm_is_bound, "p_perm_display": p_perm_display}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -130,6 +135,19 @@ def main(argv: list[str] | None = None) -> int:
         d = paired_deltas(df, arm, "rf", "recalibrated", jitter, ratio, seeds5, "tpr")
         r = report_cell(d, f"mechanism {arm}")
         r.update(family="mechanism", arm=arm)
+        rows.append(r)
+
+    # DECISIONS.md s28: mechanism isolation at 15 seeds (a1 reused from the s26.6 follow-up;
+    # a1truth/s0j/junk need seeds 6-15 new). Only run once results/phase0/loop/cicids_recal/jobs
+    # has those seeds for all three null arms -- otherwise paired_deltas returns an empty array
+    # and report_cell would divide by zero, so skip gracefully if the data isn't there yet.
+    for arm, jitter, ratio in arms:
+        d15 = paired_deltas(df, arm, "rf", "recalibrated", jitter, ratio, seeds15, "tpr")
+        if len(d15) < 15:
+            print(f"mechanism15 {arm}: only {len(d15)}/15 seeds present, skipping")
+            continue
+        r = report_cell(d15, f"mechanism15 {arm}")
+        r.update(family="mechanism15", arm=arm)
         rows.append(r)
 
     pd.DataFrame(rows).to_csv(OUT, index=False)

@@ -19,8 +19,9 @@ CAPTION_FILE = Path("paper/sections/06_attack.tex")
 
 
 def _skip_if_no_data():
-    if not Path("results/phase0/export/summary.csv").exists():
-        pytest.skip("results/phase0/export/summary.csv not present")
+    jobs = Path("results/phase0/loop/cicids_recal/jobs")
+    if not jobs.exists() or not any(jobs.glob("*.csv")):
+        pytest.skip(f"{jobs} not present")
 
 
 def test_a1_realized_nn_matches_decisions_s23():
