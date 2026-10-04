@@ -90,8 +90,13 @@ Applying a Holm-Bonferroni step-down correction (family-wise $\alpha=0.05$) to a
 only three survive, and all three are at raw copy fidelity (jitter 0): RF at ratio 0.2
 ($t=-20.3$) and ratio 0.5 ($t=-16.6$), and XGBoost at ratio 0.5 ($t=-8.5$) — XGBoost's own
 ratio-0.2, jitter-0 cell does not clear even its \emph{uncorrected} threshold ($t=-2.6$,
-$p=0.06$). Nothing at realized distance $\ge0.25$ survives within this 36-cell family, at either ratio, for
-either model (Table~\ref{tab:two-channels}). \textbf{"Present at every distance tested,"
+$p=0.06$). A paired permutation test ranks these three cells the same way (Section~\ref{sec:methodology}),
+but at $n=5$ every unanimous-sign cell, including all three survivors here, hits the same exact-test
+floor ($p_{\rm perm}=0.0625$) regardless of effect size, so the permutation test can confirm
+\emph{which} cells are most extreme but not separate "clearly significant" from "borderline" among
+them the way the $t$-test's Holm correction does. Nothing at realized distance $\ge0.25$ survives
+within this 36-cell family, at either ratio, for either model (Table~\ref{tab:two-channels}).
+\textbf{"Present at every distance tested,"
 "significant near and significant far," and "the TPR effect is RF-only" — all stated in an
 earlier reading of this data — are withdrawn as claims made \emph{from this family of tests}.}
 The corrected statement, at this correction level: TPR loss at copy-level fidelity is confirmed
@@ -113,7 +118,12 @@ adjacent jitters at both ratios). Because the original 5 seeds motivated this fo
 them again inside the same confirmatory family would be mild double-dipping; we therefore also
 ran Holm correction on the 10 \emph{new} seeds alone, and all six cells survive there too ($p$
 from $5.9\times10^{-3}$ to $3.5\times10^{-7}$) — the result does not depend on the seeds that
-prompted it. RF's TPR-loss damage is therefore confirmed across the far-jitter range tested,
+prompted it. A paired permutation test (Section~\ref{sec:methodology}) agrees: at 15 seeds this
+family does not hit the $n=5$ exact-test floor, and four of six cells reach the Monte Carlo
+resolution limit ($p_{\rm perm}<0.0001$) while the remaining two ($p_{\rm perm}=0.0001$ and
+$0.0013$) still clear the family's Holm thresholds — the $t$-test and permutation conclusions
+agree here without qualification. RF's TPR-loss damage is therefore confirmed across the
+far-jitter range tested,
 realized distance 0.25 to 1.05, not only at copy fidelity. This is specific to RF's
 recalibrated-threshold TPR: it does not extend to XGBoost (not tested in the follow-up family) or
 to the FPR channel under either model, which stays confirmed only at copy-level fidelity
@@ -180,34 +190,47 @@ with that in mind; the full per-seed, per-round table for both models is in
 Appendix~\ref{sec:appendix} (Table~\ref{tab:xgb-seeds-full}).
 
 \subsection{Mechanism isolation}
-% DECISIONS.md s23 "Prior shift is null" table + s7 (this paper's Figure 5 / F5). RF,
-% recalibrated threshold, ratio 0.2, realized NN ~0.56, 5 seeds. A1 -0.109+/-0.038 (t=-6.3);
-% a1truth +0.014+/-0.029 (n.s.); s0j -0.002+/-0.029 (n.s.); junk +0.015+/-0.033 (n.s., separate
-% jitter-1.5 run).
+% DECISIONS.md s23 "Prior shift is null" table + s7 (this paper's Figure 5 / F5), s27.2 (95% CIs).
+% RF, recalibrated threshold, ratio 0.2, realized NN ~0.56, 5 seeds. A1 -0.109 [-0.157,-0.061]
+% (t=-6.3); a1truth +0.014 [-0.022,0.050] (n.s.); s0j -0.002 [-0.038,0.033] (n.s.); junk +0.015
+% [-0.025,0.056] (n.s., separate jitter-1.5 run).
 Three matched null controls (Section~\ref{sec:methodology}) isolate which part of A1 is doing
 the work. \texttt{a1truth} — A1's own rows, correctly labelled — removes the label conflict and
-the effect vanishes ($+0.014\pm0.029$, not significant). \texttt{s0j} — attack rows carrying
-A1's jitter, stamped malicious — keeps the volume and the class-prior shift but not the
-conflict, and it too is null ($-0.002\pm0.029$). \texttt{junk} — marginal-shuffled bulk, stamped
-malicious — tests volume alone and is also null ($+0.015\pm0.033$). Only A1 itself, which keeps
-the label conflict, clears the control's own $\pm2\sigma$ band ($-0.109\pm0.038$,
-Figure~\ref{fig:f5-mechanism}). Prior shift and raw volume are not the mechanism; the label
-conflict is.
-% DECISIONS.md s26.1, last paragraph: this experiment (4 arms, one fixed jitter=0.7, ratio 0.2)
-% is a separate, small hypothesis family (4 comparisons) from the 36-cell grid sweep above; a1's
-% t=-6.3 clears even a Bonferroni threshold within that family of 4 (0.0125). It happens to use
-% the same (rf, ratio 0.2, jitter 0.7) cell that does not survive the 36-test correction in
-% Section 6.3 -- not a contradiction, but worth stating so the two do not read as inconsistent.
+the effect vanishes ($+0.014$, 95\% CI $[-0.022, 0.050]$, not significant). \texttt{s0j} —
+attack rows carrying A1's jitter, stamped malicious — keeps the volume and the class-prior shift
+but not the conflict, and it too is null ($-0.002$, CI $[-0.038, 0.033]$). \texttt{junk} —
+marginal-shuffled bulk, stamped malicious — tests volume alone and is also null ($+0.015$, CI
+$[-0.025, 0.056]$). Only A1 itself, which keeps the label conflict, clears the control's own
+$\pm2\sigma$ band ($-0.109$, CI $[-0.157, -0.061]$, Figure~\ref{fig:f5-mechanism}). Prior shift
+and raw volume are not the mechanism; the label conflict is.
+% DECISIONS.md s26.1, last paragraph + s27.1 (permutation floor at n=5): this experiment (4 arms,
+% one fixed jitter=0.7, ratio 0.2) is a separate, small hypothesis family (4 comparisons) from
+% the 36-cell grid sweep above; a1's t=-6.3, p_t=0.0032 clears even a Bonferroni threshold within
+% that family of 4 (0.0125). It happens to use the same (rf, ratio 0.2, jitter 0.7) cell that
+% does not survive the 36-test correction in Section 6.3 -- not a contradiction, but worth
+% stating so the two do not read as inconsistent. The exact permutation test at n=5 (p=0.0625,
+% the floor every n=5 cell in this paper hits, Section~\ref{sec:methodology}) does NOT clear
+% even an uncorrected 0.05; stated plainly rather than only reporting the t-test figure.
 This test was run at one pre-specified jitter (0.7), not swept across the grid in
 Section~\ref{sec:attack}'s correction; as a family of four comparisons it needs no correction
 beyond what it already clears, even judged by the stricter of the two standards used in this
-paper. Section~\ref{sec:attack}'s broader 36-cell grid sweep, at 5 seeds, could not confirm a
-damaging effect at this same distance on its own — not because the effect is absent, but because
-that family's power was too low at that seed count. A dedicated 15-seed follow-up targeted
-exactly this question (RF, jitter 0.3--1.5, both ratios, a 6-cell family) and confirms it: all
-six cells survive Holm correction (Section~\ref{sec:attack}). The two readings do not disagree;
-the smaller, better-powered family answers the question the larger one lacked the seeds to
-settle.
+paper — by the paired $t$-test ($t=-6.3$, $p=0.0032$, clearing a Bonferroni threshold of
+$0.0125$ within this 4-test family). \textbf{The exact permutation test at this same $n=5$ does
+not clear even an uncorrected $\alpha=0.05$} ($p_{\rm perm}=0.0625$): this is the floor every
+$n=5$ cell in this paper hits regardless of effect size
+(Section~\ref{sec:methodology}), not evidence the effect is weaker than the $t$-test suggests,
+but it means a1's significance here rests on the $t$-test's normality assumption in a way the
+36-cell and 6-cell families' larger, better-powered cells do not. We report both figures rather
+than choosing the one that reads better. Section~\ref{sec:attack}'s broader 36-cell grid sweep,
+at 5 seeds, could not confirm a damaging effect at this same distance on its own — not because
+the effect is absent, but because that family's power was too low at that seed count. A
+dedicated 15-seed follow-up targeted exactly this question (RF, jitter 0.3--1.5, both ratios, a
+6-cell family) and confirms it by both tests: all six cells survive Holm correction by the
+$t$-test, and four of six also hit the Monte Carlo permutation floor
+(Section~\ref{sec:attack}) — a family where the sample size is large enough that the two tests
+do not disagree. The two readings of the single-distance result do not disagree with each other
+either; the smaller, better-powered 15-seed family answers the question the 5-seed families
+lack the power to settle either way.
 
 \begin{figure*}[t]
   \centering
@@ -267,9 +290,12 @@ settle.
   stamped malicious. \textbf{junk}: marginal-shuffled bulk, stamped malicious (run under the
   separate jitter-1.5 sweep). Error bars: sd over seeds. Band: the control's own $\pm2\sigma$.
   Only A1 — the arm with the label conflict — moves outside it, and clears its own pre-specified
-  4-test family; the same cell did not survive the larger, lower-power 36-test grid-sweep
+  4-test family by a paired $t$-test ($p=0.0032$ against a Bonferroni threshold of $0.0125$); the
+  exact permutation test at this $n=5$ does not clear an uncorrected 0.05 ($p=0.0625$, the floor
+  every 5-seed cell in this paper hits, Section~\ref{sec:methodology}), reported alongside rather
+  than omitted. The same cell did not survive the larger, lower-power 36-test grid-sweep
   correction, but a dedicated 15-seed follow-up targeting this same distance range confirms the
-  effect generalises across jitter 0.3--1.5, not just at this one point
+  effect generalises across jitter 0.3--1.5 by both tests, not just at this one point
   (Section~\ref{sec:attack}).}
   \label{fig:f5-mechanism}
 \end{figure}

@@ -2207,3 +2207,85 @@ log's own tables.
 None of these bear on any confirmed/unconfirmed claim, correction result, or defense ranking in
 this paper -- they are cosmetic rounding fixes caught by an exhaustive number-check pass, listed
 here for the record per this project's "every number traces" rule.
+
+## 27. External review, Tier 1: permutation tests, formalization, knowledge axis, citations
+
+Response to an external manuscript review. Full list in the review; this section covers the
+statistics items (permutation tests alongside every paired t-test, 95% CIs for mechanism
+isolation) since they involve new computation (from already-committed per-seed CSVs, no new
+experiments -- consistent with the s26.10 freeze). Script:
+`experiments/phase0_stats_recompute.py` (committed), output:
+`results/phase0/loop/s27_permutation_tests.csv`.
+
+### 27.1 Paired permutation test alongside every paired t-test
+
+Exact sign-flip test (enumerate all $2^n$ sign patterns) for $n=5$ and $n=10$; Monte Carlo
+($10^4$ resamples) for $n=15$. Two-sided: fraction of sign-flipped means at least as extreme in
+absolute value as the observed mean. Covers all four statistical families in this paper that use
+a paired t-test: the 36-cell grid (s26.1), the 6-cell RF at-distance follow-up at 15 seeds and
+again at the 10 new seeds alone (s26.8/s26.9), and the 4-arm mechanism isolation (s23).
+
+**The 36-cell grid and the mechanism-isolation family (both $n=5$) hit an exact-test floor that
+changes how their significance should be read.** For $n=5$ matched pairs, the two most extreme
+sign patterns (all-positive and all-negative, which reproduce the observed $|{\rm mean}|$
+exactly) together cover $2/2^5 = 2/32 = 0.0625$ of the permutation space. **No $n=5$ cell in this
+paper, however large its t-statistic, can reach a two-sided exact permutation $p$ below 0.0625 --
+a bound that exceeds even an uncorrected $\alpha=0.05$ threshold, let alone any
+multiple-comparison-corrected one.** This is a general property of $n=5$ paired sign tests, not a
+defect specific to any one result: $2^{1-n}$ is the minimum achievable two-sided exact-test
+$p$-value for $n$ matched pairs, and at $n=5$ that floor is $0.0625$.
+
+Concretely, this means:
+- The three cells s26.1 reports as surviving Holm correction on the 36-cell grid (rf ratio 0.2
+  jitter 0, rf ratio 0.5 jitter 0, xgboost ratio 0.5 jitter 0) all have $p_{\rm perm}=0.0625$ --
+  the floor -- because all five seeds agree in sign at each of those cells. The t-test and the
+  permutation test agree on *which* cells have the most extreme, unanimous-sign effect (the same
+  three top-ranked cells by both measures), but the permutation test's resolution at $n=5$ cannot
+  distinguish "unanimous and large" from "unanimous and small": every all-one-sign cell ties at
+  0.0625 regardless of effect size.
+- The mechanism-isolation family's a1 arm (the result the paper reports as clearing a Bonferroni
+  threshold of 0.0125 within its own 4-test family, t=-6.345, $p_t=0.0032$) has
+  $p_{\rm perm}=0.0625$ -- **above** 0.0125, and above even an uncorrected 0.05. By the t-test,
+  pre-registered and held to the stricter of two correction standards elsewhere in this paper,
+  a1 is confirmed. By the exact permutation test, it is not, because no $n=5$ result can be.
+
+**What this does not mean:** it does not mean the t-test conclusions were wrong, or that
+normality is violated -- the permutation and t-test p-values track each other closely in rank
+across every cell in every family (Pearson correlation of $-\log_{10}(p_t)$ against
+$-\log_{10}(p_{\rm perm})$, computed informally from the output, is high; the permutation test
+simply saturates at 0.0625 for every $n=5$ cell whose t-test p-value is small enough that the
+sign pattern is unanimous). It does mean the permutation test is not a more conservative
+drop-in replacement for the t-test at this seed count -- it is a different, less powerful
+instrument here, reported for transparency rather than as the primary significance claim, per
+the pre-registered correction standard each family already committed to (t-test + Holm, within
+each family's own pre-specified bar).
+
+**The 6-cell RF follow-up ($n=15$) does not hit this floor.** Exact permutation space at $n=15$
+is $2^{15}=32{,}768$; Monte Carlo at $10^4$ resamples resolves down to $p=0.0001$, and four of
+six cells hit that floor (reported as $p_{\rm perm}=0$ in the raw output, meaning no resampled
+sign pattern in $10^4$ draws matched or exceeded the observed mean). The two remaining cells
+(ratio 0.2/jitter 0.3: $p_{\rm perm}=0.0001$; ratio 0.5/jitter 0.3: $p_{\rm perm}=0.0013$) still
+clear the family's Holm thresholds by either test. **The RF at-distance confirmation (s26.8/26.9)
+is unaffected by this floor issue and is corroborated, not merely matched, by the permutation
+test.**
+
+Full per-cell output (t, $p_t$, permutation $p$, 95% CI, by family) is in
+`results/phase0/loop/s27_permutation_tests.csv`.
+
+### 27.2 95% CIs for the mechanism-isolation family
+
+| arm | mean $\Delta$TPR | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ |
+|---|---:|---:|---:|---:|---:|
+| a1 | -0.109 | [-0.157, -0.061] | -6.345 | 0.0032 | 0.0625 |
+| a1truth | +0.014 | [-0.022, 0.050] | 1.095 | 0.335 | 0.3125 |
+| s0j | -0.002 | [-0.038, 0.033] | -0.166 | 0.876 | 0.875 |
+| junk | +0.015 | [-0.025, 0.056] | 1.050 | 0.353 | 0.4375 |
+
+### 27.3 Statistical-family summary table (paper Table, item 7)
+
+| Family | Hypothesis | Cells | Seeds | Test | Correction | Status |
+|---|---|---:|---:|---|---|---|
+| 36-cell grid | A1 damages RF/XGBoost TPR at this (ratio, jitter) | 36 | 5 | paired $t$ (+ perm.) | Holm, family of 36 | Exploratory (full grid swept, not pre-specified per-cell) |
+| 6-cell RF follow-up | RF's at-distance TPR damage generalises across jitter 0.3-1.5 | 6 | 15 (+ 10-new check) | paired $t$ (+ perm.) | Holm, family of 6 | Confirmatory (pre-registered s26.6, before the run) |
+| Mechanism isolation | The label conflict (not volume/prior-shift) drives A1's damage | 4 | 5 | paired $t$ (+ perm.) | Bonferroni, family of 4 | Confirmatory (pre-specified arms and one fixed distance) |
+| Defense sweeps (recovery/retention dominance) | Setting X dominates kNN on both recovery and retention | varies (D1 3x5 grid, frontier comparisons) | 5 | seed-bootstrap dominance probability (not a paired $t$/permutation test) | n/a — a resampling probability, not a corrected $p$-value family | Exploratory (grid search over D1/D1q/ShareCap parameterisations) |

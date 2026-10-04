@@ -47,9 +47,10 @@ with the codebase, both partitioned identically into four disjoint sets: \texttt
 (the defender's trusted starting data), \texttt{prod\_benign} (unused here), \texttt{honeypot\_pool}
 (what the adversary can draw from and what genuine decoy traffic would supply), and
 \texttt{trusted\_eval} (held out, never written to by the loop). The split is within each
-(day, family) block, not each whole day: benign rows go 30/20/30/20 to
-seed\_train/prod\_benign/honeypot\_pool/trusted\_eval, attack rows 40/40/20 to
-seed\_train/honeypot\_pool/trusted\_eval. This gives every attack family a presence in every
+(day, family) block, not each whole day: benign rows go 30/20/30/20 to \texttt{seed\_train},
+\texttt{prod\_benign}, \texttt{honeypot\_pool} and \texttt{trusted\_eval} respectively; attack
+rows go 40/40/20 to \texttt{seed\_train}, \texttt{honeypot\_pool} and \texttt{trusted\_eval}.
+This gives every attack family a presence in every
 partition (\texttt{seen\_both}), which a whole-day split cannot, since CICIDS2017 runs each
 family on its own day.
 % PAPER_PLAN.md writing rule + DECISIONS.md s14 erratum: MachineLearningCVE has no Timestamp
@@ -120,6 +121,75 @@ every "realized distance" and "twin fraction" number in this paper.
 % definition above is kept in the main body since S5/S6 depend on readers knowing what it is.
 Why the resulting \texttt{leak\_warning} is gated on the attack class alone, and what that does
 and does not imply about the benign side, is in Appendix~\ref{sec:appendix}.
+
+\subsection{Attack generation and the distance metric, formally}
+% Added per external review: the generation function and the distance metric were described
+% only in prose; give both explicitly. Source: src/dloop/adversary/mimicry.py (JitterAdversary,
+% MimicryAdversary), src/dloop/features/normalize.py (Normalizer), src/dloop/features/schema.py
+% (CANONICAL_FEATURES, cleaning.py's inf/NaN/negative handling).
+\textbf{Feature domain.} Every canonical feature (23 total: duration, packet and byte counts,
+packet-length and inter-arrival statistics, flag counts, rate and ratio features) is a
+non-negative scalar — a count, a duration, a length, or a ratio of these. There are no
+categorical or protocol-enum fields in the feature vector this paper's models and adversaries
+operate on; protocol information (e.g. TCP vs.\ UDP) is not part of the canonical schema, so no
+categorical encoding or distance treatment is needed for it. Infinite and NaN cells (CICIDS2017
+is documented to produce both, from byte/packet rates divided by a zero-duration flow) are
+replaced with NaN and the affected rows dropped during cleaning, upstream of everything below;
+rows with a negative value in a physically non-negative feature (a known CICIDS2017 corruption
+artifact) are dropped the same way. Every row the attack generator or the distance metric ever
+sees is already finite and non-negative.
+
+\textbf{Normalized feature space.} A \emph{normalizer} is fit once per dataset, on the training
+side only, never on validation or held-out rows. For feature $k$, let $\mu_k$ be the median and
+$\sigma_k = \max(\mathrm{IQR}_k, 0.1)$ the (floored) interquartile range of $\log(1+x_k)$ over the
+fitting rows — the 0.1 floor exists because several CICIDS2017 flag-count features are
+near-constant in benign traffic, giving them a near-zero IQR that would otherwise blow up every
+row where the feature is non-zero. The transform is
+$z_k = \mathrm{clip}\!\left(\dfrac{\log(1+x_k) - \mu_k}{\sigma_k},\, -25,\, 25\right)$,
+applied feature-by-feature; this is the space every realized-distance, twin-fraction, and
+guard-(c) number in this paper is computed in. The \emph{RMS nearest-neighbour distance} between
+a row $z$ and a reference set $\{z^{(i)}\}$ is $d(z) = \min_i \sqrt{\tfrac{1}{K}\sum_{k=1}^K
+(z_k - z^{(i)}_k)^2}$ over the $K=23$ canonical features — root-mean-square, not sum, so the
+metric does not grow with feature count and stays comparable across subsets.
+
+\textbf{Attack-generation function.} A1's poison row $x'$ is generated from a source row $x$
+(drawn from the honeypot pool's benign-labelled rows) in two steps. First, the jittered
+normalized representation:
+$z' = \mathrm{clip}\!\left(z(x) + \sigma_j\,\epsilon,\ -25,\ 25\right)$,
+where $z(x)$ is the normalizer's transform of $x$ (Equation above, already clipped to $\pm25$),
+$\sigma_j \geq 0$ is the \emph{jitter} parameter (a generation knob, not a reported quantity —
+Section~\ref{sec:threat-model}'s capability axis is the \emph{realized} distance this produces,
+measured after the fact, not $\sigma_j$ itself), and $\epsilon \sim \mathcal{N}(0, I_K)$ is unit
+Gaussian noise, in normalized units, drawn fresh per row per round. Second, inverting back to raw
+feature space:
+$x' = G(x, \sigma_j, \epsilon) = \mathrm{clip}\!\left(\mathrm{expm1}\!\left(\min\!\left(
+z' \odot \sigma + \mu,\ 25\right)\right),\ 0,\ 10^{10}\right)$,
+where $\odot$ is elementwise product with the normalizer's per-feature scale $\sigma$ and
+$\mu$ its per-feature center; the inner $\min(\cdot, 25)$ caps the log1p-space argument before
+exponentiating (a separate clip from $z'$'s own, needed because $\sigma$ can be large enough
+that $z'\cdot\sigma$ would otherwise overflow float32 in $\mathrm{expm1}$), and the outer clip to
+$[0, 10^{10}]$ floors every feature at its physical non-negative bound and caps an extreme
+rebound value. $\sigma_j = 0$ makes $z'=z(x)$ exactly, reproducing the source row — raw copy
+fidelity, the left end of every damage-versus-fidelity curve in this paper. An optional padding
+step, $\mathrm{cost\_padding} = m \geq 1$, multiplies the five attacker-cost features (duration,
+forward/backward packet and byte counts) by $m$ \emph{before} $z(x)$ is computed, simulating an
+attacker who makes its interaction look more expensive to buy weight under a cost-based defense
+(Section~\ref{sec:defenses}, Appendix~\ref{sec:appendix}).
+
+% Added per external review item 6: 0.25 needs justification or a sensitivity note, not just a
+% bare number.
+\textbf{The 0.25 guard-(c) threshold is a chosen operating point, not a derived constant.} It was
+picked to be comfortably above ordinary measurement noise in this normalized space and
+comfortably below where two rows would plausibly be considered "the same flow," not fit to any
+distribution. Its only role in this paper is binary: flagging whether a family's distances are
+small enough to call the partition degenerate for that family. The conclusion that holds under
+it — median distances of 0.0030--0.0177 across every family and every deduplication grid tested,
+all at least $14\times$ below 0.25 (Table~\ref{tab:degeneracy}) — is not sensitive to where
+exactly the line is drawn: the same families are flagged at any threshold from roughly 0.02 up to
+well past 0.25 and down to an order of magnitude above the measured values, since the largest
+median distance measured anywhere in this paper's degeneracy table is 0.0177. Only a threshold
+tighter than about 0.02 — eight times stricter than the one used — would change which families
+the guard flags.
 
 \subsection{Threshold policy}
 % DECISIONS.md s5: calibrate to a target FPR (0.01) on a benign-stratified validation split
@@ -217,3 +287,59 @@ a defense leaves intact.
 Every reported delta is paired by seed: for each of the 5 seeds, an arm's final-round metric
 minus the control's final-round metric at that same seed, then the mean, standard deviation and
 paired $t = \bar{d} / (s_d/\sqrt{5})$ over the 5 differences.
+
+% Added per external review item 7: one table naming every statistical family, its correction,
+% and whether it was confirmatory or exploratory, rather than leaving that implicit per-section.
+\subsection{Statistical families}
+\label{sec:stat-families}
+Table~\ref{tab:stat-families} names every family of hypothesis tests in this paper, the
+correction applied within it, and whether it was pre-specified (confirmatory) or swept
+after the fact (exploratory) — the distinction a Holm or Bonferroni correction is answering in
+each case, stated once rather than re-derived per section.
+
+\begin{table*}[t]
+  \centering
+  \caption{Every statistical family in this paper: what it tests, how many cells, how corrected,
+  and whether pre-specified.}
+  \label{tab:stat-families}
+  \small
+  \begin{tabular}{p{0.16\linewidth}p{0.27\linewidth}p{0.06\linewidth}p{0.08\linewidth}p{0.17\linewidth}p{0.11\linewidth}p{0.1\linewidth}}
+    \toprule
+    Family & Hypothesis & Cells & Seeds & Test & Correction & Status \\
+    \midrule
+    36-cell grid & A1 damages RF/XGBoost TPR at this (ratio, jitter) & 36 & 5 & paired $t$ +
+    permutation & Holm, family of 36 & Exploratory (full grid swept) \\
+    6-cell RF follow-up & RF's at-distance TPR damage generalises across jitter 0.3--1.5 & 6 & 15
+    (+10-new check) & paired $t$ + permutation & Holm, family of 6 & Confirmatory
+    (pre-registered, Section~\ref{sec:attack}) \\
+    Mechanism isolation & The label conflict, not volume or prior shift, drives A1's damage & 4
+    & 5 & paired $t$ + permutation & Bonferroni, family of 4 & Confirmatory (pre-specified arms,
+    one fixed distance) \\
+    Defense sweeps & Setting $X$ dominates a baseline on both recovery and retention & varies
+    (D1's $3\times5$ grid, frontier comparisons) & 5 & seed-bootstrap dominance probability, not
+    a $t$/permutation family & n/a (a resampling probability, not a corrected $p$-value) &
+    Exploratory (grid search) \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+% Added per external review item 8: a paired permutation test alongside every paired t-test.
+% DECISIONS.md s27.1 for the full finding, including the n=5 floor.
+\textbf{Permutation test, alongside every paired $t$-test.} For every cell in the first three
+families above, we also run a paired sign-flip permutation test: exact enumeration of all $2^n$
+sign patterns for $n\le12$ (every family here except the 15-seed follow-up), Monte Carlo with
+$10^4$ resamples otherwise. This removes the normality assumption the $t$-test makes, at no
+additional data collection cost, computed from the same stored per-seed deltas
+(\texttt{experiments/phase0\_stats\_recompute.py}). It surfaces a limitation worth stating
+plainly rather than only in a methods footnote: at $n=5$, the two sign patterns that reproduce
+the observed effect exactly (all-positive and all-negative) already cover $2/2^5=0.0625$ of the
+permutation space, so \emph{no} $n=5$ cell in this paper can reach an exact two-sided permutation
+$p$ below 0.0625 — a floor above even an uncorrected $\alpha=0.05$ — regardless of effect size.
+This is a general property of $n=5$ matched-pair sign tests ($2^{1-n}$ is the minimum achievable
+exact $p$ at $n$ pairs), not a defect of any particular result, and it means the permutation test
+is not a strictly more conservative substitute for the $t$-test at this sample size: it is a
+less powerful one, reported for transparency. The 15-seed family does not hit this floor
+($2^{-14}\approx6\times10^{-5}$, well below the Monte Carlo resolution used) and its permutation
+$p$-values corroborate its $t$-test conclusions without qualification
+(Section~\ref{sec:attack}). Where the two tests disagree on a 5-seed cell, both are reported and
+neither is treated as silently superseding the other.
