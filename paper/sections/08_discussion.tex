@@ -24,14 +24,37 @@ labelling policy by construction; a check anchored to data outside the loop can.
 adversary's batches are drawn from a fixed pool rather than generated against a live honeypot,
 and there is no network-level cost to reaching the decoy in the first place. We measure flow
 features only, not payload content, so any attack or defense that depends on packet contents is
-out of scope. CICIDS2017 answers the degeneracy measurement and the fidelity-versus-damage curve
-but carries no learning claim (Section~\ref{sec:degeneracy}); the synthetic dataset answers the
-honest-loop learning claim but has no attacker-cost profile of its own. Five seeds is enough to
-establish some effects and not others: XGBoost's fixed-threshold FPR trajectory splits into two
-distinct per-seed groups rather than clustering around a mean (Section~\ref{sec:attack}), and
-RF's damage at large mimicry distance needed a dedicated 15-seed follow-up to confirm — the
-original 5-seed, 36-cell grid family lacked the power to resolve it, even though the effect was
-real (Section~\ref{sec:attack}). We only had the budget to run that follow-up for RF; the same
-question is open for XGBoost. Further limitations — the partition's file-order versus verified
-timestamp, and ShareCap's cap range and adaptive-attacker coverage — are in
-Appendix~\ref{sec:appendix}.
+out of scope. \textbf{The attack is realized directly in flow-feature space, not demonstrated
+end to end from packets}: A1 perturbs feature rows (Section~\ref{sec:methodology}'s
+$G(x,\sigma_j,\epsilon)$), it does not generate packets that a flow exporter then summarizes into
+those rows, so whatever imprecision a real packet-to-flow pipeline would add to an attacker's
+control over the realized distance is not measured here (Section~\ref{sec:threat-model}'s
+benign-distribution-knowledge axis states this assumption explicitly). CICIDS2017 answers the
+degeneracy measurement and the fidelity-versus-damage curve but carries no learning claim
+(Section~\ref{sec:degeneracy}); the synthetic dataset answers the honest-loop learning claim but
+has no attacker-cost profile of its own — \textbf{every quantitative result in this paper is
+centred on these two datasets and no other}. Five seeds is enough to establish some effects and
+not others: XGBoost's fixed-threshold FPR trajectory splits into two distinct per-seed groups
+rather than clustering around a mean (Section~\ref{sec:attack}), and RF's damage at large
+mimicry distance needed a dedicated 15-seed follow-up to confirm — the original 5-seed, 36-cell
+grid family lacked the power to resolve it, even though the effect was real
+(Section~\ref{sec:attack}). We only had the budget to run that follow-up for RF; the same
+question is open for XGBoost, and \textbf{the main grid throughout this paper is 5 seeds unless
+stated otherwise}. ShareCap's safe cap range is validated on neither a second dataset nor a
+third model (Appendix~\ref{sec:appendix} has the full statement). Further limitations — the
+partition's file-order versus verified timestamp, and ShareCap's adaptive-attacker coverage —
+are also in Appendix~\ref{sec:appendix}.
+
+\textbf{Future work.} Four extensions this paper does not attempt but that the design points to
+directly: (1) \emph{end-to-end packet realization} — generate the mimicry attack as actual
+packets through a real flow exporter, rather than perturbing feature rows directly, to measure
+how much control over realized distance survives that pipeline; (2) evaluating against
+\citet{engelen2021troubleshooting}'s reprocessed CICIDS2017, built specifically to correct the
+labeling and extraction errors Section~\ref{sec:background} cites it for, to see whether the
+degeneracy measurement (Section~\ref{sec:degeneracy}) is a property of the original release or
+survives a cleaner re-extraction; (3) a second, independent NIDS dataset, to separate what in
+this paper's A1 results is specific to CICIDS2017 from what generalises; and (4) higher-powered
+grids for both models — the RF at-distance confirmation (Section~\ref{sec:attack}) took 15 seeds
+to resolve what 5 could not, and the same question for XGBoost, and for the FPR channel at
+distance under either model, is open for exactly the same reason: nothing ruled it out, we did
+not have the seeds to settle it.
