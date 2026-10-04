@@ -2289,3 +2289,43 @@ Full per-cell output (t, $p_t$, permutation $p$, 95% CI, by family) is in
 | 6-cell RF follow-up | RF's at-distance TPR damage generalises across jitter 0.3-1.5 | 6 | 15 (+ 10-new check) | paired $t$ (+ perm.) | Holm, family of 6 | Confirmatory (pre-registered s26.6, before the run) |
 | Mechanism isolation | The label conflict (not volume/prior-shift) drives A1's damage | 4 | 5 | paired $t$ (+ perm.) | Bonferroni, family of 4 | Confirmatory (pre-specified arms and one fixed distance) |
 | Defense sweeps (recovery/retention dominance) | Setting X dominates kNN on both recovery and retention | varies (D1 3x5 grid, frontier comparisons) | 5 | seed-bootstrap dominance probability (not a paired $t$/permutation test) | n/a — a resampling probability, not a corrected $p$-value family | Exploratory (grid search over D1/D1q/ShareCap parameterisations) |
+
+## 28. Pre-registration: mechanism isolation at 15 seeds (written before running)
+
+A targeted exception to the s26.10 freeze, because it bears on the paper's central causal claim
+(the label conflict, not volume or prior shift, drives A1's damage) and the s27.1 permutation
+floor left that claim's exact-test confirmation genuinely unresolved at $n=5$, not just
+uncomfortable-looking. Written and committed **before** the three new arms are run.
+
+**Cell:** RF, recalibrated threshold, ratio 0.2, jitter 0.7 — identical to s23/s26.1's
+mechanism-isolation cell.
+
+**Reuse, not rerun:** the A1 arm and its same-seed controls at this cell already exist at 15
+seeds (s26.6/s26.8's follow-up covers exactly jitter 0.7, ratio 0.2, RF, recalibrated, seeds
+1-15). Only the three null-control arms need new seeds: \texttt{a1truth}, \texttt{s0j} (both at
+jitter 0.7, ratio 0.2) and \texttt{junk} (jitter 0.0, its own config, ratio 0.2), for the 10 new
+seeds (6-15), with configs identical to the existing 5-seed runs (same val-nn-tau 0.1, same
+defense=none, same cost\_padding=1.0).
+
+**Family:** 4 tests (a1, a1truth, s0j, junk vs. control), Bonferroni correction, as in s23/s26.1.
+Paired $t$-test and paired permutation test (10,000 Monte Carlo resamples, since $n=15$ is above
+the exact-enumeration cutoff used elsewhere in this paper) reported for every arm, not just a1.
+
+**Confirmation bar, fixed now:** the mechanism-isolation result is **confirmed** at 15 seeds iff
+(a) a1 clears the family's Bonferroni threshold ($\alpha/4 = 0.0125$) by **both** the $t$-test
+and the permutation test, **and** (b) each null arm's (a1truth, s0j, junk) 95\% CI includes 0.
+Falling short on any one of these is **not confirmed**, reported as such with the specific
+condition that failed, not reframed as a partial positive.
+
+**Run:** `experiments/phase0_loop.py --dataset cicids --val-nn-tau 0.1 --scenarios a1truth s0j
+--models rf --jitters 0.7 --ratios 0.2 --seeds 15 --workers 2 --out
+results/phase0/loop/cicids_recal --no-fidelity` and a second invocation with `--scenarios junk
+--jitters 0.0 --ratios 0.2` (junk has no jitter parameter of its own; existing seeds 1-5 job
+files are skipped by the resume-by-file logic, only seeds 6-15 are new). 2 workers: 4 OOM'd on a
+comparably-sized job earlier in this project (s26.6's first attempt).
+
+**What does not change regardless of outcome:** this is the one exception to the s26.10 freeze,
+scoped to exactly this cell; no further experiments follow from it either way. If confirmed, s6
+and the stat-families table move the mechanism-isolation family from "t-test only" to "confirmed
+by both tests, 15 seeds." If not confirmed, the specific failing condition is stated plainly and
+the claim is narrowed to what the data supports -- not papered over.
