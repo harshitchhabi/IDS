@@ -30,6 +30,11 @@ htmlcov/
 # Experiment scratch
 /results/**/*.tmp
 
-# LaTeX toolchain (downloaded locally, not part of the repo) and build output
+# LaTeX toolchain (downloaded locally, not part of the repo). paper/main.pdf IS committed
+# (README.md links to it) -- only the intermediate build files are ignored.
 .tools/
-paper/main.pdf
+paper/main.aux
+paper/main.bbl
+paper/main.blg
+paper/main.log
+paper/main.out

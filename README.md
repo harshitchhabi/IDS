@@ -39,7 +39,10 @@ finding about the system, not about a separate toy.
   the dataset, not a general claim about production network traffic.
 
 Full writeup, every number sourced to a committed CSV or a `docs/DECISIONS.md` section: the
-compiled paper is `paper/main.pdf` (`make paper` to rebuild).
+compiled paper is **[paper/main.pdf](paper/main.pdf)**, committed so it's readable without a
+LaTeX toolchain. Rebuild it after any change to `paper/` with `make paper`
+(`python scripts/run.py figures` + Tectonic) and commit the new PDF alongside the source changes
+— it is not regenerated automatically.
 
 ## Quickstart
 
