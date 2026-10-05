@@ -7,7 +7,11 @@
 %   2. Everything from \input{sections/...} down is template-agnostic and needs no changes --
 %      the section files contain only \section/\subsection structure, prose and floats.
 % Build: .tools/tectonic.exe paper/main.tex   (or: python scripts/run.py figures && <same>)
-\documentclass[sigconf,anonymous=false,review=false]{acmart}
+% `nonacm`: this is the arXiv-preprint build -- no venue is confirmed yet (docs/ARXIV.md), so the
+% conference line / ISBN / DOI / copyright block are all suppressed rather than shown as "TBD" on
+% every page header. Drop `nonacm` (and uncomment the \acmConference/\acmISBN/\acmDOI block below)
+% once a venue is confirmed and this becomes a camera-ready build.
+\documentclass[sigconf,anonymous=false,review=false,nonacm]{acmart}
 
 \settopmatter{printacmref=false}
 \renewcommand\footnotetextcopyrightpermission[1]{}
@@ -24,13 +28,13 @@
 \definecolor{loopredbg}{HTML}{FCEBEA}
 \newcommand{\lbl}[1]{{\scriptsize\color{black!65}#1}}
 
-% ---- venue / title / authors (placeholders; DECIDE at "Venue, template and page limit
-% confirmed", docs/PAPER_PLAN.md "Open items") ----------------------------------------------
-\acmConference[AISec '26]{ACM Workshop on Artificial Intelligence and Security}{TBD}{TBD}
-\acmYear{2026}
-\copyrightyear{2026}
-\acmISBN{TBD}
-\acmDOI{TBD}
+% ---- venue (commented out for the arXiv/nonacm build above; uncomment and fill in once a
+% venue is confirmed, docs/PAPER_PLAN.md "Open items") --------------------------------------
+% \acmConference[AISec '26]{ACM Workshop on Artificial Intelligence and Security}{TBD}{TBD}
+% \acmYear{2026}
+% \copyrightyear{2026}
+% \acmISBN{TBD}
+% \acmDOI{TBD}
 \settopmatter{printccs=false}
 
 \title{Poisoning the Deception Loop: Label Conflict in Honeypot-Fed Intrusion Detection}

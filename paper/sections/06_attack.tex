@@ -185,12 +185,13 @@ correction either.
 % per-seed, not mean+/-sd. Full 8-round, both-model table moved to Appendix (space).
 \textbf{The FPR channel's XGBoost trajectory is seed-dependent, and 5 seeds is too few to
 characterize it.} At ratio 0.5, raw fidelity, fixed threshold, XGBoost's per-seed FPR at round
-10 splits into two groups rather than clustering around the mean: two seeds have already
-reached 82--91\%, two sit at 0.6--0.7\%, and one is midway. RF climbs on every one of the 5
-seeds. A mean-over-seeds table hides this — it reads as one noisy estimate of a common
-trajectory, and it is not. Every mean XGBoost number elsewhere in this paper should be read
-with that in mind; the full per-seed, per-round table for both models is in
-Appendix~\ref{sec:appendix} (Table~\ref{tab:xgb-seeds-full}).
+10 is bimodal, not clustered around the mean: three seeds climb (two reach 82--91\% by round
+10; the third climbs the same direction but later, to 69\%), and two stay flat at 0.6--0.7\%. RF
+climbs on every one of the 5 seeds. A mean-over-seeds table hides this — it reads as one noisy
+estimate of a common trajectory, and it is not. Every mean XGBoost number elsewhere in this
+paper should be read with that in mind; the full per-seed, per-round table for both models,
+including each seed's full round-by-round trajectory, is in Appendix~\ref{sec:appendix}
+(Table~\ref{tab:xgb-seeds-full}).
 
 \subsection{Mechanism isolation}
 % DECISIONS.md s23 "Prior shift is null" table + s7 (this paper's Figure 5 / F5), s27.2 (95% CIs
@@ -209,25 +210,15 @@ which keeps the label conflict, clears the control's own $\pm2\sigma$ band
 (Figure~\ref{fig:f5-mechanism}). Prior shift and raw volume are not the mechanism; the label
 conflict is.
 
-\textbf{This result is now confirmed at 15 seeds, by both tests, not resting on a 5-seed
-$t$-test alone.} At the original 5 seeds, A1 clears a Bonferroni threshold of $0.0125$ within
-this 4-test family by the paired $t$-test ($t=-6.3$, $p=0.0032$), but the exact permutation test
-at $n=5$ cannot clear even an uncorrected $\alpha=0.05$ for \emph{any} result in this paper
-(Section~\ref{sec:methodology}'s floor, $p_{\rm perm}=0.0625$) — which left this family's
-confirmation genuinely resting on the $t$-test's normality assumption, not merely looking that
-way. We treated this as unresolved rather than settled and ran one targeted exception to this
-paper's experiment freeze (pre-registered before running, with a fixed confirmation bar):
-\texttt{a1truth}, \texttt{s0j} and \texttt{junk} each got 10 new seeds, reusing the existing
-15-seed A1 arm and controls from Section~\ref{sec:attack}'s distance follow-up at this same
-cell. \textbf{All three pre-registered conditions are met.} A1 clears the family's Bonferroni
-threshold by both tests at 15 seeds ($t=-11.3$, $p_t=2.1\times10^{-8}$; $p_{\rm perm}<0.0001$,
-nowhere near the $n=5$ floor), and every null arm's 95\% CI includes 0 at 15 seeds just as it did
-at 5 (a1truth $[-0.039, 0.014]$, s0j $[-0.040, 0.008]$, junk $[-0.021, 0.021]$) — the point
-estimates moved slightly with the new seeds (a1truth from $+0.014$ to $-0.012$; s0j from
-$-0.002$ to $-0.016$) but stayed inside the null band throughout, consistent with sampling noise
-around zero rather than an effect the first 5 seeds missed. The qualitative finding does not
-change — the label conflict, not volume or prior shift, is the mechanism — but it no longer
-rests on a single, lower-powered test.
+\textbf{This result is confirmed at 15 seeds, by both tests.} A1 clears the family's Bonferroni
+threshold ($\alpha=0.0125$) by the paired $t$-test ($t=-11.3$, $p_t=2.1\times10^{-8}$) and by the
+exact permutation test ($p_{\rm perm}<0.0001$), and every null arm's 95\% CI includes 0
+(\texttt{a1truth} $[-0.039, 0.014]$, \texttt{s0j} $[-0.040, 0.008]$, \texttt{junk}
+$[-0.021, 0.021]$). This is a pre-registered follow-up run after a 5-seed pilot left the result
+resting on the $t$-test alone, since the exact permutation test cannot clear even an uncorrected
+$\alpha=0.05$ for any result in this paper at $n=5$ (Section~\ref{sec:methodology}'s floor); the
+qualitative finding is unchanged — the label conflict, not volume or prior shift, is the
+mechanism.
 
 Section~\ref{sec:attack}'s broader 36-cell grid sweep, at 5 seeds, could not confirm a damaging
 effect at this same distance on its own — not because the effect is absent, but because that
@@ -297,11 +288,8 @@ question the 5-seed families lacked the power to settle either way.
   separate jitter-1.5 sweep). Error bars: sd over seeds. Band: the control's own $\pm2\sigma$.
   Only A1 — the arm with the label conflict — moves outside it. \textbf{Confirmed at 15 seeds by
   both tests}: a1 clears the family's Bonferroni threshold ($\alpha/4=0.0125$) by the paired
-  $t$-test ($t=-11.3$, $p=2.1\times10^{-8}$) and by the exact permutation test
-  ($p<0.0001$) — at $n=5$ the same permutation test could not clear even an uncorrected 0.05 for
-  any result in this paper (Section~\ref{sec:methodology}'s floor), so this family's
-  confirmation previously rested on the $t$-test alone; it no longer does. Every null arm's 95\%
-  CI includes 0 at 15 seeds (a1truth $[-0.039,0.014]$, s0j $[-0.040,0.008]$, junk
-  $[-0.021,0.021]$), the second pre-registered condition this result had to meet.}
+  $t$-test ($t=-11.3$, $p=2.1\times10^{-8}$) and by the exact permutation test ($p<0.0001$), and
+  every null arm's 95\% CI includes 0 (a1truth $[-0.039,0.014]$, s0j $[-0.040,0.008]$, junk
+  $[-0.021,0.021]$). Pre-registered after a 5-seed pilot.}
   \label{fig:f5-mechanism}
 \end{figure}

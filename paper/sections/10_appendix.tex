@@ -145,12 +145,13 @@ data, not acted on: the pre-registered default is not re-tuned after seeing it.
 Section~\ref{sec:attack} reports XGBoost's fixed-threshold FPR response to A1 as seed-dependent
 rather than characterisable from a mean over 5 seeds; Table~\ref{tab:xgb-seeds-full} is the full
 per-seed trajectory this is based on (ratio 0.5, raw fidelity, rounds 2 through 20). XGBoost is
-bimodal: seeds 2 and 4 reach 70--84\% FPR by round 8--10; seeds 1 and 5 stay below 2\% through
-round 10, and only seed 5 climbs at all by round 20 (to 12\%); seed 3 sits in between, jumping
-late (round 6--8). RF climbs on all 5 seeds, with none staying flat. A mean-over-seeds summary
-hides this: XGBoost's round-10 mean is dragged up by two seeds while three show no effect at
-all, which is a bimodal outcome, not a noisy estimate of one common trajectory. Every mean
-XGBoost number elsewhere in this paper should be read with that in mind.
+bimodal: three seeds climb (2 and 4 early, reaching 78--91\% FPR over rounds 8--10; seed 3 the
+same direction but later, 5.3\% at round 6, 53.8\% at round 8, 69.3\% at round 10); two seeds
+stay flat (1 and 5, both under 1\% through round 10, though seed 5 edges up to 11.7\% by round
+20 while seed 1 stays under 2\%). RF climbs on all 5 seeds, with none staying flat. A
+mean-over-seeds summary hides this: XGBoost's round-10 mean is dragged up by three seeds while
+two show essentially no effect, which is a bimodal outcome, not a noisy estimate of one common
+trajectory. Every mean XGBoost number elsewhere in this paper should be read with that in mind.
 
 \begin{table*}[t]
   \centering
