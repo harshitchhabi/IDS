@@ -46,6 +46,7 @@ figures:
 
 paper: figures
 	.tools/tectonic.exe -X compile paper/main.tex --outdir paper
+	$(UV) run python scripts/check_layout.py --compile
 
 experiment-%:
 	$(UV) run python -m experiments.$*

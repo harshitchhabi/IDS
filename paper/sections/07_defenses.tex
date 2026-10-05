@@ -27,7 +27,7 @@ past a label the loop itself supplied consistently.
 % loop -- to seed_train's ground-truth labels, not the loop's own poisoned data. It drops 98.5%
 % of A1 poison. This falsifies the blanket claim "generic defenses fail because poison is
 % policy-consistent" -- the failure is specific to defenses that learn from the poisoned data.
-kNN sanitization, anchored instead to the trusted \texttt{seed\_train} labels rather than to
+kNN sanitization, anchored instead to the trusted \code{seed_train} labels rather than to
 the loop's own data, does not fail this way: it drops 98.5\% of A1's poison, because it can see
 that the poison sits among \emph{benign} seed neighbours despite carrying a malicious stamp.
 The blanket claim "generic defenses fail because the poison is policy-consistent" is therefore
@@ -43,7 +43,7 @@ not to label-consistency checking in general.
   \small
   \begin{tabular}{lrrr}
     \toprule
-    Poison ratio & RF recovery & XGBoost recovery & Share of poison dropped \\
+    Ratio & RF & XGBoost & Dropped \\
     \midrule
     0.05 & (no damage) & (no damage) & 60\% \\
     0.10 & $-$10\%     & 18\%        & 33\% \\
@@ -61,7 +61,7 @@ not to label-consistency checking in general.
 D1 prices a honeypot row's influence on the retrained model by what it cost the attacker to
 produce. Each row's \emph{effort} is a geometric mean, over duration, packet count, byte count
 and protocol-state depth, of that row's cost relative to a median trusted benign flow's cost in
-the same component; its \texttt{sample\_weight} saturates to 1 once effort clears a threshold
+the same component; its \code{sample_weight} saturates to 1 once effort clears a threshold
 $E^*$ and is 0 for a free interaction. $E^*=8,\gamma=2$ — full influence costs roughly an order
 of magnitude more than a typical legitimate flow — was fixed, in DECISIONS.md, before D1 was
 implemented or any defended run existed.

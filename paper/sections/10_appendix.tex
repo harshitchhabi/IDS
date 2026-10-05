@@ -45,17 +45,17 @@ do not.
 % Section 4 for space).
 The near-duplicate guard (Section~\ref{sec:methodology}) removes a large fraction of the benign
 class on CICIDS2017 at any reasonable grid resolution, so that resolution cannot be picked by
-feel. Sweeping \texttt{near\_dup\_grid} $\in \{\text{off}, 0.005, 0.01, 0.02, 0.05\}$: with the
+feel. Sweeping \code{near_dup_grid} $\in \{\text{off}, 0.005, 0.01, 0.02, 0.05\}$: with the
 guard off, partition construction fails outright (CICIDS2017 has roughly 12.3k flows that are
-row-content-identical, to six decimal places, across \texttt{seed\_train} and
-\texttt{trusted\_eval}). From 0.005 to 0.05, benign rows removed range over $2\times$ and
-\texttt{seed\_train} shrinks from 456k to 267k rows, but RF AUROC stays in 0.98--0.996 and TPR in
-0.95--0.97 throughout; \texttt{leak\_warning} is set at every grid tested. The result does not
+row-content-identical, to six decimal places, across \code{seed_train} and
+\code{trusted_eval}). From 0.005 to 0.05, benign rows removed range over $2\times$ and
+\code{seed_train} shrinks from 456k to 267k rows, but RF AUROC stays in 0.98--0.996 and TPR in
+0.95--0.97 throughout; \code{leak_warning} is set at every grid tested. The result does not
 depend on which grid in this range is used, and the guard is necessary regardless of grid: this
 paper uses 0.005 throughout.
 
-\texttt{leak\_warning} itself is gated on the attack class alone, not benign. Guard (c)'s purpose
-in setting that flag is to catch \texttt{S0} passing its checkpoint by memorization of a specific
+\code{leak_warning} itself is gated on the attack class alone, not benign. Guard (c)'s purpose
+in setting that flag is to catch \code{S0} passing its checkpoint by memorization of a specific
 held-out row rather than by learning a boundary; two different benign flows, unrelated to any
 attack, can legitimately carry identical flow statistics (the same web request shape occurring
 twice), so a near-zero benign nearest-neighbour distance is not by itself evidence of a leak the
@@ -74,7 +74,7 @@ through the middle of a contiguous burst of highly similar flows (a flood tool's
 obviously). Burst-level splitting tests this directly: segment each (day, family) stream into
 contiguous episodes by inter-flow gap ($>2$s, chosen from the measured gap distribution) and
 assign each burst whole to one partition, never dividing one across a boundary
-(\texttt{tests/test\_partition.py} asserts this invariant on the reconstructed union of all four
+(\code{tests/test_partition.py} asserts this invariant on the reconstructed union of all four
 partitions). Two family groups emerge: session-like families (Bot, SSH-/FTP-Patator, DoS
 GoldenEye, Web Attack variants) have a median inter-flow gap of 4--38s and thousands of bursts
 per day, where a row-level cut genuinely could split one; continuous floods (DoS Hulk, DDoS, DoS
@@ -83,9 +83,9 @@ $\sim$128k rows in 22 bursts for the entire day.
 
 With burst splitting on, the guard-(a) grid sweep repeats at the same order of magnitude as the
 row-level cut ($\text{nn\_attack\_p5}$ 0.0010--0.0058 across grid 0.005--0.05, versus 0.0010--0.0067
-row-level, Section~\ref{sec:degeneracy}); \texttt{leak\_warning} is set at every grid, unchanged.
+row-level, Section~\ref{sec:degeneracy}); \code{leak_warning} is set at every grid, unchanged.
 The per-family nearest-neighbour breakdown explains why burst-awareness does not help: DoS
-Hulk's nearest \texttt{honeypot\_pool} neighbour to a \texttt{trusted\_eval} row has RMS distance
+Hulk's nearest \code{honeypot_pool} neighbour to a \code{trusted_eval} row has RMS distance
 0.0003, DDoS 0.00017, DoS GoldenEye 0.00017 — a different burst, sometimes a different half of
 the day, and the feature vector is still within noise of zero distance. The degeneracy
 (Section~\ref{sec:degeneracy}) is a property of the feature representation these families
@@ -97,7 +97,7 @@ produce, not an artifact of where or how the cut is drawn.
 D1 prices a honeypot row's influence by attacker effort. Per-flow cost is
 $x_i = (d_i, p_i, b_i, s_i)$ — duration, packet count, byte count, and protocol-state depth
 $s_i = \min(\text{fwd packets}, \text{bwd packets})$. Each component is scaled by its reference
-$r_k$, the median of that component over \texttt{seed\_train}'s benign rows (trusted, defender-owned):
+$r_k$, the median of that component over \code{seed_train}'s benign rows (trusted, defender-owned):
 effort is the geometric mean $e_i = \left[\prod_k \left(1 + x_{ik}/r_k\right)^{1/4}\right] - 1$,
 so $e_i=0$ only if every
 component is zero, $e_i=1$ for a flow that costs a median benign flow's worth in every component,
@@ -184,17 +184,18 @@ trajectory. Every mean XGBoost number elsewhere in this paper should be read wit
 % Source: DECISIONS.md s21.6.
 Section~\ref{sec:defenses} states that an attacker forced to keep copy-level fidelity cannot pad
 individual flows to buy D1 weight, because padding moves a flow away from that fidelity.
-Table~\ref{tab:padding} is the measurement this rests on: \texttt{cost\_padding}$=m$ scales
+Table~\ref{tab:padding} is the measurement this rests on: \code{cost_padding}$=m$ scales
 duration, packets and bytes before jitter is applied, XGBoost, ratio 0.5.
 
-\begin{table}[t]
+\begin{table}[H]
   \centering
   \caption{Padding vs.\ D1: realized fidelity, weight, and FPR rise, XGBoost, ratio 0.5.}
   \label{tab:padding}
   \small
+  \setlength{\tabcolsep}{3pt}
   \begin{tabular}{lrrrr}
     \toprule
-    $m$ & Realized NN & Undefended: weight / $\Delta$FPR & D1: weight / $\Delta$FPR & Attacker bytes \\
+    $m$ & NN & Undefended: wt / $\Delta$FPR & D1: wt / $\Delta$FPR & Bytes \\
     \midrule
     1  & 0.011 & 1.00 / $+0.563\pm0.457$ & 0.23 / $+0.040\pm0.043$ & $3.2\times10^8$ \\
     2  & 0.135 & 1.00 / $+0.021\pm0.020$ & 0.31 / $+0.007\pm0.004$ & $6.4\times10^8$ \\
@@ -221,7 +222,7 @@ Beyond the four limitations in Section~\ref{sec:discussion}:
 
 \begin{itemize}
   \item \textbf{The partition is by file order, not a verified capture timestamp.}
-    CICIDS2017's public \texttt{MachineLearningCVE} release carries no timestamp column
+    CICIDS2017's public \code{MachineLearningCVE} release carries no timestamp column
     (Section~\ref{sec:methodology}), so "day split" in this paper means the dataset's own file
     boundaries, not confirmed calendar time. A burst-aware split gives comparable results
     (Appendix~\ref{sec:appendix}, "Burst splitting"), but that is evidence the result survives a

@@ -28,6 +28,27 @@
 \definecolor{loopredbg}{HTML}{FCEBEA}
 \newcommand{\lbl}[1]{{\scriptsize\color{black!65}#1}}
 
+% ---- breakable inline code: plain \texttt never breaks at underscores or slashes, which is
+% what causes most of this paper's margin overflows (identifiers, file paths). \code wraps the
+% url package's \path -- verbatim-like, typewriter font, and configured below to allow a line
+% break after _, /, ., and - so long identifiers and paths wrap instead of overflowing. ----------
+\usepackage{url}
+\makeatletter
+\def\UrlBreaks{\do\/\do\_\do\.\do\-\do\=\do\"}
+\makeatother
+\newcommand{\code}[1]{\path{#1}}
+
+% \path is fragile in a moving argument (captions write to the .lof entry even though this
+% document never typesets \listoffigures). Disable that write -- it is never read back -- rather
+% than hand-wrap every \code{} that lands in a caption.
+\makeatletter
+\let\addcontentsline\@gobblethree
+\makeatother
+
+% ---- safety net: let TeX stretch interword spaces slightly rather than overfill a line when
+% nothing else (hyphenation, \code's break points) can make a line fit. ------------------------
+\setlength{\emergencystretch}{1.5em}
+
 % ---- venue (commented out for the arXiv/nonacm build above; uncomment and fill in once a
 % venue is confirmed, docs/PAPER_PLAN.md "Open items") --------------------------------------
 % \acmConference[AISec '26]{ACM Workshop on Artificial Intelligence and Security}{TBD}{TBD}

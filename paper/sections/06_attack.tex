@@ -8,10 +8,10 @@
 % untouched as intended). Cost: fixed FPR at 50% rises to 0.024, the class-prior-shift effect
 % present with no attacker at all.
 Before any attack means anything, the clean loop has to improve the detector. On synthetic
-data, at poison ratio 0.2, it does, within one to two rounds: \texttt{honeypot\_only} TPR — the
+data, at poison ratio 0.2, it does, within one to two rounds: \code{honeypot_only} TPR — the
 arm the detector saw only through the decoy — rises from 0.39 (control) to 0.997 for RF and
-0.34 to 0.994 for XGBoost. \texttt{seen\_both} rises more modestly (0.946$\to$0.961 RF,
-0.950$\to$0.963 XGBoost) and \texttt{seed\_only} stays flat near its ceiling, untouched, as
+0.34 to 0.994 for XGBoost. \code{seen_both} rises more modestly (0.946$\to$0.961 RF,
+0.950$\to$0.963 XGBoost) and \code{seed_only} stays flat near its ceiling, untouched, as
 A4's controlled arm should be. This has a small cost even with no attacker present: fixed
 threshold FPR at 50\% honeypot share rises to 0.024, the class-prior-shift cost of retraining
 on more positives.
@@ -25,8 +25,9 @@ on more positives.
 A1's damage on the FPR channel appears at exactly one place: copy-level mimicry fidelity, and
 only once enough of the training set is honeypot-derived. At raw benign fidelity (jitter 0,
 realized nearest-neighbour distance to trusted benign $\approx0.011$) fixed-threshold FPR rises
-catastrophically with poison ratio — RF +0.009/+0.025/+0.337/+0.880 and XGBoost
-+0.005/+0.014/+0.279/+0.563 at ratios 0.05/0.1/0.2/0.5 — but at every jitter setting we tested
+catastrophically with poison ratio — RF +0.009/\allowbreak+0.025/\allowbreak+0.337/\allowbreak+0.880
+and XGBoost +0.005/\allowbreak+0.014/\allowbreak+0.279/\allowbreak+0.563 at ratios
+0.05/0.1/0.2/0.5 — but at every jitter setting we tested
 beyond that (realized distance $\ge0.014$), the same ratios sit inside $2\sigma$ of the
 control's own noise for both models, at every ratio tested (Figure~\ref{fig:f3-damage-vs-fidelity}).
 There is no gradient to read a distance threshold from: damage does not fall off gradually past
@@ -136,7 +137,7 @@ anywhere on the original 36-cell grid; several of its mid-range points are indiv
 significant before correction, but in the \emph{improving} direction, and none of them survives
 correction either.
 
-\begin{table}[t]
+\begin{table*}[t]
   \centering
   \caption{RF, recalibrated TPR, at-distance follow-up: effect size and significance, 15 seeds
   and the 10 new seeds alone (Holm-corrected within each 6-cell family separately).}
@@ -155,7 +156,7 @@ correction either.
     1.5 (1.05) & 0.5 & $-0.114\pm0.032$ & $-0.124\pm0.030$ & $-13.81$ / $-13.18$ \\
     \bottomrule
   \end{tabular}
-\end{table}
+\end{table*}
 
 \begin{table}[t]
   \centering
@@ -164,7 +165,8 @@ correction either.
   % Source: DECISIONS.md s23, s26.1, s26.5 (36-cell grid); s26.6/s26.8 (6-cell distance follow-up).
   \label{tab:two-channels}
   \small
-  \begin{tabular}{p{0.16\linewidth}p{0.36\linewidth}p{0.36\linewidth}}
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{p{0.15\linewidth}p{0.35\linewidth}p{0.35\linewidth}}
     \toprule
     Surface & Needs & Survives correction \\
     \midrule
@@ -198,9 +200,9 @@ including each seed's full round-by-round trajectory, is in Appendix~\ref{sec:ap
 % follow-up): A1 -0.126 [-0.150,-0.102] (t=-11.3, p_perm<0.0001); a1truth -0.012 [-0.039,0.014];
 % s0j -0.016 [-0.040,0.008]; junk 0.000 [-0.021,0.021]. All three pre-registered conditions met.
 Three matched null controls (Section~\ref{sec:methodology}) isolate which part of A1 is doing
-the work. \texttt{a1truth} — A1's own rows, correctly labelled — removes the label conflict and
-the effect vanishes. \texttt{s0j} — attack rows carrying A1's jitter, stamped malicious — keeps
-the volume and the class-prior shift but not the conflict, and it too is null. \texttt{junk} —
+the work. \code{a1truth} — A1's own rows, correctly labelled — removes the label conflict and
+the effect vanishes. \code{s0j} — attack rows carrying A1's jitter, stamped malicious — keeps
+the volume and the class-prior shift but not the conflict, and it too is null. \code{junk} —
 marginal-shuffled bulk, stamped malicious — tests volume alone and is also null. Only A1 itself,
 which keeps the label conflict, clears the control's own $\pm2\sigma$ band
 (Figure~\ref{fig:f5-mechanism}). Prior shift and raw volume are not the mechanism; the label
@@ -209,7 +211,7 @@ conflict is.
 \textbf{This result is confirmed at 15 seeds, by both tests.} A1 clears the family's Bonferroni
 threshold ($\alpha=0.0125$) by the paired $t$-test ($t=-11.3$, $p_t=2.1\times10^{-8}$) and by the
 exact permutation test ($p_{\rm perm}<0.0001$), and every null arm's 95\% CI includes 0
-(\texttt{a1truth} $[-0.039, 0.014]$, \texttt{s0j} $[-0.040, 0.008]$, \texttt{junk}
+(\code{a1truth} $[-0.039, 0.014]$, \code{s0j} $[-0.040, 0.008]$, \code{junk}
 $[-0.021, 0.021]$). This is a pre-registered follow-up run after a 5-seed pilot left the result
 resting on the $t$-test alone, since the exact permutation test cannot clear even an uncorrected
 $\alpha=0.05$ for any result in this paper at $n=5$ (Section~\ref{sec:methodology}'s floor); the

@@ -27,7 +27,7 @@ amounts to is a separate, measured quantity (realized poison ratio, below).
 % poison ratios up to 50% are reachable with FRESH rows, not resampled duplicates -- a
 % resampled duplicate is closer to upweighting an existing sample than to injecting new poison.
 \textbf{Attacker capability.} The attacker can send arbitrary traffic to the honeypot, but cannot
-touch \texttt{seed\_train}, \texttt{trusted\_eval}, or the model directly — every effect it has
+touch \code{seed_train}, \code{trusted_eval}, or the model directly — every effect it has
 on the deployed detector routes through what the honeypot logs. The pool it draws from is
 two-class, sized so poison ratios up to 50\% of the training set are reachable with fresh rows
 rather than resampled duplicates; for a tree model, a resampled duplicate is closer to
