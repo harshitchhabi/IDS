@@ -1,6 +1,8 @@
 # arXiv submission metadata (prepared, not submitted)
 
-This is prep only — nothing here has been submitted. Fill in the TBDs and submit yourself.
+This is prep only — nothing here has been submitted. Submission package: `arxiv_submission.zip`
+at the repo root (rebuild with `main.tex` from `arxiv_pkg_build/`, `main.bbl` inlined so the
+package compiles standalone without `references.bib`).
 
 ## Title
 
@@ -11,13 +13,12 @@ Intrusion Detectors" — see `paper/main.tex`'s title comment.)
 
 ## Author / affiliation
 
-`paper/main.tex` now has: **Harshit Chhabi, Vellore Institute of Technology, Vellore, India**,
+`paper/main.tex` has: **Harshit Chhabi, Vellore Institute of Technology, Vellore, India**,
 email `harshitchhabi@gmail.com`. City is VIT's main campus — check that's the right campus to
-list if that matters to you (VIT also has Chennai, Bhopal and AP campuses). The venue line
-(`\acmConference[AISec '26]{...}{TBD}{TBD}`) and `\acmISBN{TBD}`/`\acmDOI{TBD}` are left as TBD
-on purpose — ACM's own guidance is that a preprint should not claim ACM's conference formatting
-metadata until accepted, so these should stay `TBD` or be deleted for the arXiv version, not
-filled with placeholder-looking real-format values.
+list if that matters to you (VIT also has Chennai, Bhopal and AP campuses). The build uses the
+`nonacm` class option, so there is no conference line, ISBN, or DOI to fill in — ACM's own
+guidance is that a preprint should not claim ACM's conference formatting metadata until accepted,
+and `nonacm` suppresses that block entirely rather than showing placeholder values.
 
 ## Abstract (plain text, no LaTeX macros)
 

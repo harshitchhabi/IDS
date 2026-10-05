@@ -79,10 +79,9 @@ The same underlying mechanism — rows that sit in benign-populated feature spac
 malicious by the auto-labeller — produces all of this section's damage. What differs is not the
 mechanism but which metric the threshold policy exposes it through: a fixed threshold reads the
 damage as false positives (Section~\ref{sec:attack}, above); a recalibrated threshold reads the
-same underlying rows as lost detection, TPR. These were described as two separate channels in an
-earlier pass through this data; recalibrating does not remove the damage, it relocates which
-number shows it, so we no longer describe them as independent. Both surface at copy-level
-mimicry fidelity, once the statistics are held to the standard the rest of this paper uses.
+same underlying rows as lost detection, TPR: recalibrating does not remove the damage, it
+relocates which number shows it. Both surface at copy-level mimicry fidelity, once the statistics
+are held to the standard the rest of this paper uses.
 Naively reading off which of the 36 (model, ratio, jitter) cells clear an uncorrected $p<0.05$
 suggested TPR damage confined to RF and present at a distance as well as at copy fidelity; that
 reading does not survive correcting for the 36 simultaneous comparisons made across the grid.
@@ -99,11 +98,8 @@ read as exploratory, at $n=5$, for this reason}: the confirmatory evidence in th
 damage beyond copy-level fidelity is the 15-seed distance follow-up and the 15-seed mechanism
 isolation below, not this grid. Nothing at realized distance $\ge0.25$ survives
 within this 36-cell family, at either ratio, for either model (Table~\ref{tab:two-channels}).
-\textbf{"Present at every distance tested,"
-"significant near and significant far," and "the TPR effect is RF-only" — all stated in an
-earlier reading of this data — are withdrawn as claims made \emph{from this family of tests}.}
-The corrected statement, at this correction level: TPR loss at copy-level fidelity is confirmed
-for RF at both poison ratios tested and for XGBoost at one of two.
+At this correction level: TPR loss at copy-level fidelity is confirmed for RF at both poison
+ratios tested and for XGBoost at one of two.
 % DECISIONS.md s26.6 (pre-registered before running), s26.8/s26.9 (result): RF, recalibrated
 % TPR, jitter in {0.3,0.7,1.5} (realized median distance 0.25/0.56/1.05) x ratio in {0.2,0.5},
 % 15 seeds (5 existing + 10 new), Holm within this 6-cell family. All 6 survive on the full 15
@@ -265,9 +261,10 @@ question the 5-seed families lacked the power to settle either way.
   dark). Dashed: control mean $\pm2$\,sd across seeds. Only the two lowest-fidelity curves
   (realized NN 0.011, 0.014) separate from control on FPR — the FPR channel is confirmed only at
   copy-level fidelity. RF's TPR is different: confirmed both at the lowest-fidelity curve and,
-  by a separate 15-seed follow-up (Section~\ref{sec:attack}), across jitter 0.3--1.5 — visible
-  here as every mid-to-high-fidelity curve moving together, which is now a confirmed effect, not
-  raw-mean noise.}
+  by a separate 15-seed follow-up (Section~\ref{sec:attack}), across jitter 0.3--1.5 (realized
+  distance 0.25--1.05) — visible here as the curves in that range moving together, a confirmed
+  effect rather than raw-mean noise. Jitter 0.01--0.10 is not covered by that follow-up and is
+  not confirmed either way.}
   \label{fig:f4-trajectory}
 \end{figure*}
 
