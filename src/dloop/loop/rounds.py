@@ -45,6 +45,8 @@ from dloop.models.metrics import binary_metrics
 FAST_HYPERPARAMS = {
     "rf": {"n_estimators": 25, "max_depth": 16},
     "xgboost": {"n_estimators": 60},
+    "logreg": {"max_iter": 300},
+    "mlp": {"epochs": 100},
 }
 
 

@@ -2371,3 +2371,214 @@ original 5 seeds missed.
 Pearson correlation of $-\log_{10}(p_t)$ against $-\log_{10}(p_{\rm perm})$, over all 71 cells
 across every family with both p-values strictly positive (excluding the 4 grid6\_15seed cells
 whose Monte Carlo count hit 0, reported as $<0.0001$ rather than a point value): $r = 0.875$.
+
+## 29. Pre-registration: Phase A generalization experiments (written before any run)
+
+A second, explicit exception to the s26.10 freeze — larger than s28's, so stated plainly as its
+own numbered item rather than folded into s28. The paper's confirmed results (S0 improves the
+detector, A1 damages it at copy-level fidelity, the label conflict is the mechanism) are all
+measured on one dataset (CICIDS2017), two models (RF, XGBoost) and one retention policy
+(`accumulate`). Phase A asks whether those findings generalize along the three axes a reviewer
+would ask about first: model family, dataset, and retention policy. Three independent items (A,
+B, C below), each run in its own Claude Code cloud session on its own branch
+(`phase-a-models` / `phase-a-datasets` / `phase-a-retention`), so a failure or delay in one does
+not block the others. **Written and committed before any Phase A run starts.**
+
+**What does not change regardless of outcome:** this is the one exception opened for Phase A;
+`docs/DECISIONS.md`, `paper/`, the demo, the dashboard and `scripts/` stay untouched by the three
+cloud sessions (`docs/phaseA/common.md` enforces this) so results land in
+`results/phaseA/<item>/` and `docs/phaseA/<item>-results.md` without touching anything the
+freeze already covers. Every cell's outcome — replicates, does not replicate, or mixed — is
+reported as measured. A result that does not replicate is exactly as reportable as one that does;
+neither is a reason to re-run with different settings.
+
+**Common statistical machinery (all three items):** paired $t$-test and paired permutation test
+(exact enumeration for $n\le12$, Monte Carlo with 10,000 resamples above that — identical
+methodology to `experiments/phase0_stats_recompute.py`, reused rather than reimplemented) on the
+same-seed delta against a matched control, at the final round. 15 seeds for every confirmatory
+cell listed below (above the $n=12$ exact-enumeration cutoff, so every confirmatory family here
+reports a genuine Monte Carlo permutation $p$, not an exact one — unlike s27's $n=5$ families, no
+cell in Phase A can hit that floor). Threshold calibration: both `fixed` and `recalibrated` modes
+are always computed in the same run (one `threshold_mode` column, not a separate invocation per
+mode — confirmed by inspection of `rounds.py`'s per-round output), so no command below needs to
+be run twice for that axis.
+
+### 29.A Models: logistic regression and a small MLP behind the existing interface
+
+**Hypothesis:** A1's damage (false positives at copy-level fidelity, lost detection at copy
+fidelity and, for RF, at distance) and the label-conflict mechanism are properties of the
+retraining loop, not of tree ensembles specifically, and reproduce under two models with a
+different inductive bias: `sklearn.linear_model.LogisticRegression` (a linear boundary) and a
+small two-hidden-layer PyTorch MLP (`dloop.models.mlp.MLPModel`, the same weighted-BCE pattern as
+the existing autoencoder's weighted reconstruction loss). Both are implemented behind the
+existing `Model` interface in this commit, with `sample_weight` honoured exactly as RF/XGBoost/the
+autoencoder honour it (no `class_weight`, no automatic rebalancing — see `models/__init__.py`'s
+docstring) and the same threshold calibration (`val_min_nn_distance`, tau = 0.1 on CICIDS2017, as
+s19 established).
+
+**Cells, family A.1 (damage grid, per model):** CICIDS2017, tau = 0.1, ratios $\{0.2, 0.5\}$,
+jitter $\{0, 0.7\}$ (copy fidelity and the RF at-distance cell, s26.6's jitter), both threshold
+modes read from the same run. $\Delta$FPR (fixed) and $\Delta$TPR (recalibrated) against control,
+paired by seed. $2\times2\times2 = 8$ (ratio, jitter, threshold-mode) cells per model, **16 cells
+total** across both models. Holm-Bonferroni correction within each model's own 8-cell family
+(two separate families, one per model — not pooled, so a result in one model cannot borrow
+significance from the other).
+
+**Cells, family A.2 (mechanism isolation, per model):** the s28 cell exactly — RF→model,
+recalibrated threshold, ratio 0.2, jitter 0.7 — four arms (a1, a1truth, s0j, junk) against
+control. **4 cells per model, 8 total.** Bonferroni correction within each model's own 4-arm
+family (mirrors s23/s26.1/s28's family-of-4 convention).
+
+**Test:** paired $t$ + permutation, both families, as specified above.
+
+**Confirmation bar, fixed now, per model independently:**
+- **Replicates** iff (a) in family A.1, at least the jitter-0, fixed-threshold $\Delta$FPR cells
+  (both ratios) clear the family's Holm threshold, matching CICIDS2017 RF/XGBoost's own
+  "damage needs copy-level fidelity" pattern, **and** (b) in family A.2, the `a1` arm clears the
+  family's Bonferroni threshold ($\alpha/4 = 0.0125$) by **both** tests **and** every null arm's
+  95% CI includes 0 (the exact s28 bar, applied to this model).
+- **Does not replicate** iff neither (a) nor (b) is met.
+- **Mixed** iff exactly one of (a), (b) is met, or if (a) is met for one ratio but not the other.
+This is evaluated separately for logreg and for the MLP — "the models item replicates" is not a
+single yes/no across both.
+
+**Run** (`.venv` on the cloud VM; see `docs/phaseA/session-models.md` for the full sequence):
+```
+python -m experiments.phase0_loop --dataset cicids --val-nn-tau 0.1 \
+  --scenarios control a1 --models logreg mlp --jitters 0 0.7 --ratios 0.2 0.5 \
+  --seeds 15 --workers 3 --out results/phaseA/models --no-fidelity
+
+python -m experiments.phase0_loop --dataset cicids --val-nn-tau 0.1 \
+  --scenarios a1truth s0j --models logreg mlp --jitters 0.7 --ratios 0.2 \
+  --seeds 15 --workers 3 --out results/phaseA/models --no-fidelity
+
+python -m experiments.phase0_loop --dataset cicids --val-nn-tau 0.1 \
+  --scenarios junk --models logreg mlp --jitters 0.0 --ratios 0.2 \
+  --seeds 15 --workers 3 --out results/phaseA/models --no-fidelity
+```
+`a1` at ratio 0.2, jitter 0.7 is produced once by the first command and reused for family A.2 —
+not rerun (same convention as s28). Smoke-tested locally at 1 seed / 2 rounds for both new model
+kinds before this section was committed (`tests/test_models.py`'s `_KINDS` now includes `logreg`
+and `mlp`, and all parametrized model tests — determinism, `sample_weight` honoured, no automatic
+class weighting, save/load roundtrip, threshold calibration — pass for both).
+
+### 29.B Datasets: reprocessed CICIDS2017 and UNSW-NB15
+
+**Hypothesis:** the same findings (S0 improves the detector; A1 damages it at copy-level
+fidelity; the label conflict is the mechanism) reproduce on datasets CICIDS2017 was not
+calibrated against. Run only for a dataset actually present in `harshitchhabi/IDS-data` (see that
+repo's README for which ones are) — a dataset that needs a manual download the session does not
+have is simply not run, and the results write-up says so plainly rather than silently covering
+the gap with the other dataset's numbers.
+
+**Prerequisite, per dataset, before anything else:** define the dataset's feature mapping onto
+`dloop.features.schema.CANONICAL_FEATURES` (a new module under `src/dloop/sim/`, mirroring
+`cicids.py`'s pattern: read raw columns, rename onto canonical names, tag capture day/session if
+the dataset has one) and document the mapping in `docs/phaseA/<item>-results.md` before any
+number is computed — column-name ambiguity resolved after seeing results is exactly the kind of
+decision this project pre-registers against. Normalization (`dloop.features.normalize.Normalizer`,
+fit on train only) and the guard-(c) nearest-neighbour distance metric must be applied identically
+to how CICIDS2017 uses them (Section 4 / s11 / s15 of the paper) — same per-feature RMS in
+normalized space, same near-duplicate removal grid search methodology (not necessarily the same
+grid *value*; find it the same way s11 did, by sweeping and checking the result is insensitive to
+the choice, and record that sweep).
+
+**Cells, family B.0 (degeneracy measurement, per dataset, descriptive, not hypothesis-tested):**
+median per-feature-RMS nearest-neighbour distance, `trusted_eval` → honeypot-pool-equivalent
+partition, every family with ≥500 eval rows, benign included — the Table 3 / Section 5 measurement,
+repeated on the new dataset with its own partitions. This is reported, not corrected for multiple
+comparisons (it is a measurement families the paper already treats as descriptive, per s16).
+
+**Cells, family B.1 (damage grid, per dataset, per model):** identical structure to 29.A's family
+A.1 — ratios $\{0.2, 0.5\}$, jitter $\{0, 0.7\}$, both threshold modes, RF and XGBoost (not the
+new models from item A — item B isolates the dataset axis, item A isolates the model axis; a
+dataset × new-model cross product is explicitly future work, not this round). **8 cells per
+(dataset, model), 16 per dataset, up to 32 total** if both datasets are available. Holm within
+each (dataset, model) 8-cell family.
+
+**Cells, family B.2 (mechanism isolation, per dataset):** the s28 cell structure — RF,
+recalibrated threshold, ratio 0.2, jitter 0.7, four arms — **4 cells per dataset.** Bonferroni
+family of 4, per dataset.
+
+**Test:** paired $t$ + permutation, families B.1 and B.2 (B.0 is descriptive, no test).
+
+**Confirmation bar, fixed now, per (dataset, model) for B.1 and per dataset for B.2:** identical
+mechanics to 29.A's bar, applied per dataset instead of per new-model — replicates / does not
+replicate / mixed, evaluated independently for each dataset actually run, and independently for
+RF vs. XGBoost within a dataset.
+
+**Run** (per dataset — the exact `--dataset` flag value and loader are item B's own first
+deliverable, so these commands are illustrative of the required shape, not literally executable
+until that loader exists; `docs/phaseA/session-datasets.md` has the up-to-date version once
+written):
+```
+python -m experiments.phase0_loop --dataset <cicids-fixed|unsw-nb15> --val-nn-tau <measured> \
+  --scenarios control a1 --models rf xgboost --jitters 0 0.7 --ratios 0.2 0.5 \
+  --seeds 15 --workers 3 --out results/phaseA/datasets/<dataset> --no-fidelity
+
+python -m experiments.phase0_loop --dataset <cicids-fixed|unsw-nb15> --val-nn-tau <measured> \
+  --scenarios a1truth s0j --models rf --jitters 0.7 --ratios 0.2 \
+  --seeds 15 --workers 3 --out results/phaseA/datasets/<dataset> --no-fidelity
+
+python -m experiments.phase0_loop --dataset <cicids-fixed|unsw-nb15> --val-nn-tau <measured> \
+  --scenarios junk --models rf --jitters 0.0 --ratios 0.2 \
+  --seeds 15 --workers 3 --out results/phaseA/datasets/<dataset> --no-fidelity
+```
+`--val-nn-tau <measured>` is **not** assumed to be 0.1 (CICIDS2017's own value, chosen for
+CICIDS2017's specific near-degeneracy) — it is derived the same way s19 derived 0.1 for CICIDS2017
+(smallest tau that moves the control's calibration FPR to something close to the 0.01 target) and
+recorded in the results write-up as part of family B.0's output, before B.1/B.2 run.
+
+### 29.C Retention: sliding window vs. accumulate
+
+**Hypothesis:** A1's damage is specific to `accumulate` retention (the worst case: honeypot
+influence only grows) and is reduced or absent under `sliding_window`, which already exists in
+`dloop.loop.config.LoopConfig` (no new code needed — `retention="sliding_window"`,
+`window_rounds` — see that module's docstring) but has never been measured against A1.
+
+**Cells:** CICIDS2017, tau = 0.1, RF only, ratio $\{0.2, 0.5\}$, jitter 0 (copy fidelity — the
+cell with the largest, most robustly confirmed fixed-threshold FPR damage, s17/s26), fixed
+threshold (where that damage shows). Retention $\in \{$`accumulate` (baseline, run
+fresh into `results/phaseA/retention/` — `results/phase0/loop/cicids_recal/jobs/` has `a1` at
+jitter 0 for only 5 of the 15 seeds this family needs, and that directory is the already-published
+paper's frozen evidence, not something Phase A writes into even to "top up" seeds; the ~5-seed
+overlap in compute is accepted rather than touch it), `sliding_window` with `window_rounds=5`,
+`sliding_window` with `window_rounds=10`$\}$. $\Delta$FPR against a matched control run under the
+*same* retention policy (control must also move to `sliding_window` — comparing a
+`sliding_window` A1 arm against an `accumulate` control would confound retention with the
+comparison itself). **3 retention settings $\times$ 2 ratios = 6 cells.** Holm correction within
+this one 6-cell family (mirrors s26.6/s26.8's 6-cell distance-follow-up family exactly).
+
+**Test:** paired $t$ + permutation.
+
+**Confirmation bar, fixed now:**
+- **Replicates** (damage is retention-policy-independent) iff all 6 cells clear the family's Holm
+  threshold, same direction as `accumulate`.
+- **Does not replicate** (damage needs `accumulate`) iff neither `sliding_window` setting clears
+  Holm at either ratio.
+- **Mixed** iff damage survives at one window size (5 or 10) but not the other, or at one ratio
+  but not the other — reported cell-by-cell, not collapsed to a single verdict.
+
+**Run:**
+```
+python -m experiments.phase0_loop --dataset cicids --val-nn-tau 0.1 \
+  --scenarios control a1 --models rf --jitters 0 --ratios 0.2 0.5 \
+  --seeds 15 --workers 3 --out results/phaseA/retention --no-fidelity
+
+python -m experiments.phase0_loop --dataset cicids --val-nn-tau 0.1 \
+  --scenarios control a1 --models rf --jitters 0 --ratios 0.2 0.5 \
+  --retention sliding_window --window 5 \
+  --seeds 15 --workers 3 --out results/phaseA/retention --no-fidelity
+
+python -m experiments.phase0_loop --dataset cicids --val-nn-tau 0.1 \
+  --scenarios control a1 --models rf --jitters 0 --ratios 0.2 0.5 \
+  --retention sliding_window --window 10 \
+  --seeds 15 --workers 3 --out results/phaseA/retention --no-fidelity
+```
+The first command (default `retention="accumulate"`) is run fresh into `results/phaseA/retention/`
+rather than reading `results/phase0/loop/cicids_recal/jobs/`'s existing 5-seed `a1` data at this
+cell — that directory is the already-published paper's frozen evidence and Phase A does not
+write into it, including to "top up" seeds.
+Smoke-tested locally at 1 seed / 2 rounds for both window sizes before this section was committed
+(`--retention sliding_window --window 5` and `--window 10` both run to completion against
+synthetic data with no errors).

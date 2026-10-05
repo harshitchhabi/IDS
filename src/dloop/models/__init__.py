@@ -27,6 +27,8 @@ from pathlib import Path
 
 from dloop.models.autoencoder import AutoencoderModel
 from dloop.models.base import Model, ModelConfig, ModelMetadata
+from dloop.models.logreg import LogRegModel
+from dloop.models.mlp import MLPModel
 from dloop.models.rf import RandomForestModel
 from dloop.models.xgb import XGBoostModel
 
@@ -34,6 +36,8 @@ MODELS: dict[str, type[Model]] = {
     "rf": RandomForestModel,
     "xgboost": XGBoostModel,
     "autoencoder": AutoencoderModel,
+    "logreg": LogRegModel,
+    "mlp": MLPModel,
 }
 
 
@@ -50,5 +54,5 @@ def load_model(path: str | Path) -> Model:
 
 __all__ = [
     "Model", "ModelConfig", "ModelMetadata", "MODELS", "make_model", "load_model",
-    "RandomForestModel", "XGBoostModel", "AutoencoderModel",
+    "RandomForestModel", "XGBoostModel", "AutoencoderModel", "LogRegModel", "MLPModel",
 ]

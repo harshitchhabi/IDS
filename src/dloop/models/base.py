@@ -32,7 +32,7 @@ from dloop.models.metrics import binary_metrics
 
 log = get_logger("models.base")
 
-ModelKind = Literal["rf", "xgboost", "autoencoder"]
+ModelKind = Literal["rf", "xgboost", "autoencoder", "logreg", "mlp"]
 ThresholdMode = Literal["fixed", "recalibrated"]
 
 _DEFAULT_SEED = 20250903

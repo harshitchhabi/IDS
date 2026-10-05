@@ -9,11 +9,13 @@ from dloop.models.metrics import binary_metrics
 from dloop.sim import synthetic
 from dloop.sim.dataset import load_partitions
 
-_KINDS = ["rf", "xgboost", "autoencoder"]
+_KINDS = ["rf", "xgboost", "autoencoder", "logreg", "mlp"]
 _FAST = {
     "rf": {"n_estimators": 40},
     "xgboost": {"n_estimators": 40},
     "autoencoder": {"epochs": 60},
+    "logreg": {"max_iter": 200},
+    "mlp": {"epochs": 60},
 }
 
 
@@ -138,3 +140,5 @@ def test_no_model_uses_automatic_class_weighting():
             assert m.clf.class_weight is None
         elif kind == "xgboost":
             assert m.clf.get_params().get("scale_pos_weight") in (None, 1.0)
+        elif kind == "logreg":
+            assert m.clf.class_weight is None
