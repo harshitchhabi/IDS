@@ -104,3 +104,104 @@ poison to accumulate over many rounds: the most recent `window_rounds` of honeyp
 at the same share, does the same harm. It does **not** show that a sliding window fails against
 a constant-volume adversary whose share would shrink under the window. That question was not
 pre-registered and was not run.
+
+---
+
+## C2 — retention under a constant attacker budget
+
+Pre-registration: `docs/phaseA/retention-c2-prereg.md`, committed and pushed on its own
+(85e9933, 2026-10-06T06:41:22Z) before any C2 run, including the smoke test. Run exactly as
+pre-registered: CICIDS2017, tau 0.1, RF, A1 jitter 0, 15 seeds, 20 rounds,
+`--budget-mode fixed_batch`, batch 375 / 1500 rows/round, retention accumulate / w=5 / w=10,
+6 invocations into `results/phaseA/retention-c2/`. All 180 jobs completed with exit 0.
+Stats: `experiments/phaseA_retention_c2_stats.py`, which imports `paired_deltas` /
+`report_cell` from `phase0_stats_recompute` unchanged and reuses item C's `holm`. Per-cell
+output: `results/phaseA/retention-c2/retention_c2_stats.csv`.
+
+| setting | log | config |
+|---|---|---|
+| accumulate, b375 | `run_acc_b375.log` | `config_control_a1_d68682940b9ad01c.json` |
+| w=5, b375 | `run_w5_b375.log` | `config_control_a1_eb9c75360b580f8b.json` |
+| w=10, b375 | `run_w10_b375.log` | `config_control_a1_d8d0f1999f37a91e.json` |
+| accumulate, b1500 | `run_acc_b1500.log` | `config_control_a1_dc959db186b2ef57.json` |
+| w=5, b1500 | `run_w5_b1500.log` | `config_control_a1_d5f5c221080c1581.json` |
+| w=10, b1500 | `run_w10_b1500.log` | `config_control_a1_c92b2b87362c5199.json` |
+
+**Erratum to the pre-registration's job count (no design change):** the prereg says each
+invocation runs "45 jobs: 15 control and 15 seeds × 1 A1 cell". That is 30 jobs, not 45
+(15 + 15), so the total is 180, not 270. The cells, seeds and commands are as written. The
+pre-registration file was not edited.
+
+### Pre-registered descriptive checks
+
+- **Reproduction of item C: passed exactly.** All 30 `accumulate` b375 job files (15 A1 +
+  15 control) are identical to item C's `accumulate` ratio 0.2 files in every round's
+  `n_honeypot`, `n_train`, threshold, FPR, TPR and AUROC, and likewise b1500 vs. ratio 0.5
+  (0 of 30 differ). An unplanned cross-check also matched: C2's w=5 b1500 cell is
+  identical to item C's w=5 ratio 0.2 cell (+0.5298), as it should be, because both send
+  1,500 rows/round into a 5-round window.
+- **Controls:** per-round FPR identical across all 6 invocations (verified row by row).
+- **Trajectories** (mean A1 fixed-threshold FPR over 15 seeds; honeypot rows retained at round
+  20 and their share in brackets):
+
+| round | acc b375 | w10 b375 | w5 b375 | acc b1500 | w10 b1500 | w5 b1500 |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 0.007 | 0.007 | 0.007 | 0.020 | 0.020 | 0.020 |
+| 5 | 0.034 | 0.034 | 0.034 | 0.535 | 0.535 | 0.535 |
+| 8 | 0.093 | 0.093 | 0.032 | 0.732 | 0.732 | 0.537 |
+| 10 | 0.166 | 0.166 | 0.033 | 0.803 | 0.803 | 0.534 |
+| 15 | 0.373 | 0.164 | 0.030 | 0.884 | 0.801 | 0.530 |
+| 20 | 0.533 | 0.161 | 0.031 | 0.920 | 0.799 | 0.534 |
+| retained @20 | 7,500 (0.20) | 3,750 (0.11) | 1,875 (0.06) | 30,000 (0.50) | 15,000 (0.33) | 7,500 (0.20) |
+
+The settings are identical until the window fills (round 5 for w=5, round 10 for w=10). After
+that, damage stops growing and holds at that level, while under accumulate it keeps climbing.
+
+### Family C2.1 — damage (A1 minus same-seed control, final-round fixed-threshold FPR; Holm within 6)
+
+| cell | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | Holm (on $p_t$) |
+|---|---|---|---|---|---|---|---|
+| accumulate, b375 | 15 | +0.528 | [+0.398, +0.658] | 8.72 | 5.0e-07 | <0.0001 | clears (rank 3, thr 0.0125) |
+| w=5, b375 | 15 | +0.027 | [+0.016, +0.037] | 5.42 | 9.0e-05 | <0.0001 | clears (rank 5, thr 0.0250) |
+| w=10, b375 | 15 | +0.157 | [+0.082, +0.231] | 4.51 | 4.9e-04 | <0.0001 | clears (rank 6, thr 0.0500) |
+| accumulate, b1500 | 15 | +0.916 | [+0.883, +0.949] | 59.18 | 3.3e-18 | <0.0001 | clears (rank 1, thr 0.0083) |
+| w=5, b1500 | 15 | +0.530 | [+0.396, +0.664] | 8.50 | 6.7e-07 | <0.0001 | clears (rank 4, thr 0.0167) |
+| w=10, b1500 | 15 | +0.795 | [+0.740, +0.850] | 30.84 | 2.8e-14 | <0.0001 | clears (rank 2, thr 0.0100) |
+
+All 6 are positive and clear Holm by both tests. Windowing does not remove A1's damage in any
+cell. The smallest effect (w=5, b375, +0.027) is still a statistically clear FPR increase over a
+0.0045 control baseline, about 7×.
+
+### Family C2.2 — does windowing reduce damage? (windowed ΔFPR minus accumulate ΔFPR, same seed and batch; Holm within 4)
+
+| cell | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | vs. bar |
+|---|---|---|---|---|---|---|---|
+| w=5 − acc, b375 | 15 | −0.501 | [−0.623, −0.380] | −8.83 | 4.3e-07 | <0.0001 | **windowing reduces damage** (rank 3, thr 0.0250; perm clears too) |
+| w=10 − acc, b375 | 15 | −0.371 | [−0.456, −0.287] | −9.42 | 1.9e-07 | <0.0001 | **windowing reduces damage** (rank 2, thr 0.0167; perm clears too) |
+| w=5 − acc, b1500 | 15 | −0.386 | [−0.488, −0.284] | −8.10 | 1.2e-06 | <0.0001 | **windowing reduces damage** (rank 4, thr 0.0500; perm clears too) |
+| w=10 − acc, b1500 | 15 | −0.121 | [−0.145, −0.097] | −10.67 | 4.2e-08 | <0.0001 | **windowing reduces damage** (rank 1, thr 0.0125; perm clears too) |
+
+$p_{\rm perm}$ is a Monte Carlo count of 0 in 10,000 resamples for every cell (true $p$ below
+1e-4, not 0).
+
+**Verdict, per cell, against the pre-registered bar** ("windowing reduces damage" for a cell iff
+its C2.2 contrast is negative and clears Holm, paired $t$ primary): **all 4 cells pass.**
+w=5 and w=10 both reduce A1's final-round fixed-threshold FPR damage relative to accumulate, at
+both 375 and 1,500 rows/round. The paired $t$ and the permutation test agree in every cell.
+
+### Reading C and C2 together
+
+- **Windowing reduces damage by capping retained poison; it does not remove it.** In every
+  setting the damage matches the honeypot share retained at round 20 (C2.1, and the
+  trajectory table). The share shrinks as w × B / (30,000 + w × B), and the damage shrinks with
+  it. C2.1 shows damage still clearly present in all four windowed cells.
+- **The reduction holds only against an attacker who does not adapt its volume.** Item C is the
+  adaptive case: an attacker who knows the window size (and the labelling policy is public)
+  sends 20/w times more per round and gets the accumulate-level damage back. Compare w=5 at
+  1,500 rows/round (+0.530) with accumulate at 375 rows/round (+0.528). What windowing buys the
+  defender is **attacker cost**: same damage for 30,000 total flows over 20 rounds instead of
+  7,500 (4× under w=5, 2× under w=10). This total-flow cost comparison is descriptive and was not
+  pre-registered.
+- Limitations: one model (RF), one dataset, jitter 0, fixed threshold, final round only. The
+  recalibrated threshold mode is in the job CSVs but was not part of either pre-registered
+  family and is not reported here.
