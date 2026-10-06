@@ -155,11 +155,14 @@ window, so a narrower window retains a smaller share — a window does reduce da
 (window $\times$ batch-size) contrasts against \code{accumulate} are negative and clear Holm
 (−0.50, −0.37, −0.39, −0.12 $\Delta$FPR across window sizes 5 and 10 at two budgets). But it never
 removes the damage: every one of the 6 damage cells under this budget is still positive and
-clears Holm, down to +0.027 at the smallest window and budget tested — about $7\times$ the
-control's own noise floor. An attacker who notices the window and raises its per-round volume to
-compensate recovers the undefended level of damage, at a cost: reaching \code{accumulate}'s
-damage under a 5-round window took $4\times$ the total flows at one budget tested and $2\times$
-at the other (descriptive, not a pre-registered comparison).
+clears Holm, down to +0.027 at the smallest window and budget tested — A1's final FPR in that
+cell is about 0.031, roughly $7\times$ the control's own 0.0045 (the +0.027 is the difference
+from control, not the FPR itself). An attacker who notices the window and raises its per-round
+volume to compensate recovers the undefended level of damage: matching \code{accumulate}'s
+damage took $4\times$ its per-round volume under a 5-round window (1,500 rows/round against
+\code{accumulate}'s 375) and $2\times$ under a 10-round window (750 rows/round,
+Section~\ref{sec:generalization}'s own fixed-share runs) — descriptive, not a pre-registered
+comparison.
 
 This is why ShareCap, not retention windowing, is the defense this paper recommends. ShareCap
 caps the honeypot's \emph{effective share} of the training set directly, so it does not matter how

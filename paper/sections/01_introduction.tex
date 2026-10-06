@@ -95,11 +95,12 @@ traffic.
     benign traffic, and what that implies for which claims this benchmark can and cannot support
     (Section~\ref{sec:degeneracy}).
   \item Three pre-registered generalization tests across the model, dataset, and retention axes:
-    the degeneracy measurement and copy-fidelity damage confirm on a second, independently
-    reprocessed CICIDS2017 release, on UNSW-NB15, and on two models with a different inductive
-    bias than the tree ensembles above; the label-conflict isolation does not, confirmed only on
-    CICIDS2017 with random forest, a result reported as a genuine non-replication rather than
-    reframed to fit (Section~\ref{sec:generalization}).
+    the degeneracy measurement and copy-fidelity FPR damage confirm on a second, independently
+    reprocessed CICIDS2017 release and on UNSW-NB15, for both random forest and XGBoost; A1 also
+    damages two models with a different inductive bias, but as lost detection rather than false
+    positives on logistic regression, and at one of two poison ratios on a small MLP; the
+    label-conflict isolation is confirmed only on CICIDS2017 with random forest
+    (Section~\ref{sec:generalization}).
 \end{enumerate}
 
 \begin{figure*}[t]

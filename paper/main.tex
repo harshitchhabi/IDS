@@ -91,11 +91,14 @@ defense fails structurally, because the poison agrees with the defender's own la
 the cost-of-influence defense we set out to propose does not beat a matched no-skill baseline, a
 negative result we report rather than paper over. A one-line cap on the honeypot's effective
 training-set share is Pareto-undominated over the recovery-retention configurations we evaluate
-and costs almost nothing to run. Three pre-registered generalization tests confirm the degeneracy
-measurement and the copy-fidelity damage on a second, independently reprocessed CICIDS2017
-release and on UNSW-NB15, and on two weaker models with a different inductive bias; the
-label-conflict isolation, by contrast, is confirmed only on CICIDS2017 with random forest and
-does not hold on either new dataset or either new model. We additionally measure that
+and costs almost nothing to run. Three pre-registered generalization
+tests show the degeneracy measurement and the copy-fidelity FPR damage confirm on a second,
+independently reprocessed CICIDS2017 release and on UNSW-NB15, for both random forest and
+XGBoost. A1 also damages two weaker models with a different inductive bias, but on logistic
+regression it shows as lost detection rather than false positives, and on a small MLP the
+false-positive effect appears at one of the two poison ratios tested. The label-conflict
+isolation, by contrast, is confirmed only on CICIDS2017 with random forest; elsewhere the null
+controls also move the detector. We additionally measure that
 CICIDS2017's benign traffic is narrow enough that an attacker reaches damaging fidelity at low
 marginal traffic-generation cost, which bounds what this widely used benchmark can demonstrate
 about the attack's cost in general.

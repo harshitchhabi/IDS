@@ -5,11 +5,11 @@
 % UNSW-NB15), and the retention axis (sliding-window vs. accumulate). Full tables and per-cell
 % statistics: docs/phaseA/{models,datasets,retention}-results.md. This section reports the
 % verdicts and the numbers needed to read them, not the full tables.
-Every result so far is on one dataset, two tree-ensemble models, and one retention policy
-(\code{accumulate}). We pre-registered three generalization tests before running them
-(DECISIONS.md \S29) — a second dataset pair, two weaker models with a different inductive bias,
-and a sliding-window retention policy — and report what each found, including where it did not
-replicate.
+Every result so far is on one real dataset (plus the synthetic one), two tree-ensemble models,
+and one retention policy (\code{accumulate}). We pre-registered three generalization tests
+before running them (DECISIONS.md \S29) — two more datasets, two weaker models with a different
+inductive bias, and a sliding-window retention policy — and report what each found, including
+where it did not replicate.
 
 \begin{table*}[t]
   \centering
@@ -27,13 +27,13 @@ replicate.
     Finding & CICIDS2017 (paper) & Reprocessed CICIDS2017 & UNSW-NB15 & Logreg & MLP \\
     \midrule
     Degeneracy & holds (benign NN 0.0065) & holds (0.0107) & holds (0.0037) & n/a & n/a \\
-    Copy-fidelity FPR damage & holds (RF +0.880, XGB +0.563 at $r{=}0.5$) & holds (RF +0.989, XGB
-    +0.986) & holds (RF +0.254, XGB +0.211) & doesn't (shows as TPR loss instead) & partly
-    ($r{=}0.5$ only, +0.409) \\
+    Copy-fidelity FPR damage & holds for RF (+0.880 at $r{=}0.5$); XGBoost bimodal (+0.563 mean,
+    3 of 5 seeds climb) & holds (RF +0.989, XGB +0.986) & holds (RF +0.254, XGB +0.211) & no
+    (shows as TPR loss, $-0.10$ to $-0.42$) & partly ($r{=}0.5$ only, +0.409) \\
     Label-conflict isolation & holds (null arms flat) & partly (\code{a1} 3.3$\times$ the largest
     null arm) & doesn't (\code{a1truth} costs \emph{more} than \code{a1}) & partly (only
     \code{a1} lowers TPR) & doesn't \\
-    Damage needs accumulation & doesn't (persists under a sliding window, same share) & not
+    Damage persists under a sliding window & holds (same final share) & not
     tested & not tested & not tested & not tested \\
     \bottomrule
   \end{tabular}
@@ -45,10 +45,10 @@ Both new datasets are as degenerate as CICIDS2017 under the same guard-(c) metri
 (Table~\ref{tab:degeneracy-new}): every family with at least 500 \code{trusted_eval} rows sits at
 least $10\times$ below the 0.25 leakage threshold, benign included. Reprocessing the flows (the
 labeling and extraction fixes \citet{liu2022error} built) does not remove it — reprocessed
-CICIDS2017's benign median (0.0107) is actually \emph{farther} from the original release's
-(0.0065), not closer to the threshold, but still nowhere near it. The degeneracy is a property of
-the CICFlowMeter flow-summary representation these datasets share, not of one release's specific
-extraction bugs.
+CICIDS2017's benign median is 0.0107, against the original release's 0.0065, both more than
+$20\times$ below 0.25. The degeneracy appears under both CICFlowMeter features (both CICIDS2017
+releases) and Argus/Bro features (UNSW-NB15), so it is a property of flow-summary features of
+this kind of lab traffic, not of one tool or one release's extraction bugs.
 
 \begin{table}[t]
   \centering
@@ -86,14 +86,13 @@ damage surfaces; neither escapes it.
 % DECISIONS.md s30.A/s30.B B.2/A.2 results.
 The mechanism-isolation test (\S\ref{sec:attack}: three matched null controls, each removing one
 candidate cause) isolates the label conflict as the sole mechanism only on CICIDS2017 with RF —
-every null arm's confidence interval includes 0 there. It does not on either new dataset or
-either new model: on both, at least one correctly-labelled or uninformative null arm moves the
-detector as much as, or more than, \code{a1} does. This is not simply "the test failed" — the
-null-arm condition assumes a detector near its ceiling, where extra correctly-labelled data has
-nowhere to push TPR; RF on CICIDS2017 is at TPR $\approx 0.83$, but logistic regression (TPR
-$\approx 0.43$) and the MLP (TPR $\approx 0.39$) are far from saturated, and so is RF on
-UNSW-NB15 (TPR $\approx 0.63$). Any extra training data moves TPR there, label conflict or not,
-for reasons unrelated to the mechanism the test is built to isolate.
+every null arm's confidence interval includes 0 there. On every new dataset and model, at least
+one null arm's 95\% CI excludes 0, so the isolation bar fails. The null-arm condition assumes a
+detector near its ceiling, where extra correctly-labelled data has nowhere to push TPR; RF on
+CICIDS2017 is at TPR $\approx 0.83$, but logistic regression (TPR $\approx 0.43$) and the MLP
+(TPR $\approx 0.39$) are far from saturated, and so is RF on UNSW-NB15 (TPR $\approx 0.63$). Any
+extra training data moves TPR there, label conflict or not, for reasons unrelated to the
+mechanism the test is built to isolate.
 
 Where the test cannot confirm isolation, the sign of the effect still carries some information.
 On reprocessed CICIDS2017, \code{a1}'s effect (−0.051 $\Delta$TPR) is $3.3\times$ the largest
@@ -104,7 +103,7 @@ lowers TPR (−0.154); every correctly-labelled or uninformative arm \emph{raise
 with the mechanism, reported as an observation, not a confirmed isolation. On UNSW-NB15 the
 pattern reverses outright: \code{a1truth}, the correctly-labelled control, costs \emph{more} TPR
 (−0.031) than \code{a1} itself (−0.021). The label conflict is not what the damage traces to
-there. We report this as a genuine non-replication, not a measurement failure.
+there.
 
 \subsection{Damage does not need accumulation}
 % DECISIONS.md s30.C/s30.C2; results/phaseA/retention/retention_stats.csv.
@@ -132,7 +131,7 @@ These generalization tests were pre-registered before any run (DECISIONS.md \S29
 results against that pre-registration surfaced four gaps in it, not in how the tests were run:
 it does not say which significance test decides the damage condition (resolved as the paired
 $t$-test, this paper's existing primary-test convention; the permutation reading alone would move
-logistic regression's damage verdict from "does not replicate" to "mixed," without changing the
+logistic regression's damage verdict from \`\`does not replicate'' to \`\`mixed,'' without changing the
 label-conflict result either way); its null-arm bar assumes a saturated detector, which fails for
 the weaker models and the new datasets for reasons unrelated to the mechanism it is meant to
 isolate; its dataset-generalization bar combines two conditions evaluated at different
