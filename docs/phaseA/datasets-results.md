@@ -247,3 +247,78 @@ bar, as on CICIDS2017. Reprocessing the flows (Engelen et al.) does not remove t
 §16 measured: it is a property of the CICFlowMeter feature representation of this traffic, not of
 the original release's extraction bugs. Benign and DoS GoldenEye are about 1.5–2× farther than in
 the original. `leak_warning` is set, as on CICIDS2017.
+
+## 4. Derived parameters and B.0 — UNSW-NB15
+
+**Loader output.** 2,540,047 rows: 1,087,203 in session `jan22`, 1,452,844 in `feb18`. 0 rows had a
+disagreeing `Label` / `attack_cat`. Families: BENIGN 2,218,764, Generic 215,481, Exploits 44,525,
+Fuzzers 24,246, DoS 16,353, Reconnaissance 13,987, Analysis 2,677, Backdoor 2,329 (after merging
+`Backdoors`), Shellcode 1,511, Worms 174. Cleaning drops 837,115 rows, all exact duplicates on the
+9 features (no NaN/Inf or negative rows), leaving 1,702,932.
+
+**Near-duplicate grid (guard a)** (`results/phaseA/datasets/unsw-nb15/grid_sweep.csv`):
+
+| grid | valid | benign removed | attack removed | seed_train | RF eval FPR / TPR / AUROC | XGB eval FPR / TPR / AUROC |
+|---|---|---:|---:|---:|---|---|
+| off | **no** (994 seed_train/trusted_eval row-content overlaps) | | | | | |
+| **0.005** | yes | 1,268,104 | 5,089 | 145,800 | 0.014 / 0.744 / 0.988 | 0.012 / 0.643 / 0.988 |
+| 0.01 | yes | 1,434,755 | 8,663 | 82,138 | 0.018 / 0.642 / 0.980 | 0.010 / 0.564 / 0.980 |
+| 0.02 | yes | 1,531,727 | 15,543 | 50,551 | 0.029 / 0.621 / 0.968 | 0.012 / 0.494 / 0.968 |
+| 0.05 | yes | 1,602,470 | 31,524 | 23,083 | 0.027 / 0.517 / 0.957 | 0.023 / 0.463 / 0.953 |
+
+Rule → **grid = 0.005**. **The insensitivity check does not pass cleanly here, unlike CICIDS2017
+and cicids-fixed.** From 0.005 to 0.05:
+- RF TPR falls from 0.74 to 0.52 and AUROC from 0.988 to 0.957. XGBoost follows the same pattern.
+- Even the gentlest valid grid removes 1.27M benign rows: on 9 features, most benign UNSW-NB15
+  flows have a near-twin.
+
+The grid was chosen by the pre-fixed rule (gentlest valid), not by these metrics. Read UNSW-NB15
+results as conditional on grid 0.005. A coarser guard would have produced a smaller, harder
+dataset.
+
+**`val-nn-tau`** (`tau_sweep/control_floor_by_tau.csv`; control arm, 5 seeds, rounds 11-20,
+fixed threshold):
+
+| tau | benign validation rows dropped | RF FPR (sd) | XGB FPR (sd) | RF TPR | XGB TPR |
+|---:|---:|---:|---:|---:|---:|
+| **0** | 0% | **0.0120** (0.0010) | **0.0107** (0.0008) | 0.630 | 0.620 |
+| 0.005 | 55% | 0.0062 (0.0011) | 0.0042 (0.0013) | 0.488 | 0.485 |
+| 0.01 | 79% | 0.0035 (0.0016) | 0.0014 (0.0004) | 0.396 | 0.385 |
+| 0.02 | 92% | 0.0016 (0.0008) | 0.0004 (0.0002) | 0.311 | 0.266 |
+| 0.05 | 97% | 0.0001 (0.0002) | 0.0002 (0.0002) | 0.135 | 0.171 |
+| 0.1 | (fallback) | 0.0120 | 0.0107 | 0.630 | 0.620 |
+
+Rule → **tau = 0**, calibration filter off; B.1/B.2 run with `--val-nn-tau 0`. At tau = 0.1 fewer
+than 100 twin-free benign validation rows remain. The existing fallback in
+`Model._calibration_mask` then calibrates on all rows, so that row reproduces tau = 0 exactly. It
+is not a measurement at 0.1.
+
+The undefended detector is much weaker here than on either CICIDS2017 release: TPR ≈ 0.63 at ≈ 1%
+FPR, AUROC 0.987 (`seed_train` subsample, 9 features). B.1 measures A1's damage against that
+baseline.
+
+**B.0 — degeneracy** (`nn_degeneracy_by_grid.csv`; grid 0.005, no withholding, median
+per-feature-RMS NN distance `trusted_eval` → `honeypot_pool`, normalized 9-feature space;
+families with ≥ 500 eval rows):
+
+| family | n_eval | median NN RMS | min NN RMS |
+|---|---:|---:|---:|
+| BENIGN | 66,950 | 0.0037 | 1.9e-04 |
+| Exploits | 4,966 | 0.0134 | 0 |
+| Fuzzers | 3,126 | 0.0067 | 0 |
+| DoS | 782 | 0.0140 | 0 |
+| Generic | 748 | 0.0172 | 0 |
+| Reconnaissance | 737 | 0.0053 | 0 |
+| *all attack* | 10,859 | 0.0100 | 0 |
+
+Benign 5th percentile: 0.0013. Every family with ≥ 500 eval rows is 14× or more below the 0.25
+bar, so UNSW-NB15 on this mapping is as degenerate as CICIDS2017. Benign (0.0037) is closer than
+on either CICIDS release.
+
+A minimum of exactly 0 for attack families is genuine, not a partition leak. The guard-(c) search
+for an attack family runs against *all* attack rows in `honeypot_pool`. On 9 features, identical
+vectors recur under *different* UNSW-NB15 attack categories, e.g. an Exploits row identical to a
+DoS row. The partition's row hash includes the label, so those are allowed across partitions
+(`assert_disjoint` passes). They are the 9-feature representation's own label ambiguity. Only 748
+of Generic's 215,481 rows survive to trusted_eval: Generic is massively duplicated on these
+features.
