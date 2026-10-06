@@ -1,0 +1,48 @@
+{"file": "UNSW-NB15_1.csv", "rows": 700001, "event": "loaded UNSW-NB15 file", "level": "info", "timestamp": "2026-10-06T06:28:50.558098Z"}
+{"file": "UNSW-NB15_2.csv", "rows": 700001, "event": "loaded UNSW-NB15 file", "level": "info", "timestamp": "2026-10-06T06:28:53.493826Z"}
+{"file": "UNSW-NB15_3.csv", "rows": 700001, "event": "loaded UNSW-NB15 file", "level": "info", "timestamp": "2026-10-06T06:28:55.677230Z"}
+{"file": "UNSW-NB15_4.csv", "rows": 440044, "event": "loaded UNSW-NB15 file", "level": "info", "timestamp": "2026-10-06T06:28:57.086599Z"}
+{"sessions": ["feb18", "jan22"], "rows_by_session": {"feb18": 1452844, "jan22": 1087203}, "label_and_category_disagree": 0, "families": {"BENIGN": 2218764, "Generic": 215481, "Exploits": 44525, "Fuzzers": 24246, "DoS": 16353, "Reconnaissance": 13987, "Analysis": 2677, "Backdoor": 2329, "Shellcode": 1511, "Worms": 174}, "event": "UNSW-NB15 load complete", "level": "info", "timestamp": "2026-10-06T06:29:06.139375Z"}
+{"rows": 608391, "by_class": {"BENIGN": 360265, "Generic": 204507, "Exploits": 17083, "DoS": 11784, "Reconnaissance": 5988, "Fuzzers": 5680, "Analysis": 1629, "Backdoor": 1226, "Shellcode": 219, "Worms": 10}, "source": "feb18", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-06T06:29:07.932165Z"}
+{"source": "feb18", "rows_in": 1452844, "rows_out": 844453, "dropped_total": 608391, "imbalance_ratio_out": 15.57675395547878, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-06T06:29:08.289711Z"}
+{"rows": 228724, "by_class": {"BENIGN": 216575, "Generic": 6928, "Fuzzers": 1690, "Exploits": 1544, "Reconnaissance": 684, "DoS": 512, "Backdoor": 400, "Analysis": 388, "Shellcode": 3}, "source": "jan22", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-06T06:29:09.589951Z"}
+{"source": "jan22", "rows_in": 1087203, "rows_out": 858479, "dropped_total": 228724, "imbalance_ratio_out": 84.28501887542221, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-06T06:29:09.860952Z"}
+{"total": 1273193, "by_day": {"feb18": 552433, "jan22": 720760}, "grid": 0.005, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-06T06:29:10.943533Z"}
+{"stream": "feb18/Analysis", "rows": 115, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.056379Z"}
+{"stream": "feb18/BENIGN", "rows": 5050, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.079978Z"}
+{"stream": "feb18/Backdoor", "rows": 11, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.090778Z"}
+{"stream": "feb18/DoS", "rows": 51, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.093377Z"}
+{"stream": "feb18/Exploits", "rows": 287, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.098639Z"}
+{"stream": "feb18/Fuzzers", "rows": 163, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.102858Z"}
+{"stream": "feb18/Generic", "rows": 37, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.106036Z"}
+{"stream": "feb18/Reconnaissance", "rows": 36, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.108824Z"}
+{"stream": "feb18/Shellcode", "rows": 20, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.110786Z"}
+{"stream": "feb18/Worms", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.112027Z"}
+{"stream": "jan22/Analysis", "rows": 23, "band_seconds": 37.5, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.128408Z"}
+{"stream": "jan22/BENIGN", "rows": 2290, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.141553Z"}
+{"stream": "jan22/Backdoor", "rows": 22, "band_seconds": 37.5, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.148702Z"}
+{"stream": "jan22/DoS", "rows": 47, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.150400Z"}
+{"stream": "jan22/Exploits", "rows": 333, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.152160Z"}
+{"stream": "jan22/Fuzzers", "rows": 198, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.153858Z"}
+{"stream": "jan22/Generic", "rows": 48, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.155263Z"}
+{"stream": "jan22/Reconnaissance", "rows": 32, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.157026Z"}
+{"stream": "jan22/Shellcode", "rows": 12, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.158497Z"}
+{"stream": "jan22/Worms", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:29:11.159501Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-06T06:29:11.330441Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0021, "benign_p5": 0.0013, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-06T06:29:12.851318Z"}
+{"source": "unsw-nb15", "strategy": "within_day_temporal", "rows": {"seed_train": 145800, "prod_benign": 75463, "honeypot_pool": 121883, "trusted_eval": 77809}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-06T06:29:12.859210Z"}
+{"name": "unsw-nb15", "config": {"seed_train_rows": 30000, "eval_benign_rows": 40000, "eval_attack_cap_per_family": 4000, "seed": 20250903}, "seed_rows": 30000, "pool_benign": 100318, "pool_attack": 21565, "eval_rows": 49893, "arm_counts": {"seen_both": 9893, "seed_only": 0, "honeypot_only": 0}, "event": "loop data built", "level": "info", "timestamp": "2026-10-06T06:29:12.977851Z"}
+{
+  "path": "data/loop/unsw-nb15.npz",
+  "seed_rows": 30000,
+  "pool_benign": 100318,
+  "pool_attack": 21565,
+  "eval_rows": 49893,
+  "arm_counts": {
+    "seen_both": 9893,
+    "seed_only": 0,
+    "honeypot_only": 0
+  },
+  "near_dup_grid": 0.005,
+  "leak_warning": true
+}
