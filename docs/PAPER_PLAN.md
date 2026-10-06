@@ -176,9 +176,24 @@ D1 definition and full grid (§20, §24); XGBoost per-seed trajectories; padding
   (jitter 0.3-1.5) IS confirmed (§26.8, 15 seeds, 6-cell Holm family) — do not
   undersell this one back down to "unconfirmed."
 
+## Phase A (added post-freeze; DECISIONS.md §29/§30)
+Three pre-registered generalization tests, run after the sections above were drafted and
+frozen: model axis (logreg, MLP), dataset axis (reprocessed CICIDS2017, UNSW-NB15), retention
+axis (sliding window vs. accumulate, plus a constant-budget follow-up, C2). New section 7a
+("Does It Generalize?", between Defenses and Discussion) reports the verdicts: degeneracy and
+copy-fidelity damage generalize; label-conflict isolation does not, confirmed only on
+CICIDS2017/RF. A new Defenses subsection ("Is forgetting old data a defense?") reports the
+retention results. Source: `docs/phaseA/*-results.md`, `results/phaseA/`.
+
+The "do not claim" list above is unaffected by Phase A and still holds — in particular, Phase A
+did not test whether the cliff \emph{location} (the fidelity threshold where FPR damage
+collapses) generalizes across datasets, only whether damage exists at copy fidelity. Don't
+conflate the two.
+
 ## Open items
 - [x] §25.5 cap curve
 - [x] XGBoost per-seed note
-- [ ] F2, F5 generated
-- [ ] F6 updated with ShareCap
+- [x] F2, F5 generated
+- [x] F6 updated with ShareCap
+- [x] Phase A generalization tests (§29/§30), new section 7a, Defenses retention subsection
 - [ ] Venue, template, page limit confirmed

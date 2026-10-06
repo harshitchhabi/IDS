@@ -137,6 +137,36 @@ so padding is not itself evidence for D1's protection.
 The available counter-move is volume: reaching the same damage under D1 costs 4--36$\times$
 more flows, bracketed by the ratio grid tested (Appendix~\ref{sec:appendix}).
 
+\subsection{Is forgetting old data a defense?}
+\label{sec:retention-defense}
+% DECISIONS.md s30.C/s30.C2 (full detail: s29.C pre-registration, 85e9933 pre-registration for
+% C2, results/phaseA/retention/retention_stats.csv, results/phaseA/retention-c2/
+% retention_c2_stats.csv). Generalization pointer: Section~\ref{sec:generalization}.
+A sliding window — keep only the last several rounds of honeypot batches, rather than
+\code{accumulate}'s keep-everything default (\S\ref{sec:generalization}) — is the obvious
+retention-side mitigation to test. Under an attacker who scales its per-round volume to the
+window, so that the final poison share is the same regardless of retention policy, a window does
+nothing: all 6 (retention $\times$ ratio) cells show the same fixed-threshold FPR damage as
+\code{accumulate}, within 0.01 of each other. Retention policy is not a free variable for this
+attacker; the share it ends up with is.
+
+Under a \emph{constant} per-round attacker budget instead — the adversary does not scale with the
+window, so a narrower window retains a smaller share — a window does reduce damage: all four
+(window $\times$ batch-size) contrasts against \code{accumulate} are negative and clear Holm
+(−0.50, −0.37, −0.39, −0.12 $\Delta$FPR across window sizes 5 and 10 at two budgets). But it never
+removes the damage: every one of the 6 damage cells under this budget is still positive and
+clears Holm, down to +0.027 at the smallest window and budget tested — about $7\times$ the
+control's own noise floor. An attacker who notices the window and raises its per-round volume to
+compensate recovers the undefended level of damage, at a cost: reaching \code{accumulate}'s
+damage under a 5-round window took $4\times$ the total flows at one budget tested and $2\times$
+at the other (descriptive, not a pre-registered comparison).
+
+This is why ShareCap, not retention windowing, is the defense this paper recommends. ShareCap
+caps the honeypot's \emph{effective share} of the training set directly, so it does not matter how
+much an attacker sends — the cap is the cap regardless of volume. A window caps \emph{recency}
+instead, and an attacker who scales volume to match it defeats that cap for the price of more
+flows, not a different capability. The two defenses are not capping the same quantity.
+
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/F6_frontier.pdf}

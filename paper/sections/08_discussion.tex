@@ -32,29 +32,36 @@ control over the realized distance is not measured here (Section~\ref{sec:threat
 benign-distribution-knowledge axis states this assumption explicitly). CICIDS2017 answers the
 degeneracy measurement and the fidelity-versus-damage curve but carries no learning claim
 (Section~\ref{sec:degeneracy}); the synthetic dataset answers the honest-loop learning claim but
-has no attacker-cost profile of its own — \textbf{every quantitative result in this paper is
-centred on these two datasets and no other}. Five seeds is enough to establish some effects and
-not others: XGBoost's fixed-threshold FPR trajectory splits into two distinct per-seed groups
-rather than clustering around a mean (Section~\ref{sec:attack}), and RF's damage at large
-mimicry distance needed a dedicated 15-seed follow-up to confirm — the original 5-seed, 36-cell
-grid family lacked the power to resolve it, even though the effect was real
-(Section~\ref{sec:attack}). We only had the budget to run that follow-up for RF; the same
-question is open for XGBoost, and \textbf{the main grid throughout this paper is 5 seeds unless
-stated otherwise}. ShareCap's safe cap range is validated on neither a second dataset nor a
-third model (Appendix~\ref{sec:appendix} has the full statement). Further limitations — the
-partition's file-order versus verified timestamp, and ShareCap's adaptive-attacker coverage —
-are also in Appendix~\ref{sec:appendix}.
+has no attacker-cost profile of its own. Every quantitative result through Section~\ref{sec:defenses}
+is centred on these two datasets and the RF/XGBoost pair; Section~\ref{sec:generalization}'s
+pre-registered follow-ups are the only results measured on a different dataset, model, or
+retention policy, and they carry their own caveats there rather than this paragraph's. Five seeds
+is enough to establish some effects and not others: XGBoost's fixed-threshold FPR trajectory
+splits into two distinct per-seed groups rather than clustering around a mean
+(Section~\ref{sec:attack}), and RF's damage at large mimicry distance needed a dedicated 15-seed
+follow-up to confirm — the original 5-seed, 36-cell grid family lacked the power to resolve it,
+even though the effect was real (Section~\ref{sec:attack}). We only had the budget to run that
+follow-up for RF; the same question is open for XGBoost, and \textbf{the main grid throughout
+this paper is 5 seeds unless stated otherwise}. ShareCap's safe cap range is validated on neither
+a second dataset nor a third model (Appendix~\ref{sec:appendix} has the full statement).
+Section~\ref{sec:generalization}'s label-conflict isolation does not replicate on either new
+dataset or either new model, for reasons that section separates from a measurement failure. UNSW-NB15
+runs on 9 of 24 canonical features and is sensitive to the near-duplicate grid in a way CICIDS2017
+is not; both new datasets run at $\tau=0$, not CICIDS2017's $\tau=0.1$, so their at-distance
+numbers are not directly comparable; reprocessed CICIDS2017's eval set has no DDoS rows; and
+logistic regression and the MLP run with default hyperparameters, not tuned to either dataset
+(Section~\ref{sec:generalization} states these in full). Further limitations — the partition's
+file-order versus verified timestamp, and ShareCap's adaptive-attacker coverage — are also in
+Appendix~\ref{sec:appendix}.
 
-\textbf{Future work.} Four extensions this paper does not attempt but that the design points to
+\textbf{Future work.} Three extensions this paper does not attempt but that the design points to
 directly: (1) \emph{end-to-end packet realization} — generate the mimicry attack as actual
 packets through a real flow exporter, rather than perturbing feature rows directly, to measure
-how much control over realized distance survives that pipeline; (2) evaluating against
-\citet{engelen2021troubleshooting}'s reprocessed CICIDS2017, built specifically to correct the
-labeling and extraction errors Section~\ref{sec:background} cites it for, to see whether the
-degeneracy measurement (Section~\ref{sec:degeneracy}) is a property of the original release or
-survives a cleaner re-extraction; (3) a second, independent NIDS dataset, to separate what in
-this paper's A1 results is specific to CICIDS2017 from what generalises; and (4) higher-powered
-grids for both models — the RF at-distance confirmation (Section~\ref{sec:attack}) took 15 seeds
-to resolve what 5 could not, and the same question for XGBoost, and for the FPR channel at
-distance under either model, is open for exactly the same reason: nothing ruled it out, we did
-not have the seeds to settle it.
+how much control over realized distance survives that pipeline; (2) higher-powered grids for
+both models — the RF at-distance confirmation (Section~\ref{sec:attack}) took 15 seeds to resolve
+what 5 could not, and the same question for XGBoost, and for the FPR channel at distance under
+either model, is open for exactly the same reason: nothing ruled it out, we did not have the
+seeds to settle it; and (3) a mechanism that explains why label-conflict isolation holds on
+CICIDS2017/RF and not elsewhere (Section~\ref{sec:generalization}) — we report the non-replication
+as a fact about where the test does and does not separate the mechanism, not as something this
+paper explains.

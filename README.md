@@ -37,6 +37,11 @@ finding about the system, not about a separate toy.
 - **CICIDS2017's own benign traffic is unusually repetitive**, which is why the attack is cheap
   to demonstrate on this specific benchmark (`paper/sections/05_degeneracy.tex`) — a property of
   the dataset, not a general claim about production network traffic.
+- **Degeneracy and copy-fidelity FPR damage generalize** to a second, reprocessed CICIDS2017
+  release, to UNSW-NB15, and to two weaker models (logistic regression, a small MLP); the
+  label-conflict isolation does not — confirmed only on CICIDS2017 with random forest
+  (`paper/sections/07a_generalization.tex`, three pre-registered follow-ups, `docs/DECISIONS.md`
+  §29-30).
 
 Full writeup, every number sourced to a committed CSV or a `docs/DECISIONS.md` section: the
 compiled paper is **[paper/main.pdf](paper/main.pdf)**, committed so it's readable without a

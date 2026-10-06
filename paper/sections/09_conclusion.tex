@@ -13,11 +13,19 @@ false-positive surface needs near-copy mimicry fidelity; the detection-loss surf
 model where we confirm it generalises, does not, holding across a much wider fidelity range.
 Neither needs model access or knowledge of the poison ratio, and neither costs the attacker more
 than producing traffic that already resembles what the network generates — under the conditions
-we test, not as a formally zero cost. A generic label-consistency defense cannot see this poison
+we test, not as a formally zero cost. Pre-registered follow-ups confirm the copy-fidelity damage
+and the underlying degeneracy on a second, reprocessed CICIDS2017 release, on an unrelated
+dataset (UNSW-NB15), and on two weaker models; isolating the label conflict as the \emph{sole}
+mechanism, by contrast, held only where we first found it — CICIDS2017, random forest — and did
+not replicate anywhere else we tested, a result we report rather than narrow the claim around to
+hide. A generic label-consistency defense cannot see this poison
 because it agrees with the defender's own policy; a one-line cap on the honeypot's share of the
 training set can, and is Pareto-undominated over every recovery-retention configuration we
 evaluate it against — no alternative is at least as good on both axes — without needing any of
-the information those alternatives require. The honest version of this loop works — that was
+the information those alternatives require, and the cap survives an attacker that forgetting old
+data alone does not: a sliding window reduces damage under a constant attacker budget but never
+removes it, and an attacker who raises its volume to match the window recovers full damage,
+because a window caps recency, not share. The honest version of this loop works — that was
 never in question — but the design that makes it convenient, a rule that trusts a decoy's
 traffic unconditionally once an attacker knows that is the rule, is the same design that makes
 it attackable, and the fix costs almost nothing to add.

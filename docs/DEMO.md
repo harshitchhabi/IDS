@@ -98,6 +98,12 @@ If both fail, the backup screen recording is at `docs/demo/walkthrough.mp4` (or 
   weighting at both poison ratios tested (0 of 87 cases beat it), at ~1/80th kNN's per-round cost, with no
   cost model or trusted reference beyond the cap itself. D1 is a measured negative result: comparable
   protection to kNN, but it does not beat the simpler baseline. See `docs/DECISIONS.md` §24-25.
+- **Does it work on other datasets/models?** Partly. Three pre-registered follow-ups (`docs/DECISIONS.md`
+  §29-30): the degeneracy measurement and the copy-fidelity FPR damage both confirm on a second, independently
+  reprocessed CICIDS2017 release, on UNSW-NB15, and on two weaker models (logistic regression, a small MLP).
+  The label-conflict isolation — that mislabelling specifically, not just extra data, drives the damage —
+  does not: it was confirmed only on CICIDS2017 with RF, and on every other dataset or model tested, at least
+  one correctly-labelled control moves the detector as much as the real attack does.
 
 ## What NOT to click
 

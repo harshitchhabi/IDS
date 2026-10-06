@@ -188,12 +188,21 @@ and attacker cost (flows, packets, bytes, wall-clock).
 ## Phases
 
 > **Revised plan.** The research (Phase 0, plus the defenses of Phase 5) ran entirely offline; its results
-> are final and no further experiments are planned beyond the ShareCap cap curve (DECISIONS §25.5). The
-> **replay-driven live demo (branch `phase2/demo`) replaces the Phase 1-2 compose testbed** and is the
-> course deliverable: CICIDS flows replayed through the detector, the real loop code driven from a control
-> panel, and a real Cowrie honeypot shown as a separate telemetry panel. Phases 1, 3, 4 below are the
-> original plan, kept for reference and not scheduled. Cowrie sessions are not CICFlowMeter flows and do not
-> feed the model.
+> are final. The **replay-driven live demo (branch `phase2/demo`) replaces the Phase 1-2 compose testbed**
+> and is the course deliverable: CICIDS flows replayed through the detector, the real loop code driven from
+> a control panel, and a real Cowrie honeypot shown as a separate telemetry panel. Phases 1, 3, 4 below are
+> the original plan, kept for reference and not scheduled. Cowrie sessions are not CICFlowMeter flows and
+> do not feed the model.
+>
+> **Phase A — generalization, done (DECISIONS §29-30).** Three pre-registered tests, run after the Phase 0
+> freeze, across the model axis (logistic regression, a small MLP), the dataset axis (reprocessed
+> CICIDS2017, UNSW-NB15), and the retention axis (sliding window vs. `accumulate`, plus a constant-budget
+> follow-up, C2). Result: the degeneracy measurement and copy-fidelity FPR damage generalize across both
+> new datasets and both new models; the label-conflict isolation does not — confirmed only on
+> CICIDS2017/RF, contradicted outright on UNSW-NB15. Retention windowing reduces damage under a constant
+> attacker budget but never removes it, and an attacker who scales volume defeats it — which is why
+> ShareCap (caps share, not recency) stays the recommended defense. Full write-ups:
+> `docs/phaseA/*-results.md`; paper section: `paper/sections/07a_generalization.tex`.
 
 Build in order. Stop at each checkpoint and report before moving on.
 

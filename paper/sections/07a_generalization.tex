@@ -1,0 +1,142 @@
+\section{Does It Generalize?}
+\label{sec:generalization}
+% DECISIONS.md s29 (pre-registration) and s30 (results). Phase A: three independent pre-registered
+% families testing the model axis (logreg, MLP), the dataset axis (reprocessed CICIDS2017,
+% UNSW-NB15), and the retention axis (sliding-window vs. accumulate). Full tables and per-cell
+% statistics: docs/phaseA/{models,datasets,retention}-results.md. This section reports the
+% verdicts and the numbers needed to read them, not the full tables.
+Every result so far is on one dataset, two tree-ensemble models, and one retention policy
+(\code{accumulate}). We pre-registered three generalization tests before running them
+(DECISIONS.md \S29) — a second dataset pair, two weaker models with a different inductive bias,
+and a sliding-window retention policy — and report what each found, including where it did not
+replicate.
+
+\begin{table*}[t]
+  \centering
+  \caption{Does each finding generalize? Columns: the original CICIDS2017 result (this paper,
+  \S\ref{sec:degeneracy}--\S\ref{sec:attack}), the two new datasets (RF/XGBoost), and the two new
+  models (on CICIDS2017). Key number in parentheses; full statistics in
+  \texttt{docs/phaseA/\{models,datasets\}-results.md}.}
+  % Source: results/phaseA/datasets/{cicids-fixed,unsw-nb15}/{nn_degeneracy_by_grid.csv,stats.csv},
+  % results/phaseA/models/stats.csv, results/phaseA/retention/retention_stats.csv.
+  \label{tab:generalization}
+  \small
+  \setlength{\tabcolsep}{2pt}
+  \begin{tabular}{p{0.115\linewidth}p{0.175\linewidth}p{0.175\linewidth}p{0.175\linewidth}p{0.155\linewidth}p{0.125\linewidth}}
+    \toprule
+    Finding & CICIDS2017 (paper) & Reprocessed CICIDS2017 & UNSW-NB15 & Logreg & MLP \\
+    \midrule
+    Degeneracy & holds (benign NN 0.0065) & holds (0.0107) & holds (0.0037) & n/a & n/a \\
+    Copy-fidelity FPR damage & holds (RF +0.880, XGB +0.563 at $r{=}0.5$) & holds (RF +0.989, XGB
+    +0.986) & holds (RF +0.254, XGB +0.211) & doesn't (shows as TPR loss instead) & partly
+    ($r{=}0.5$ only, +0.409) \\
+    Label-conflict isolation & holds (null arms flat) & partly (\code{a1} 3.3$\times$ the largest
+    null arm) & doesn't (\code{a1truth} costs \emph{more} than \code{a1}) & partly (only
+    \code{a1} lowers TPR) & doesn't \\
+    Damage needs accumulation & doesn't (persists under a sliding window, same share) & not
+    tested & not tested & not tested & not tested \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\subsection{Degeneracy generalizes}
+% DECISIONS.md s30.A/s30.B source numbers; results/phaseA/datasets/*/nn_degeneracy_by_grid.csv.
+Both new datasets are as degenerate as CICIDS2017 under the same guard-(c) metric
+(Table~\ref{tab:degeneracy-new}): every family with at least 500 \code{trusted_eval} rows sits at
+least $10\times$ below the 0.25 leakage threshold, benign included. Reprocessing the flows (the
+labeling and extraction fixes \citet{liu2022error} built) does not remove it — reprocessed
+CICIDS2017's benign median (0.0107) is actually \emph{farther} from the original release's
+(0.0065), not closer to the threshold, but still nowhere near it. The degeneracy is a property of
+the CICFlowMeter flow-summary representation these datasets share, not of one release's specific
+extraction bugs.
+
+\begin{table}[t]
+  \centering
+  \caption{Median NN RMS distance, \texorpdfstring{\code{trusted_eval}}{trusted\_eval} to the
+  honeypot-pool-equivalent partition, grid 0.005, on the two new datasets. Compare
+  Table~\ref{tab:degeneracy}'s CICIDS2017 row (BENIGN 0.0065).}
+  % Source: results/phaseA/datasets/cicids-fixed/nn_degeneracy_by_grid.csv,
+  % results/phaseA/datasets/unsw-nb15/nn_degeneracy_by_grid.csv.
+  \label{tab:degeneracy-new}
+  \small
+  \begin{tabular}{lrr}
+    \toprule
+    Family & Reprocessed CICIDS2017 & UNSW-NB15 \\
+    \midrule
+    BENIGN      & 0.0107 & 0.0037 \\
+    All attack  & 0.0079 & 0.0100 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Copy-fidelity FPR damage generalizes}
+% DECISIONS.md s30.A/s30.B; results/phaseA/datasets/*/stats.csv (B.1, jitter 0, both ratios),
+% results/phaseA/models/stats.csv (A.1, mlp, fixed dFPR).
+A1's fixed-threshold FPR damage at copy-level fidelity clears Holm correction for RF and XGBoost
+on both new datasets, at both poison ratios tested: reprocessed CICIDS2017 (RF +0.985/+0.989,
+XGBoost +0.986/+0.986 at ratios 0.2/0.5) and UNSW-NB15 (RF +0.092/+0.254, XGBoost +0.016/+0.211).
+The effect is not specific to CICIDS2017 or to tree ensembles. For the MLP it clears Holm at
+ratio 0.5 only (+0.409, $p_t=0.00018$); ratio 0.2's effect (+0.0017) does not reach significance.
+Logistic regression's A1 damage does not show up as fixed-threshold FPR at all — neither ratio
+clears Holm under the paired $t$-test — but shows up instead as large, significant recalibrated-
+threshold TPR loss at every cell tested (−0.10 to −0.42). The two new models relocate where the
+damage surfaces; neither escapes it.
+
+\subsection{Label-conflict isolation does not generalize}
+% DECISIONS.md s30.A/s30.B B.2/A.2 results.
+The mechanism-isolation test (\S\ref{sec:attack}: three matched null controls, each removing one
+candidate cause) isolates the label conflict as the sole mechanism only on CICIDS2017 with RF —
+every null arm's confidence interval includes 0 there. It does not on either new dataset or
+either new model: on both, at least one correctly-labelled or uninformative null arm moves the
+detector as much as, or more than, \code{a1} does. This is not simply "the test failed" — the
+null-arm condition assumes a detector near its ceiling, where extra correctly-labelled data has
+nowhere to push TPR; RF on CICIDS2017 is at TPR $\approx 0.83$, but logistic regression (TPR
+$\approx 0.43$) and the MLP (TPR $\approx 0.39$) are far from saturated, and so is RF on
+UNSW-NB15 (TPR $\approx 0.63$). Any extra training data moves TPR there, label conflict or not,
+for reasons unrelated to the mechanism the test is built to isolate.
+
+Where the test cannot confirm isolation, the sign of the effect still carries some information.
+On reprocessed CICIDS2017, \code{a1}'s effect (−0.051 $\Delta$TPR) is $3.3\times$ the largest
+null arm's (\code{a1truth}, −0.015) — the label-conflict arm still does the most damage, even
+though the nulls are not flat. On logistic regression, \code{a1} is the \emph{only} arm that
+lowers TPR (−0.154); every correctly-labelled or uninformative arm \emph{raises} it
+(\code{a1truth} +0.230, \code{s0j} +0.039, \code{junk} +0.144) — a qualitative pattern consistent
+with the mechanism, reported as an observation, not a confirmed isolation. On UNSW-NB15 the
+pattern reverses outright: \code{a1truth}, the correctly-labelled control, costs \emph{more} TPR
+(−0.031) than \code{a1} itself (−0.021). The label conflict is not what the damage traces to
+there. We report this as a genuine non-replication, not a measurement failure.
+
+\subsection{Damage does not need accumulation}
+% DECISIONS.md s30.C/s30.C2; results/phaseA/retention/retention_stats.csv.
+Everything above uses the loop's default retention, \code{accumulate} (every honeypot batch kept
+forever). Tested against a sliding window instead, at a fixed final poison share, A1's damage is
+unchanged: all 6 (retention $\times$ ratio) cells clear Holm, within 0.01 $\Delta$FPR of each
+other at each ratio. Accumulation is not load-bearing for the damage this paper reports.
+Section~\ref{sec:defenses} tests the harder case — a constant attacker budget, where a window
+\emph{can} shrink the retained share — and what it implies for defending against this.
+
+\subsection{Caveats}
+UNSW-NB15 runs on 9 of the 24 canonical features (Argus/Bro flow fields, not CICFlowMeter's), and
+its near-duplicate grid choice is not insensitive the way CICIDS2017's is — a coarser grid changes
+RF's eval TPR from 0.74 to 0.52. Both new datasets run at $\tau=0$ (the s19 rule's own output for
+each, not re-tuned to match CICIDS2017's $\tau=0.1$), so their at-distance ($j=0.7$) fixed-
+threshold numbers are not directly comparable to the main paper's. Reprocessed CICIDS2017's
+\code{trusted_eval} has no DDoS rows (a whole-burst partition artifact under real timestamps, not
+a code defect). Logistic regression and the MLP run with the default hyperparameters in
+\code{src/dloop/models/logreg.py} and \code{src/dloop/models/mlp.py}, not tuned to either
+dataset.
+
+\subsection{Pre-registration}
+% DECISIONS.md s30, "Pre-registration problems found".
+These generalization tests were pre-registered before any run (DECISIONS.md \S29). Reading the
+results against that pre-registration surfaced four gaps in it, not in how the tests were run:
+it does not say which significance test decides the damage condition (resolved as the paired
+$t$-test, this paper's existing primary-test convention; the permutation reading alone would move
+logistic regression's damage verdict from "does not replicate" to "mixed," without changing the
+label-conflict result either way); its null-arm bar assumes a saturated detector, which fails for
+the weaker models and the new datasets for reasons unrelated to the mechanism it is meant to
+isolate; its dataset-generalization bar combines two conditions evaluated at different
+granularities (per-model and per-dataset), leaving XGBoost's verdict under-defined on both new
+datasets; and its retention test used a budget mode under which the retention policy cannot
+change the final poison share by construction, which a second, separately pre-registered family
+(\S\ref{sec:defenses}) was run to correct.

@@ -57,6 +57,10 @@ def setup_style() -> None:
         "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True,
         "grid.color": "#e3e3e3", "grid.linewidth": 0.6, "axes.edgecolor": "#4a4a4a",
         "text.color": "#1a1a1a", "axes.labelcolor": "#1a1a1a",
+        # Fixed, not random: matplotlib salts embedded glyph IDs per-process otherwise, which
+        # made two back-to-back regenerations of the same figure byte-different with no content
+        # change (caught regenerating paper/figures/ during the Phase A merge regression gate).
+        "svg.hashsalt": "dloop-paper-figures",
     })
 
 
@@ -68,8 +72,16 @@ def _style(ax) -> None:
 
 def save(fig, name: str) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT / f"{name}.pdf", bbox_inches="tight")
-    fig.savefig(OUT / f"{name}.png", dpi=220, bbox_inches="tight")
+    # metadata=None for the timestamp fields: without this, matplotlib embeds the current
+    # wall-clock time into the PDF (CreationDate/ModDate) and the PNG (Software, which also
+    # carries a timestamp on some backends), so byte-identical input produced a byte-different
+    # file on every run -- caught regenerating paper/figures/ during the Phase A merge
+    # regression gate, where it showed up as an unexplained git diff with no code change behind
+    # it.
+    fig.savefig(OUT / f"{name}.pdf", bbox_inches="tight",
+                metadata={"CreationDate": None, "ModDate": None})
+    fig.savefig(OUT / f"{name}.png", dpi=220, bbox_inches="tight",
+                metadata={"Software": None})
     plt.close(fig)
     print(f"wrote {OUT / name}.pdf (+.png)")
 

@@ -94,6 +94,12 @@ traffic.
     that the attack's damage on this dataset traces to near-duplicate, not exact-duplicate,
     benign traffic, and what that implies for which claims this benchmark can and cannot support
     (Section~\ref{sec:degeneracy}).
+  \item Three pre-registered generalization tests across the model, dataset, and retention axes:
+    the degeneracy measurement and copy-fidelity damage confirm on a second, independently
+    reprocessed CICIDS2017 release, on UNSW-NB15, and on two models with a different inductive
+    bias than the tree ensembles above; the label-conflict isolation does not, confirmed only on
+    CICIDS2017 with random forest, a result reported as a genuine non-replication rather than
+    reframed to fit (Section~\ref{sec:generalization}).
 \end{enumerate}
 
 \begin{figure*}[t]
