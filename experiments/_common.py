@@ -49,6 +49,12 @@ _CICIDS_FIXED_WITHHOLD = dict(
     near_dup_grid=0.005,   # results/phaseA/datasets/cicids-fixed/grid_sweep.csv
 )
 
+# UNSW-NB15: no family withholding (no counterpart to CICIDS2017's DDoS / DoS Hulk
+# arms; docs/phaseA/datasets-results.md §2); grid by the same sweep rule.
+_UNSW_PARTITION = dict(
+    near_dup_grid=0.005,   # results/phaseA/datasets/unsw-nb15/grid_sweep.csv
+)
+
 
 def partition_config(source: str, strategy: str = "within_day_temporal", **overrides) -> PartitionConfig:
     kw: dict = {"strategy": strategy}
@@ -59,5 +65,7 @@ def partition_config(source: str, strategy: str = "within_day_temporal", **overr
             kw.update(_CICIDS_WITHHOLD)
         elif source == "cicids-fixed":
             kw.update(_CICIDS_FIXED_WITHHOLD)
+        elif source == "unsw-nb15":
+            kw.update(_UNSW_PARTITION)
     kw.update({k: v for k, v in overrides.items() if v is not None})
     return PartitionConfig(**kw)
