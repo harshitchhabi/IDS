@@ -1,0 +1,17 @@
+{"detail": "53 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-06T07:03:33.444694Z"}
+{"total": 150, "todo": 150, "workers": 3, "config_hash": "5e4af16f905aa952", "event": "loop jobs", "level": "info", "timestamp": "2026-10-06T07:03:33.452359Z"}
+{"done": 10, "of": 150, "minutes": 2.7, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:06:13.902415Z"}
+{"done": 20, "of": 150, "minutes": 4.9, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:08:26.358455Z"}
+{"done": 30, "of": 150, "minutes": 7.1, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:10:38.310007Z"}
+{"done": 40, "of": 150, "minutes": 7.8, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:11:20.808898Z"}
+{"done": 50, "of": 150, "minutes": 8.5, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:12:01.488646Z"}
+{"done": 60, "of": 150, "minutes": 9.2, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:12:45.152397Z"}
+{"done": 70, "of": 150, "minutes": 10.7, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:14:14.807272Z"}
+{"done": 80, "of": 150, "minutes": 11.5, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:15:04.705137Z"}
+{"done": 90, "of": 150, "minutes": 12.2, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:15:43.209858Z"}
+{"done": 100, "of": 150, "minutes": 15.6, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:19:11.353004Z"}
+{"done": 110, "of": 150, "minutes": 18.9, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:22:30.045628Z"}
+{"done": 120, "of": 150, "minutes": 21.9, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:25:30.016862Z"}
+{"done": 130, "of": 150, "minutes": 22.6, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:26:08.484313Z"}
+{"done": 140, "of": 150, "minutes": 23.3, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:26:50.720155Z"}
+{"done": 150, "of": 150, "minutes": 24.0, "event": "progress", "level": "info", "timestamp": "2026-10-06T07:27:31.575550Z"}
