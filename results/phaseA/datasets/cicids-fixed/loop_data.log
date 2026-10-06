@@ -1,0 +1,60 @@
+{"file": "monday.csv", "day": "monday", "rows": 371624, "attempted_rows_dropped": 0, "attempted_by_label": {}, "event": "loaded reprocessed CICIDS2017 file", "level": "info", "timestamp": "2026-10-06T06:14:38.290256Z"}
+{"file": "tuesday.csv", "day": "tuesday", "rows": 322039, "attempted_rows_dropped": 39, "attempted_by_label": {"SSH-Patator - Attempted": 27, "FTP-Patator - Attempted": 12}, "event": "loaded reprocessed CICIDS2017 file", "level": "info", "timestamp": "2026-10-06T06:14:42.340718Z"}
+{"file": "wednesday.csv", "day": "wednesday", "rows": 490765, "attempted_rows_dropped": 5876, "attempted_by_label": {"DoS Slowhttptest - Attempted": 3368, "DoS Slowloris - Attempted": 1847, "DoS Hulk - Attempted": 581, "DoS GoldenEye - Attempted": 80}, "event": "loaded reprocessed CICIDS2017 file", "level": "info", "timestamp": "2026-10-06T06:14:48.734927Z"}
+{"file": "thursday.csv", "day": "thursday", "rows": 360079, "attempted_rows_dropped": 1997, "attempted_by_label": {"Web Attack - Brute Force - Attempted": 1292, "Web Attack - XSS - Attempted": 655, "Infiltration - Attempted": 45, "Web Attack - SQL Injection - Attempted": 5}, "event": "loaded reprocessed CICIDS2017 file", "level": "info", "timestamp": "2026-10-06T06:14:53.162530Z"}
+{"file": "friday.csv", "day": "friday", "rows": 543490, "attempted_rows_dropped": 4067, "attempted_by_label": {"Botnet - Attempted": 4067}, "event": "loaded reprocessed CICIDS2017 file", "level": "info", "timestamp": "2026-10-06T06:14:59.779329Z"}
+{"days": ["friday", "monday", "thursday", "tuesday", "wednesday"], "rows_by_day": {"monday": 371624, "tuesday": 322039, "wednesday": 490765, "thursday": 360079, "friday": 543490}, "attempted_rows_dropped": 11979, "attempted_by_label": {"SSH-Patator - Attempted": 27, "FTP-Patator - Attempted": 12, "DoS Slowhttptest - Attempted": 3368, "DoS Slowloris - Attempted": 1847, "DoS Hulk - Attempted": 581, "DoS GoldenEye - Attempted": 80, "Web Attack - Brute Force - Attempted": 1292, "Web Attack - XSS - Attempted": 655, "Infiltration - Attempted": 45, "Web Attack - SQL Injection - Attempted": 5, "Botnet - Attempted": 4067}, "event": "reprocessed CICIDS2017 load complete", "level": "info", "timestamp": "2026-10-06T06:14:59.779521Z"}
+{"by_column": {"flow_bytes_per_s": 3, "flow_pkts_per_s": 3}, "source": "monday", "event": "replaced non-finite cells with NaN", "level": "info", "timestamp": "2026-10-06T06:15:00.921218Z"}
+{"rows": 3, "by_column": {"flow_bytes_per_s": 3, "flow_pkts_per_s": 3}, "source": "monday", "event": "dropping rows with NaN features", "level": "info", "timestamp": "2026-10-06T06:15:00.965066Z"}
+{"rows": 21237, "by_class": {"BENIGN": 21237}, "source": "monday", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-06T06:15:01.558741Z"}
+{"source": "monday", "rows_in": 371624, "rows_out": 350384, "dropped_total": 21240, "imbalance_ratio_out": Infinity, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-06T06:15:01.933640Z"}
+{"rows": 15133, "by_class": {"BENIGN": 15133}, "source": "tuesday", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-06T06:15:02.943658Z"}
+{"source": "tuesday", "rows_in": 322039, "rows_out": 306906, "dropped_total": 15133, "imbalance_ratio_out": 43.267416702726095, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-06T06:15:03.284129Z"}
+{"by_column": {"flow_bytes_per_s": 1, "flow_pkts_per_s": 1}, "source": "wednesday", "event": "replaced non-finite cells with NaN", "level": "info", "timestamp": "2026-10-06T06:15:05.254439Z"}
+{"rows": 1, "by_column": {"flow_bytes_per_s": 1, "flow_pkts_per_s": 1}, "source": "wednesday", "event": "dropping rows with NaN features", "level": "info", "timestamp": "2026-10-06T06:15:05.356177Z"}
+{"rows": 19187, "by_class": {"BENIGN": 18770, "DoS Slowloris": 406, "DoS Slowhttptest": 11}, "source": "wednesday", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-06T06:15:06.459506Z"}
+{"source": "wednesday", "rows_in": 490765, "rows_out": 471577, "dropped_total": 19188, "imbalance_ratio_out": 1.7540881164295559, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-06T06:15:07.706641Z"}
+{"by_column": {"flow_bytes_per_s": 1, "flow_pkts_per_s": 1}, "source": "thursday", "event": "replaced non-finite cells with NaN", "level": "info", "timestamp": "2026-10-06T06:15:08.564198Z"}
+{"rows": 1, "by_column": {"flow_bytes_per_s": 1, "flow_pkts_per_s": 1}, "source": "thursday", "event": "dropping rows with NaN features", "level": "info", "timestamp": "2026-10-06T06:15:08.618714Z"}
+{"rows": 81541, "by_class": {"Infiltration - Portscan": 65753, "BENIGN": 15788}, "source": "thursday", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-06T06:15:09.154372Z"}
+{"source": "thursday", "rows_in": 360079, "rows_out": 278537, "dropped_total": 81542, "imbalance_ratio_out": 44.261130971725706, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-06T06:15:09.450797Z"}
+{"rows": 174621, "by_class": {"Portscan": 157615, "BENIGN": 17006}, "source": "friday", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-06T06:15:13.607084Z"}
+{"source": "friday", "rows_in": 543490, "rows_out": 368869, "dropped_total": 174621, "imbalance_ratio_out": 2.7898408523492, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-06T06:15:14.032809Z"}
+{"total": 468453, "by_day": {"friday": 112084, "monday": 69931, "thursday": 97352, "tuesday": 81826, "wednesday": 107260}, "grid": 0.005, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-06T06:15:20.929145Z"}
+{"stream": "monday/BENIGN", "rows": 8096, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:22.586122Z"}
+{"stream": "tuesday/BENIGN", "rows": 5311, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:22.696502Z"}
+{"stream": "tuesday/FTP-Patator", "rows": 544, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:22.712924Z"}
+{"stream": "tuesday/SSH-Patator", "rows": 322, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:22.715429Z"}
+{"stream": "wednesday/BENIGN", "rows": 11057, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:22.856041Z"}
+{"stream": "wednesday/DoS GoldenEye", "rows": 1556, "band_seconds": 37.5, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:22.881706Z"}
+{"stream": "wednesday/DoS Hulk", "rows": 18867, "band_seconds": 75.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:22.913095Z"}
+{"stream": "wednesday/DoS Slowhttptest", "rows": 79, "band_seconds": 9.4, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:22.926835Z"}
+{"stream": "wednesday/DoS Slowloris", "rows": 223, "band_seconds": 150.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:22.928829Z"}
+{"stream": "thursday/BENIGN", "rows": 4183, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:23.009546Z"}
+{"stream": "thursday/Infiltration", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:23.022623Z"}
+{"stream": "thursday/Infiltration - Portscan", "rows": 656, "band_seconds": 150.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:23.025388Z"}
+{"stream": "thursday/Web Attack - Brute Force", "rows": 10, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:23.027623Z"}
+{"stream": "thursday/Web Attack - SQL Injection", "rows": 2, "band_seconds": 18.8, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:23.029370Z"}
+{"stream": "thursday/Web Attack - XSS", "rows": 4, "band_seconds": 150.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:23.030726Z"}
+{"stream": "friday/BENIGN", "rows": 3926, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:23.122624Z"}
+{"stream": "friday/Botnet", "rows": 140, "band_seconds": 150.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:23.142467Z"}
+{"stream": "friday/Portscan", "rows": 74, "band_seconds": 75.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-06T06:15:23.172968Z"}
+{"pool_withheld": ["DDoS"], "seed_withheld": ["DoS Hulk"], "event": "family withholding applied", "level": "info", "timestamp": "2026-10-06T06:15:23.218376Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-06T06:15:24.183447Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.001, "benign_p5": 0.0009, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-06T06:16:40.539131Z"}
+{"source": "cicids-fixed", "strategy": "within_day_temporal", "rows": {"seed_train": 405451, "prod_benign": 199840, "honeypot_pool": 419258, "trusted_eval": 228219}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-06T06:16:40.572128Z"}
+{"name": "cicids-fixed", "config": {"seed_train_rows": 30000, "eval_benign_rows": 40000, "eval_attack_cap_per_family": 4000, "seed": 20250903}, "seed_rows": 30000, "pool_benign": 303928, "pool_attack": 115330, "eval_rows": 47650, "arm_counts": {"seen_both": 3650, "seed_only": 0, "honeypot_only": 4000}, "event": "loop data built", "level": "info", "timestamp": "2026-10-06T06:16:41.014205Z"}
+{
+  "path": "data/loop/cicids-fixed.npz",
+  "seed_rows": 30000,
+  "pool_benign": 303928,
+  "pool_attack": 115330,
+  "eval_rows": 47650,
+  "arm_counts": {
+    "seen_both": 3650,
+    "seed_only": 0,
+    "honeypot_only": 4000
+  },
+  "near_dup_grid": 0.005,
+  "leak_warning": true
+}

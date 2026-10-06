@@ -1,0 +1,11 @@
++ cd /home/user/IDS
++ export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
++ OPENBLAS_NUM_THREADS=1
++ OMP_NUM_THREADS=1
++ MKL_NUM_THREADS=1
++ O=results/phaseA/datasets/cicids-fixed
++ .venv/bin/python -m experiments.phase0_degeneracy --source cicids-fixed --grids 0.005 --out results/phaseA/datasets/cicids-fixed
++ .venv/bin/python -m experiments.phase0_loop_data --source cicids-fixed
++ .venv/bin/python -m experiments.phase0_loop --dataset cicids-fixed --scenarios control a1 --models rf --jitters 0.7 --ratios 0.2 --seeds 1 --rounds 2 --workers 1 --out .smoke --no-fidelity
++ echo CHAIN_OK
+CHAIN_OK
