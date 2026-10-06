@@ -25,28 +25,27 @@ and `nonacm` suppresses that block entirely rather than showing placeholder valu
 Checked by hand that this reads correctly with every `\%`, `--`, and `\emph` etc. resolved to
 plain characters — this is what should go in arXiv's abstract field, not the `.tex` source.
 
-> Honeypot-fed intrusion detectors retrain on decoy traffic auto-labeled malicious by policy, on
-> the argument that anything a decoy sees is unsolicited and therefore free ground truth. That
-> argument assumes the label is trustworthy because the source is a decoy; it is not, because the
-> labelling policy is public and the attacker chooses exactly what the decoy sees. We characterise
-> the resulting attack on a modern, flow-based retraining loop: one mechanism, a label that
-> contradicts its neighbourhood, that a fixed detection threshold surfaces as false positives and
-> a recalibrated one surfaces as lost detection, not two independent effects. The false-positive
-> form needs near-duplicate mimicry fidelity and at least 10-20% of the training set poisoned, in
-> both models we evaluate, after Holm-Bonferroni correction across the full grid we test. The
-> detection-loss form needs that same fidelity in both models, but for one of them, random forest,
-> we further confirm with a dedicated, higher-powered follow-up that it also holds across a wide
-> range of lower mimicry fidelity, not only at copy-level fidelity -- an effect a first, larger and
-> lower-powered test could not resolve and that we report as confirmed once a properly targeted
-> test could. A generic label-consistency defense fails structurally, because the poison agrees
-> with the defender's own labelling policy; the cost-of-influence defense we set out to propose
-> does not beat a matched no-skill baseline, a negative result we report rather than paper over.
-> A one-line cap on the honeypot's effective training-set share is undominated by every
-> alternative we test and costs almost nothing to run. We additionally measure that CICIDS2017's
-> benign traffic is narrow enough that an attacker reaches damaging fidelity largely for free,
-> which bounds what this widely used benchmark can demonstrate about the attack's cost in general.
+> Honeypot-fed intrusion detectors retrain on decoy traffic auto-labelled malicious, on the
+> argument that anything a decoy sees is unsolicited and therefore free ground truth. That label
+> is only trustworthy if the attacker cannot predict the labelling policy; when it can, it chooses
+> what the decoy sees. We characterise the resulting attack on a flow-based retraining loop. One
+> mechanism, a label that contradicts its neighbourhood, shows up as false positives under a fixed
+> detection threshold and as lost detection under a recalibrated one. The false-positive form needs
+> near-duplicate mimicry fidelity and 10-20% of the training set poisoned; for random forest, a
+> higher-powered follow-up confirms that the detection loss also holds at much lower fidelity. A
+> generic label-consistency defense fails because the poison agrees with the defender's own
+> labelling policy, and the cost-of-influence defense we set out to propose does not beat a
+> no-skill baseline. A one-line cap on the honeypot's effective share of the training set is
+> Pareto-undominated over the configurations we test and costs almost nothing to run; a sliding
+> retention window reduces damage, but an attacker can buy it back with more traffic.
+> Pre-registered follow-ups show that the copy-fidelity damage, and the benchmark degeneracy behind
+> it, carry over to a reprocessed CICIDS2017 release and to UNSW-NB15. The attack also damages
+> logistic regression and a small MLP, in different forms. Isolating the label conflict as the sole
+> mechanism holds only on CICIDS2017 with random forest. We also measure that CICIDS2017's benign
+> traffic is narrow enough for an attacker to reach damaging fidelity cheaply, which limits what
+> this benchmark can show about attack cost.
 
-Word count: ~220 words, well inside arXiv's practical abstract length.
+Word count: 263 words, 1,732 characters, well inside arXiv's 1,920-character abstract limit.
 
 ## Categories
 
