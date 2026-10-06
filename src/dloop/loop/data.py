@@ -52,10 +52,14 @@ class LoopData:
     eval_benign_full_x: np.ndarray  # ALL trusted_eval benign rows (fidelity reference)
     norm_center: np.ndarray
     norm_scale: np.ndarray
+    # column order of every *_x array; the full canonical set unless the dataset
+    # has no analogue for some features (files saved before this field existed
+    # load as the full set, which is what they hold)
+    features: tuple[str, ...] = schema.CANONICAL_FEATURES
 
     @property
     def normalizer(self) -> Normalizer:
-        return Normalizer(schema.CANONICAL_FEATURES, self.norm_center, self.norm_scale)
+        return Normalizer(self.features, self.norm_center, self.norm_scale)
 
     def arm_counts(self) -> dict[str, int]:
         return {a: int(np.sum(self.eval_arm == a)) for a in ARMS}
@@ -67,16 +71,20 @@ class LoopData:
                             pool_benign_x=self.pool_benign_x, pool_attack_x=self.pool_attack_x,
                             eval_x=self.eval_x, eval_y=self.eval_y, eval_family=self.eval_family,
                             eval_arm=self.eval_arm, eval_benign_full_x=self.eval_benign_full_x,
-                            norm_center=self.norm_center, norm_scale=self.norm_scale)
+                            norm_center=self.norm_center, norm_scale=self.norm_scale,
+                            features=np.array(self.features))
 
     @classmethod
     def load(cls, path: str | Path) -> "LoopData":
         z = np.load(Path(path), allow_pickle=False)
-        return cls(name=str(z["name"]), **{k: z[k] for k in z.files if k != "name"})
+        kw = {k: z[k] for k in z.files if k not in ("name", "features")}
+        if "features" in z.files:
+            kw["features"] = tuple(str(f) for f in z["features"])
+        return cls(name=str(z["name"]), **kw)
 
 
-def _x(df) -> np.ndarray:
-    return df[list(schema.CANONICAL_FEATURES)].to_numpy("float32")
+def _x(df, features: tuple[str, ...]) -> np.ndarray:
+    return df[list(features)].to_numpy("float32")
 
 
 def from_partitions(data: PartitionedData, name: str, cfg: LoopDataConfig | None = None) -> LoopData:
@@ -108,15 +116,17 @@ def from_partitions(data: PartitionedData, name: str, cfg: LoopDataConfig | None
 
     eval_df = pd.concat([sub_b, sub_a])
     eval_arm = np.array(["benign"] * len(sub_b) + arms, dtype="U16")
+    feats = data.features
     ld = LoopData(
         name=name,
-        seed_x=_x(seed_df), seed_y=seed_df[schema.BINARY_LABEL].to_numpy("int64"),
-        pool_benign_x=_x(pool_b), pool_attack_x=_x(pool_a),
-        eval_x=_x(eval_df), eval_y=eval_df[schema.BINARY_LABEL].to_numpy("int64"),
+        seed_x=_x(seed_df, feats), seed_y=seed_df[schema.BINARY_LABEL].to_numpy("int64"),
+        pool_benign_x=_x(pool_b, feats), pool_attack_x=_x(pool_a, feats),
+        eval_x=_x(eval_df, feats), eval_y=eval_df[schema.BINARY_LABEL].to_numpy("int64"),
         eval_family=eval_df[schema.LABEL].to_numpy().astype("U40"),
         eval_arm=eval_arm,
-        eval_benign_full_x=_x(te_b),
+        eval_benign_full_x=_x(te_b, feats),
         norm_center=np.asarray(data.normalizer.center), norm_scale=np.asarray(data.normalizer.scale),
+        features=feats,
     )
     log.info("loop data built", name=name, config=asdict(cfg), seed_rows=len(ld.seed_x),
              pool_benign=len(ld.pool_benign_x), pool_attack=len(ld.pool_attack_x),

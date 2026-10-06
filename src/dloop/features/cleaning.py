@@ -65,7 +65,8 @@ class CleaningReport:
         return d
 
 
-def _rename_to_canonical(df: pd.DataFrame, report: CleaningReport) -> pd.DataFrame:
+def _rename_to_canonical(df: pd.DataFrame, report: CleaningReport,
+                         features: tuple[str, ...]) -> pd.DataFrame:
     # Gotcha 1: whitespace in column names (" Label", " Flow Duration", ...).
     stripped = {c: str(c).strip() for c in df.columns}
     df = df.rename(columns=stripped)
@@ -81,13 +82,13 @@ def _rename_to_canonical(df: pd.DataFrame, report: CleaningReport) -> pd.DataFra
     df = df.rename(columns=rename)
     report.renamed_columns = {**stripped, **rename}
 
-    missing = [c for c in schema.CANONICAL_FEATURES if c not in df.columns]
+    missing = [c for c in features if c not in df.columns]
     if missing:
         raise ValueError(f"input is missing required feature columns: {missing}")
     if schema.LABEL not in df.columns:
         raise ValueError("input has no label column")
 
-    keep = [*schema.CANONICAL_FEATURES, schema.LABEL]
+    keep = [*features, schema.LABEL]
     for meta in (schema.DAY, schema.TIMESTAMP):
         if meta in df.columns:
             keep.append(meta)
@@ -97,7 +98,9 @@ def _rename_to_canonical(df: pd.DataFrame, report: CleaningReport) -> pd.DataFra
     return df[keep].copy()
 
 
-def clean_flows(df: pd.DataFrame, *, source: str) -> tuple[pd.DataFrame, CleaningReport]:
+def clean_flows(
+    df: pd.DataFrame, *, source: str, features: tuple[str, ...] = schema.CANONICAL_FEATURES,
+) -> tuple[pd.DataFrame, CleaningReport]:
     """Clean raw flow records into the canonical schema.
 
     Steps, each accounted for in the returned :class:`CleaningReport`:
@@ -108,16 +111,19 @@ def clean_flows(df: pd.DataFrame, *, source: str) -> tuple[pd.DataFrame, Cleanin
     4. drop rows with a physically impossible negative feature;
     5. drop exact duplicate rows;
     6. record class balance before and after.
+
+    ``features`` is the dataset's feature set (default: all canonical features;
+    a dataset with no analogue for some of them passes its subset).
     """
     report = CleaningReport(source=source, rows_in=len(df))
-    df = _rename_to_canonical(df, report)
+    df = _rename_to_canonical(df, report, features)
 
     df[schema.LABEL] = df[schema.LABEL].map(schema.normalize_label)
     report.class_counts_in = df[schema.LABEL].value_counts().to_dict()
 
     # Step 2: numeric coercion + Inf -> NaN. CICIDS2017 stores rates as strings
     # like "Infinity" / "" for zero-duration flows.
-    feats = list(schema.CANONICAL_FEATURES)
+    feats = list(features)
     df[feats] = df[feats].apply(pd.to_numeric, errors="coerce")
     inf_mask = np.isinf(df[feats].to_numpy(dtype="float64", na_value=np.nan))
     if inf_mask.any():
@@ -142,7 +148,7 @@ def clean_flows(df: pd.DataFrame, *, source: str) -> tuple[pd.DataFrame, Cleanin
     df = df[~nan_row_mask]
 
     # Step 4: impossible negatives (negative Flow Duration is a known artifact).
-    neg_cells = df[list(schema.NONNEGATIVE_FEATURES)] < 0
+    neg_cells = df[[f for f in feats if f in schema.NONNEGATIVE_FEATURES]] < 0
     neg_row_mask = neg_cells.any(axis=1)
     report.rows_dropped_negative = int(neg_row_mask.sum())
     report.negative_by_column = {f: int(n) for f, n in neg_cells.sum().items() if n}
@@ -206,5 +212,5 @@ def clean_flows(df: pd.DataFrame, *, source: str) -> tuple[pd.DataFrame, Cleanin
         dropped_total=report.rows_dropped_total,
         imbalance_ratio_out=report.imbalance_ratio_out,
     )
-    schema.validate_frame(df)
+    schema.validate_frame(df, features)
     return df, report

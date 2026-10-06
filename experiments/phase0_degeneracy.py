@@ -36,7 +36,7 @@ LEAK_THRESHOLD = 0.25              # guard (c) leak_warning gate
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", type=Path, default=Path("results/phase0/cicids"))
-    ap.add_argument("--source", choices=["cicids", "cicids-fixed"], default="cicids")
+    ap.add_argument("--source", choices=["cicids", "cicids-fixed", "unsw-nb15"], default="cicids")
     ap.add_argument("--grids", type=float, nargs="+", default=list(GRIDS))
     args = ap.parse_args(argv)
     configure()

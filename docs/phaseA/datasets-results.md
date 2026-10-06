@@ -84,3 +84,97 @@ Both families exist in this release under the same names.
   FPR is ≤ 1.5× the 0.01 target (≤ 0.015) for both RF and XGBoost**. Measured as the mean over
   rounds 11-20 and 5 seeds, on the tau grid s19 used: {0, 0.005, 0.01, 0.02, 0.05, 0.1}, extended
   upward (0.2, 0.5) only if none of those qualifies.
+
+## 2. Column mapping — UNSW-NB15
+
+*Written and committed before any partition, distance, model or loop number was computed from
+this dataset.* Code: `src/dloop/sim/unsw_nb15.py`, `dloop.features.schema.UNSW_COLUMN_MAP` /
+`UNSW_FEATURES`.
+
+**Column names.** The four part CSVs (`UNSW-NB15_1..4.csv`, 2,540,047 rows, 49 columns) have no
+header row. The loader takes the names, in file order, from the official dictionary
+`NUSW-NB15_features.csv` (sorted by its `No.` column). It matches them ignoring case and
+whitespace, so the dictionary's `Sload` / `ct_src_ ltm` become `sload` / `ct_src_ltm`. Without
+the dictionary the loader refuses to run rather than guess.
+
+**Features: 9 of the 24 canonical features have a direct per-flow analogue.** UNSW-NB15 is
+Argus/Bro-derived, not CICFlowMeter-derived. Only the direct analogues are mapped:
+
+| canonical | UNSW-NB15 column (dictionary description) | unit conversion |
+|---|---|---|
+| `flow_duration` | `dur` (record total duration) | s → µs (×10⁶) |
+| `fwd_packets` | `Spkts` (source-to-destination packet count) | — |
+| `bwd_packets` | `Dpkts` (destination-to-source packet count) | — |
+| `fwd_bytes` | `sbytes` (source-to-destination transaction bytes) | — |
+| `bwd_bytes` | `dbytes` (destination-to-source transaction bytes) | — |
+| `fwd_pkt_len_mean` | `smeansz` (mean flow packet size transmitted by the src) | — |
+| `bwd_pkt_len_mean` | `dmeansz` (mean flow packet size transmitted by the dst) | — |
+| `fwd_iat_mean` | `Sintpkt` (source inter-packet arrival time) | ms → µs (×10³) |
+| `bwd_iat_mean` | `Dintpkt` (destination inter-packet arrival time) | ms → µs (×10³) |
+
+The unit conversions put durations and inter-arrival times in CICFlowMeter's microseconds. That
+keeps the attacker-cost metadata (`adversary/base.py`, which divides duration by 10⁶) in one unit
+across datasets. It is a unit change, not a new quantity.
+
+Two analogues are not exact:
+- `smeansz` / `dmeansz` are Argus mean *packet* sizes. CICFlowMeter's `Fwd/Bwd Packet Length
+  Mean` are mean packet *lengths*. Both are per-direction means of the per-packet size, so they
+  are mapped, but the header accounting may differ.
+- `Sintpkt` / `Dintpkt` are per-direction mean inter-packet times, the same quantity as
+  CICFlowMeter's `Fwd/Bwd IAT Mean`.
+
+**The other 15 canonical features are left out of this dataset's run**, not fabricated:
+- `fwd_pkt_len_max`, `fwd_pkt_len_min`, `bwd_pkt_len_max`, `bwd_pkt_len_min`
+- `flow_iat_mean`, `flow_iat_std`, `flow_iat_max`, `flow_iat_min`
+- `syn_flag_count`, `psh_flag_count`, `ack_flag_count`
+- `flow_bytes_per_s`, `flow_pkts_per_s`, `down_up_ratio`, `pkt_size_avg`
+
+The last four could be *derived* from mapped columns (e.g. `(sbytes+dbytes)/dur`). That is not
+done, because the derivation would be a choice made here, not a field of the dataset. Likewise
+`Sload`/`Dload` (per-direction bits/s) are not `flow_bytes_per_s`. A zero column is not used
+either: it would still dilute the per-feature-RMS distance metric. So every UNSW-NB15 distance,
+model and loop number is computed on these 9 features.
+
+To support this, the pipeline now carries a per-dataset feature set:
+- `schema.check_feature_subset` requires canonical order and that the subset starts with the five
+  attacker-cost features.
+- The feature set is passed through `clean_flows`, `build_partitions` / `PartitionedData.features`
+  and `LoopData.features`.
+- The adversary batches are position-based.
+
+The default everywhere is still the full 24-feature canonical set, so the existing datasets'
+behaviour is unchanged (full test suite passes).
+
+The remaining 40 UNSW-NB15 columns are not used:
+- identifiers and nominals: IPs, ports, `proto`, `state`, `service`
+- TTLs, losses, loads, windows and TCP base sequence numbers
+- `trans_depth`, `res_bdy_len`, jitter, `Ltime`, TCP setup times
+- the `ct_*` / `is_*` connection-window counters
+
+**Labels.** `Label` (0/1) is the binary target and `attack_cat` the family:
+- `Label = 0` → `BENIGN`. Otherwise the family is `attack_cat` with whitespace stripped. The
+  release has categories with stray spaces, e.g. `" Fuzzers "`.
+- `Backdoors` is merged into `Backdoor`: the release spells that family both ways.
+- A row whose `Label` and `attack_cat` disagree is dropped and counted, because it can't be
+  labelled without guessing which field is wrong. That is `Label = 1` with an empty category, or
+  `Label = 0` with a non-empty one.
+
+**Timestamp and capture "day".** `Stime` (record start, unix seconds) → `timestamp`. That is
+1-second resolution, real time. UNSW-NB15 was captured in two sessions: 22–23 Jan 2015 (crossing
+midnight, Sydney time) and 18 Feb 2015. The day tag is the session (`jan22`, `feb18`, split at
+2015-02-01 UTC), not the calendar date, so one session is not cut in two at midnight.
+
+**Cleaning.** The same `clean_flows` pipeline, on the 9 features.
+
+**Partition.** `within_day_temporal`, the same split fractions, burst gap and guard band as the
+other datasets (real seconds here, as for cicids-fixed). **No family withholding.** CICIDS2017's
+withheld families (DDoS, DoS Hulk) have no UNSW-NB15 counterpart, and choosing new ones would be a
+post-hoc choice. So every UNSW-NB15 family is `seen_both`. Withholding only shapes the per-arm
+TPR breakdown. It does not change the B.1/B.2 metrics (overall FPR and TPR against the matched
+control).
+
+**Derived parameters:** the same two rules as §1, fixed now:
+- **Near-duplicate grid:** the gentlest grid in `phase0_grid_sweep`'s sweep that passes
+  `assert_disjoint`, with the insensitivity check.
+- **`val-nn-tau`:** the s19 rule, the smallest tau with control fixed-FPR ≤ 0.015 for both RF and
+  XGBoost (rounds 11-20, 5 seeds).
