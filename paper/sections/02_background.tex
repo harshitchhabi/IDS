@@ -13,8 +13,8 @@ network traffic classifier trained on what it collects, and \citet{lanka2024inte
 AI-driven analysis to honeypot data for threat detection. Neither evaluates whether an attacker
 who knows the labelling policy can shape what the classifier learns — the closed loop is
 assumed trustworthy because its input is a decoy, which is exactly the assumption this paper
-tests. \citet{yugai2024honeypot} and \citet{abdou2021honeymodels} put "honeypot" and "machine
-learning" together most literally but point the other way: the former uses a honeypot plus a
+tests. \citet{yugai2024honeypot} and \citet{abdou2021honeymodels} put \`\`honeypot'' and \`\`machine
+learning'' together most literally but point the other way: the former uses a honeypot plus a
 classifier to detect adversarial evasion attempts against an IDS, and HoneyModels deploys ML
 models \emph{as} decoys to attract and study adversarial examples against the model itself. In
 neither case is the honeypot's output treated as an adversarial input channel into a defender's
@@ -40,7 +40,7 @@ honeypot produces safer training labels; convincing the honeypot's human or auto
 a different problem from convincing the auto-labeller downstream.
 
 \textbf{Poisoning of continuously-retrained classifiers.} The mechanism we attack — an automated
-learner retrained on traffic an adversary can shape — is not new; only "honeypot" and "LLM" are.
+learner retrained on traffic an adversary can shape — is not new; only \`\`honeypot'' and \`\`LLM'' are.
 \citet{newsome2006paragraph} and \citet{perdisci2006misleading} attack Polygraph's worm-signature
 learner, trained on flows a honeynet or IDS flags as suspicious, with crafted noise; the closest
 older analog to this paper, but aimed at evading detection of one worm through a signature
@@ -68,7 +68,7 @@ against a trusted reference, the same mechanism as this paper's kNN comparator b
 (Section~\ref{sec:defenses}), but evaluated against generic label-flipping poisoning rather than
 a honeypot-sourced channel whose poison is consistent with the defender's own labelling policy;
 it does not surface the policy-consistency blind spot this paper reports for loss-based
-filtering, because its threat model has no "the label is wrong but policy-consistent" case to
+filtering, because its threat model has no \`\`the label is wrong but policy-consistent'' case to
 fail on. \citet{biggio2018wild} and \citet{cina2023wild} survey the broader adversarial-ML
 landscape without a honeypot-specific instance.
 
