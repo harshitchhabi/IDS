@@ -18,7 +18,7 @@ from dloop.sim.dataset import load_partitions
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--source", choices=["cicids", "synthetic"], required=True)
+    ap.add_argument("--source", choices=["cicids", "cicids-fixed", "synthetic"], required=True)
     ap.add_argument("--out", type=Path, default=Path("data/loop"))
     args = ap.parse_args(argv)
     configure()

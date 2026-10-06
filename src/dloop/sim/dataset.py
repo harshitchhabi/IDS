@@ -14,18 +14,19 @@ from typing import Literal
 import pandas as pd
 
 from dloop.logging_config import get_logger
-from dloop.sim import cicids, synthetic
+from dloop.sim import cicids, cicids_fixed, synthetic
 from dloop.sim.partition import PartitionConfig, PartitionedData, build_partitions
 
 log = get_logger("sim.dataset")
 
-Source = Literal["auto", "cicids", "synthetic"]
+Source = Literal["auto", "cicids", "cicids-fixed", "synthetic"]
 
 
 def load_raw_by_day(
     source: Source = "auto",
     *,
     cicids_root: Path | str = cicids.DEFAULT_ROOT,
+    cicids_fixed_root: Path | str = cicids_fixed.DEFAULT_ROOT,
     synthetic_config: synthetic.SyntheticConfig | None = None,
 ) -> tuple[dict[str, pd.DataFrame], str]:
     """Return ``(raw_by_day, resolved_source)``."""
@@ -35,6 +36,8 @@ def load_raw_by_day(
 
     if source == "cicids":
         return cicids.load_raw_by_day(cicids_root), "cicids"
+    if source == "cicids-fixed":
+        return cicids_fixed.load_raw_by_day(cicids_fixed_root), "cicids-fixed"
     if source == "synthetic":
         return synthetic.generate_raw_by_day(synthetic_config), "synthetic"
     raise ValueError(f"unknown source: {source!r}")
@@ -44,11 +47,13 @@ def load_partitions(
     source: Source = "auto",
     *,
     cicids_root: Path | str = cicids.DEFAULT_ROOT,
+    cicids_fixed_root: Path | str = cicids_fixed.DEFAULT_ROOT,
     synthetic_config: synthetic.SyntheticConfig | None = None,
     partition_config: PartitionConfig | None = None,
 ) -> PartitionedData:
     raw, resolved = load_raw_by_day(
-        source, cicids_root=cicids_root, synthetic_config=synthetic_config
+        source, cicids_root=cicids_root, cicids_fixed_root=cicids_fixed_root,
+        synthetic_config=synthetic_config,
     )
     data = build_partitions(raw, config=partition_config)
     log.info("partitions built", source=resolved, strategy=data.config.strategy,

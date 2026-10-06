@@ -43,7 +43,7 @@ def _xy(df: pd.DataFrame):
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--source", choices=["auto", "cicids", "synthetic"], default="synthetic")
+    ap.add_argument("--source", choices=["auto", "cicids", "cicids-fixed", "synthetic"], default="synthetic")
     ap.add_argument("--strategy", choices=["within_day_temporal", "day_split"],
                     default="within_day_temporal")
     ap.add_argument("--out", type=Path, default=Path("results/phase0"))

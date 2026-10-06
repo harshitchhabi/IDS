@@ -124,3 +124,24 @@ def validate_frame(df: pd.DataFrame) -> None:
         raise ValueError(f"schema mismatch: missing={sorted(missing)} extra={sorted(extra)}")
     if list(df.columns[: len(CANONICAL_FEATURES)]) != list(CANONICAL_FEATURES):
         raise ValueError("feature columns must lead the frame in canonical order")
+
+
+# Reprocessed CICIDS2017 (Engelen et al., CNS2022 "improved" release; Phase A item B).
+# Same CICFlowMeter-derived feature set as the original release, but four count
+# columns were renamed (singular "Packet", lower-case "packets"). Every canonical
+# feature has a direct analogue, so none is dropped. Mapping fixed in
+# docs/phaseA/datasets-results.md before any number was computed from it.
+CICIDS_FIXED_COLUMN_MAP: dict[str, str] = {
+    **{raw: canon for raw, canon in CICIDS_COLUMN_MAP.items()
+       if raw not in ("Total Fwd Packets", "Total Backward Packets",
+                      "Total Length of Fwd Packets", "Total Length of Bwd Packets")},
+    "Total Fwd Packet": "fwd_packets",
+    "Total Bwd packets": "bwd_packets",
+    "Total Length of Fwd Packet": "fwd_bytes",
+    "Total Length of Bwd Packet": "bwd_bytes",
+}
+CICIDS_FIXED_LABEL_COLUMN = "Label"
+CICIDS_FIXED_TIMESTAMP_COLUMN = "Timestamp"
+# Engelen et al. tag flows that belong to an attack but carried no malicious
+# payload (e.g. a failed login, a TCP handshake with no request) as "<family> - Attempted".
+CICIDS_FIXED_ATTEMPTED_SUFFIX = " - Attempted"

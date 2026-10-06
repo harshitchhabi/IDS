@@ -38,6 +38,16 @@ _CICIDS_WITHHOLD = dict(
     near_dup_grid=0.005,
 )
 
+# Reprocessed CICIDS2017 (Phase A item B, DECISIONS.md §29.B): the same two
+# families exist under the same names, and are withheld the same way so the only
+# axis that changes against CICIDS2017 is the dataset. The grid is chosen by the
+# same rule as CICIDS2017's (gentlest grid in phase0_grid_sweep.py's sweep that
+# passes assert_disjoint), recorded in docs/phaseA/datasets-results.md.
+_CICIDS_FIXED_WITHHOLD = dict(
+    pool_withheld_families=("DDoS",),
+    seed_withheld_families=("DoS Hulk",),
+)
+
 
 def partition_config(source: str, strategy: str = "within_day_temporal", **overrides) -> PartitionConfig:
     kw: dict = {"strategy": strategy}
@@ -46,5 +56,7 @@ def partition_config(source: str, strategy: str = "within_day_temporal", **overr
             kw.update(_SYNTHETIC_WITHHOLD)
         elif source == "cicids":
             kw.update(_CICIDS_WITHHOLD)
+        elif source == "cicids-fixed":
+            kw.update(_CICIDS_FIXED_WITHHOLD)
     kw.update({k: v for k, v in overrides.items() if v is not None})
     return PartitionConfig(**kw)
