@@ -162,6 +162,47 @@ def check_margins_and_overlaps(pdf_path: Path) -> list[Failure]:
     return failures
 
 
+def check_quote_glyphs(pdf_path: Path) -> list[Failure]:
+    """Catches the LaTeX \\`\\` typo (the grave-accent command, not two literal backtick
+    characters) that produces a stray backtick/grave mark instead of a curly opening quote --
+    found when the font this document builds with has no `` ligature. Two signals: a literal
+    backtick or combining-grave character anywhere in the extracted text (neither has any
+    legitimate use in this paper's body text), and more closing curly quotes (U+201D) than
+    opening ones (U+201C) on a page, which happens when an opening quote silently vanishes."""
+    import pdfplumber
+
+    failures: list[Failure] = []
+    with pdfplumber.open(str(pdf_path)) as pdf:
+        for page_idx, page in enumerate(pdf.pages, start=1):
+            text = page.extract_text() or ""
+            if "`" in text:
+                failures.append(
+                    Failure("stray_backtick", page_idx, "page text", "contains a backtick (`)")
+                )
+            if "̀" in text:
+                failures.append(
+                    Failure(
+                        "stray_combining_grave",
+                        page_idx,
+                        "page text",
+                        "contains a combining grave accent (U+0300)",
+                    )
+                )
+            n_open = text.count("“")
+            n_close = text.count("”")
+            if n_close > n_open:
+                failures.append(
+                    Failure(
+                        "unbalanced_quotes",
+                        page_idx,
+                        f"{n_close} closing vs {n_open} opening",
+                        "more ” than “ on this page -- an opening quote likely "
+                        "rendered as something else",
+                    )
+                )
+    return failures
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tex", type=Path, default=DEFAULT_TEX)
@@ -202,6 +243,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"note: no log file found; skipping overfull-hbox check", file=sys.stderr)
 
     failures += check_margins_and_overlaps(pdf_path)
+    failures += check_quote_glyphs(pdf_path)
 
     if not failures:
         print(f"check_layout: 0 failures ({pdf_path})")

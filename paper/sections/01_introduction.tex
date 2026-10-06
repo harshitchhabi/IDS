@@ -17,7 +17,7 @@ assumes it is.
 
 The assumption the whole design rests on is that the label is trustworthy \emph{because} the
 source is a decoy. That assumption does not survive contact with an adversary who knows, or can
-reliably infer, the policy. The labelling rule — \`\`everything the honeypot sees is malicious'' — is
+reliably infer, the policy. The labelling rule — “everything the honeypot sees is malicious” — is
 not a secret that technical means protect: a honeypot has to be reachable to do its job, and the
 design itself is describable in a paper, a product page, or open-source code, so an attacker does
 not need privileged access to learn it, only the kind of knowledge that is often freely available
@@ -127,7 +127,7 @@ traffic.
     \node[hpbox, below=of seed] (pool) {\code{honeypot_pool}\\[1pt]\lbl{attacker sends traffic here}};
 
     % --- attacker-controlled pipeline ---
-    \node[hpbox, right=of pool] (label) {auto-label\\[1pt]``malicious''};
+    \node[hpbox, right=of pool] (label) {auto-label\\[1pt]“malicious”};
     \node[box, right=of label] (defense) {defense hook\\[1pt]\lbl{optional, e.g. ShareCap}};
 
     % --- shared pipeline ---

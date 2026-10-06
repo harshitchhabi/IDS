@@ -16,7 +16,7 @@ being confounded with optimization path dependence.
 % honeypot's share of the training set reaches a target ratio by the final round)
 Two knobs govern how honeypot data accumulates. \emph{Retention} is \code{accumulate} by
 default: every admitted batch is kept for the rest of the run, which is both the design the
-honeypot-retraining literature proposes (\`\`continuous adaptation'') and the worst case for the
+honeypot-retraining literature proposes (“continuous adaptation”) and the worst case for the
 defender, since influence only grows. \emph{Budget mode} is \code{fixed_ratio}: the
 per-round batch size is set so the honeypot's share of the training set reaches a target ratio
 by the final round, so every point on a damage curve has a known, comparable poison share.
@@ -116,7 +116,7 @@ Appendix~\ref{sec:appendix}). (b) Rows within a buffer of an internal cut are dr
 change Section~\ref{sec:degeneracy}'s result). (c) For every \code{trusted_eval} row, the
 nearest-neighbour distance in normalized feature space to its nearest \code{honeypot_pool}
 row of the same class is computed and reported for both classes — this is the metric behind
-every \`\`realized distance'' and \`\`twin fraction'' number in this paper.
+every “realized distance” and “twin fraction” number in this paper.
 % DECISIONS.md s2, s15: leak_warning gating rationale moved to Appendix for space; guard (c)'s
 % definition above is kept in the main body since S5/S6 depend on readers knowing what it is.
 Why the resulting \code{leak_warning} is gated on the attack class alone, and what that does
@@ -180,7 +180,7 @@ attacker who makes its interaction look more expensive to buy weight under a cos
 % bare number.
 \textbf{The 0.25 guard-(c) threshold is a chosen operating point, not a derived constant.} It was
 picked to be comfortably above ordinary measurement noise in this normalized space and
-comfortably below where two rows would plausibly be considered \`\`the same flow,'' not fit to any
+comfortably below where two rows would plausibly be considered “the same flow,” not fit to any
 distribution. Its only role in this paper is binary: flagging whether a family's distances are
 small enough to call the partition degenerate for that family. The conclusion that holds under
 it — median distances of 0.0030--0.0177 across every family and every deduplication grid tested,
@@ -350,6 +350,6 @@ permutation test until a targeted 15-seed re-run (the one exception made to this
 otherwise-closed experiment set, pre-registered before running) confirmed it by both tests
 (Section~\ref{sec:attack}). A permutation $p$-value of exactly 0 (no resampled sign pattern in
 $10^4$ Monte Carlo draws matched or exceeded the observed effect) is reported as
-\`\`$p<0.0001$,'' never as \`\`$p=0$'' — a zero count means the true $p$ is below the resolution, not
+“$p<0.0001$,” never as “$p=0$” — a zero count means the true $p$ is below the resolution, not
 that it is exactly zero. Where the two tests disagree on a 5-seed cell, both are reported and
 neither is treated as silently superseding the other.

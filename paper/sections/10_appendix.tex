@@ -109,7 +109,7 @@ effort than a typical legitimate flow.
 Table~\ref{tab:d1-grid} is the full pre-registered sensitivity grid (Section~\ref{sec:defenses}
 reports only the pass/fail count and the extremes). XGBoost, ratio 0.5, jitter 0 (raw fidelity,
 undefended damage $+0.563$). Bold cells are inside $2\sigma_{\text{control}}$ ($0.012$), the
-pre-registered \`\`not sensitive'' band.
+pre-registered “not sensitive” band.
 
 \begin{table}[t]
   \centering
@@ -223,9 +223,9 @@ Beyond the four limitations in Section~\ref{sec:discussion}:
 \begin{itemize}
   \item \textbf{The partition is by file order, not a verified capture timestamp.}
     CICIDS2017's public \code{MachineLearningCVE} release carries no timestamp column
-    (Section~\ref{sec:methodology}), so \`\`day split'' in this paper means the dataset's own file
+    (Section~\ref{sec:methodology}), so “day split” in this paper means the dataset's own file
     boundaries, not confirmed calendar time. A burst-aware split gives comparable results
-    (Appendix~\ref{sec:appendix}, \`\`Burst splitting''), but that is evidence the result survives a
+    (Appendix~\ref{sec:appendix}, “Burst splitting”), but that is evidence the result survives a
     different file-order cut, not independent evidence of separation on real wall-clock time.
   \item \textbf{ShareCap's safe cap range is not a universal constant.} It is measured for one
     model and one dataset at a time (Section~\ref{sec:defenses}); a different model or dataset
