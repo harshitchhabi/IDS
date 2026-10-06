@@ -322,3 +322,225 @@ DoS row. The partition's row hash includes the label, so those are allowed acros
 (`assert_disjoint` passes). They are the 9-feature representation's own label ambiguity. Only 748
 of Generic's 215,481 rows survive to trusted_eval: Generic is massively duplicated on these
 features.
+
+## 5. Results — B.1 (damage grid) and B.2 (mechanism isolation)
+
+All cells: 15 seeds, 20 rounds, `--val-nn-tau 0` (§3, §4), final-round arm minus same-seed control.
+The tests are `experiments.phase0_stats_recompute`'s paired $t` and paired sign-flip permutation
+test (Monte Carlo, 10,000 resamples), imported by `experiments/phaseA_datasets_stats.py`. That
+script reproduces the paper's s28 `mechanism15` numbers exactly when pointed at
+`results/phase0/loop/cicids_recal/jobs` with tau 0.1, which checks the row selection. Per-cell
+CSVs: `results/phaseA/datasets/<dataset>/stats.csv`. Job CSVs: `.../jobs/`.
+
+**How "clears Holm" is read.** §29.A's bar does not say which of the two tests a B.1 cell must
+clear Holm by. Holm is applied separately to the 8 $t` p-values and the 8 permutation p-values of
+each (dataset, model) family. A cell "clears" only if it clears by both and its sign is the damage
+direction (ΔFPR > 0, ΔTPR < 0). Every cell the verdicts depend on reaches the same outcome under
+either test alone, so this choice changes nothing below. B.2 uses the bar's own wording: `a1`
+clears α/4 = 0.0125 by both tests, and each null arm's 95% $t` CI includes 0.
+
+### 5.1 Reprocessed CICIDS2017
+
+| cell | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | vs. §29 bar |
+|---|---|---|---|---|---|---|---|
+| cicids-fixed · B.1 rf · r=0.2, j=0 · fixed ΔFPR | 15 | +0.9850 | [+0.9837, +0.9862] | 1640.59 | 2.2e-38 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.2, j=0 · recal ΔTPR | 15 | -0.1765 | [-0.2074, -0.1457] | -12.27 | 7.0e-09 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.2, j=0.7 · fixed ΔFPR | 15 | +0.0257 | [+0.0234, +0.0281] | 23.13 | 1.5e-12 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.2, j=0.7 · recal ΔTPR | 15 | -0.0508 | [-0.0645, -0.0372] | -7.98 | 1.4e-06 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.5, j=0 · fixed ΔFPR | 15 | +0.9892 | [+0.9884, +0.9900] | 2565.99 | 4.1e-41 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.5, j=0 · recal ΔTPR | 15 | -0.5587 | [-0.6014, -0.5160] | -28.05 | 1.1e-13 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.5, j=0.7 · fixed ΔFPR | 15 | +0.0388 | [+0.0364, +0.0412] | 34.93 | 5.1e-15 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.5, j=0.7 · recal ΔTPR | 15 | -0.0418 | [-0.0527, -0.0309] | -8.24 | 9.7e-07 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.2, j=0 · fixed ΔFPR | 15 | +0.9860 | [+0.9848, +0.9872] | 1804.06 | 5.7e-39 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.2, j=0 · recal ΔTPR | 15 | -0.0568 | [-0.0658, -0.0477] | -13.47 | 2.1e-09 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.2, j=0.7 · fixed ΔFPR | 15 | +0.0479 | [+0.0437, +0.0520] | 24.66 | 6.2e-13 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.2, j=0.7 · recal ΔTPR | 15 | +0.0152 | [+0.0075, +0.0228] | 4.27 | 0.00078 | 0.0001 | clears Holm by both tests (opposite direction) |
+| cicids-fixed · B.1 xgboost · r=0.5, j=0 · fixed ΔFPR | 15 | +0.9860 | [+0.9848, +0.9872] | 1803.95 | 5.7e-39 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.5, j=0 · recal ΔTPR | 15 | -0.1081 | [-0.1174, -0.0988] | -25.01 | 5.1e-13 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.5, j=0.7 · fixed ΔFPR | 15 | +0.1227 | [+0.0987, +0.1467] | 10.95 | 3.0e-08 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.5, j=0.7 · recal ΔTPR | 15 | -0.0315 | [-0.0439, -0.0191] | -5.46 | 8.4e-05 | 0.0003 | clears Holm by both tests |
+| cicids-fixed · B.2 · a1 (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0508 | [-0.0645, -0.0372] | -7.98 | 1.4e-06 | <0.0001 | clears α/4 = 0.0125 by both tests |
+| cicids-fixed · B.2 · a1truth (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0153 | [-0.0228, -0.0077] | -4.32 | 0.0007 | 0.0002 | **CI excludes 0** |
+| cicids-fixed · B.2 · s0j (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0134 | [-0.0175, -0.0093] | -7.03 | 6.0e-06 | 0.0002 | **CI excludes 0** |
+| cicids-fixed · B.2 · junk (j=0, r=0.2) · recal ΔTPR | 15 | -0.0147 | [-0.0185, -0.0108] | -8.15 | 1.1e-06 | <0.0001 | **CI excludes 0** |
+
+- **RF:**
+  - **Copy fidelity (jitter 0):** A1 drives fixed-threshold FPR to ≈ 1.0 at both ratios: ΔFPR
+    +0.985 / +0.989 over a control of 0.012. That is the ceiling: every benign eval flow is
+    flagged. Recalibrated TPR falls 0.18 / 0.56.
+  - **At distance (jitter 0.7):** fixed ΔFPR is still +0.026 / +0.039. On CICIDS2017 under the
+    honest (tau 0.1) calibration, s19.2 measured ≤ +0.011. Because tau is 0 here rather than 0.1
+    (§3), the two numbers are not directly comparable.
+  - **B.2:** `a1` costs −0.051 recalibrated TPR (CICIDS2017 s28: −0.126). But all three null arms
+    also cost TPR, with CIs excluding 0: `a1truth` −0.015, `s0j` −0.013, `junk` −0.015. The
+    label-conflict arm is about 3.3× the largest null arm, but the nulls are not null on this dataset.
+    Injecting a fifth of the training set as any extra rows, correctly labelled or not, moves the
+    recalibrated threshold.
+- **XGBoost:**
+  - **Copy fidelity:** the same ceiling (+0.986 at both ratios).
+  - **At distance:** fixed ΔFPR +0.048 / +0.123. Recalibrated TPR is mixed: +0.015 at ratio 0.2
+    (opposite direction, significant) and −0.032 at ratio 0.5.
+
+### 5.2 UNSW-NB15
+
+| cell | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | vs. §29 bar |
+|---|---|---|---|---|---|---|---|
+| unsw-nb15 · B.1 rf · r=0.2, j=0 · fixed ΔFPR | 15 | +0.0920 | [+0.0830, +0.1010] | 21.94 | 3.1e-12 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.2, j=0 · recal ΔTPR | 15 | -0.3525 | [-0.3734, -0.3316] | -36.25 | 3.0e-15 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.2, j=0.7 · fixed ΔFPR | 15 | +0.0021 | [+0.0014, +0.0028] | 6.39 | 1.7e-05 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.2, j=0.7 · recal ΔTPR | 15 | -0.0205 | [-0.0300, -0.0110] | -4.64 | 0.00038 | 0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.5, j=0 · fixed ΔFPR | 15 | +0.2543 | [+0.2401, +0.2685] | 38.40 | 1.4e-15 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.5, j=0 · recal ΔTPR | 15 | -0.5141 | [-0.5372, -0.4910] | -47.70 | 6.7e-17 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.5, j=0.7 · fixed ΔFPR | 15 | +0.0038 | [+0.0014, +0.0062] | 3.42 | 0.0042 | 0.0026 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.5, j=0.7 · recal ΔTPR | 15 | -0.0462 | [-0.0630, -0.0295] | -5.94 | 3.6e-05 | 0.0004 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.2, j=0 · fixed ΔFPR | 15 | +0.0161 | [+0.0114, +0.0209] | 7.27 | 4.1e-06 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.2, j=0 · recal ΔTPR | 15 | -0.0809 | [-0.1068, -0.0549] | -6.68 | 1.0e-05 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.2, j=0.7 · fixed ΔFPR | 15 | -0.0019 | [-0.0029, -0.0010] | -4.38 | 0.00062 | 0.0013 | clears Holm by both tests (opposite direction) |
+| unsw-nb15 · B.1 xgboost · r=0.2, j=0.7 · recal ΔTPR | 15 | -0.0710 | [-0.0799, -0.0621] | -17.16 | 8.5e-11 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.5, j=0 · fixed ΔFPR | 15 | +0.2105 | [+0.1873, +0.2336] | 19.47 | 1.5e-11 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.5, j=0 · recal ΔTPR | 15 | -0.4890 | [-0.5039, -0.4741] | -70.35 | 3.0e-19 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.5, j=0.7 · fixed ΔFPR | 15 | +0.0013 | [-0.0001, +0.0027] | 2.01 | 0.064 | 0.0647 | does not clear Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.5, j=0.7 · recal ΔTPR | 15 | -0.1869 | [-0.2049, -0.1689] | -22.29 | 2.5e-12 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.2 · a1 (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0205 | [-0.0300, -0.0110] | -4.64 | 0.00038 | 0.0001 | clears α/4 = 0.0125 by both tests |
+| unsw-nb15 · B.2 · a1truth (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0311 | [-0.0401, -0.0222] | -7.47 | 3.0e-06 | <0.0001 | **CI excludes 0** |
+| unsw-nb15 · B.2 · s0j (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0196 | [-0.0301, -0.0090] | -3.98 | 0.0014 | 0.0019 | **CI excludes 0** |
+| unsw-nb15 · B.2 · junk (j=0, r=0.2) · recal ΔTPR | 15 | -0.0037 | [-0.0145, +0.0071] | -0.73 | 0.48 | 0.473 | CI includes 0 |
+
+- **RF:**
+  - **Copy fidelity:** fixed ΔFPR +0.092 / +0.254 over a control of 0.012. Recalibrated TPR falls
+    0.35 / 0.51, from a control of ≈ 0.63.
+  - **At distance:** fixed ΔFPR is small but significant (+0.002 / +0.004). Recalibrated TPR
+    −0.021 / −0.046.
+  - **B.2 does not isolate the label conflict.** `a1truth` (the same jittered benign rows,
+    labelled benign) lowers recalibrated TPR *more* than `a1` does: −0.031 vs −0.021. `s0j`
+    lowers it as much as `a1` (−0.020). Only `junk` is null (−0.004, CI [−0.015, +0.007]). On
+    this dataset the at-distance TPR loss is not a label-conflict effect. Adding the rows at all,
+    in the benign region with either label, does it.
+- **XGBoost:**
+  - **Copy fidelity:** fixed ΔFPR +0.016 / +0.211. The ratio-0.2 effect is much smaller than RF's.
+  - **At distance:** fixed ΔFPR −0.002 (significant, opposite direction) / +0.001 (n.s.).
+    Recalibrated TPR −0.071 / −0.187, larger than RF's.
+- **UNSW-NB15 caveats:** 9 of 24 features (§2); grid sensitivity (§4); a weak baseline detector
+  (TPR ≈ 0.63).
+
+### 5.3 Verdicts, per (dataset, model), against the §29.B bar
+
+§29.B: *"Confirmation bar, fixed now, per (dataset, model) for B.1 and per dataset for B.2:
+identical mechanics to 29.A's bar, applied per dataset instead of per new-model — replicates /
+does not replicate / mixed, evaluated independently for each dataset actually run, and
+independently for RF vs. XGBoost within a dataset."*
+
+§29.A's bar, quoted:
+- *"**Replicates** iff (a) in family A.1, at least the jitter-0, fixed-threshold $\Delta$FPR cells
+  (both ratios) clear the family's Holm threshold, matching CICIDS2017 RF/XGBoost's own "damage
+  needs copy-level fidelity" pattern, **and** (b) in family A.2, the `a1` arm clears the
+  family's Bonferroni threshold ($\alpha/4 = 0.0125$) by **both** tests **and** every null arm's
+  95% CI includes 0 (the exact s28 bar, applied to this model)."*
+- *"**Does not replicate** iff neither (a) nor (b) is met."*
+- *"**Mixed** iff exactly one of (a), (b) is met, or if (a) is met for one ratio but not the
+  other."*
+
+**A gap in the pre-registration, stated rather than resolved silently.** B.2 is RF-only and is
+evaluated "per dataset", but the replicate/mixed verdict combines (a) and (b) per model. XGBoost
+therefore has no B.2 arm of its own. Below, XGBoost's (b) is read as the dataset's B.2 outcome:
+the mechanism family the pre-registration defines for that dataset. If (b) were instead treated as
+undefined for XGBoost, the XGBoost verdicts would read "(a) met; (b) not measured", which is none
+of the three outcomes. Under both readings, (b) is *not met* on either dataset, so no verdict
+changes from mixed to replicates.
+
+- **Reprocessed CICIDS2017, RF — mixed.** (a) is met: both jitter-0 fixed-threshold ΔFPR cells
+  clear Holm (+0.985, +0.989; $p_t$ < 1e-37, $p_{\rm perm}$ < 1e-4). (b) is not met: `a1`
+  clears α/4 by both tests (−0.051, $p_t$ = 1.4e-6, $p_{\rm perm}$ < 1e-4), but the null
+  arms' 95% CIs exclude 0: `a1truth` [−0.023, −0.008], `s0j` [−0.018, −0.009], `junk`
+  [−0.019, −0.011].
+- **Reprocessed CICIDS2017, XGBoost — mixed.** (a) is met: +0.986 and +0.986, both clear Holm.
+  (b) is not met: the dataset's B.2 fails as above.
+- **UNSW-NB15, RF — mixed.** (a) is met: +0.092 and +0.254, both clear Holm ($p_t$ ≤ 3.1e-12).
+  (b) is not met: `a1` clears α/4 (−0.021, $p_t$ = 3.8e-4, $p_{\rm perm}$ = 1e-4), but
+  `a1truth` [−0.040, −0.022] and `s0j` [−0.030, −0.009] exclude 0. Only `junk` includes 0.
+- **UNSW-NB15, XGBoost — mixed.** (a) is met: +0.016 ($p_t$ = 4.1e-6) and +0.211, both clear
+  Holm. (b) is not met: the dataset's B.2 fails as above.
+
+**What replicates and what does not, in one line each:**
+- **Replicates on both datasets:** A1 damage at copy-level fidelity, for both models.
+- **Does not replicate:** the label conflict as the *isolated* mechanism. On reprocessed CICIDS2017
+  the label-conflict arm is the largest effect, but the null arms are not null. On UNSW-NB15 the
+  correctly-labelled arm is at least as damaging.
+
+**Limitations to carry with these verdicts:**
+1. tau = 0 on both datasets (the pre-fixed rule), against 0.1 on CICIDS2017, so at-distance
+   fixed-threshold numbers are not like-for-like with the paper's.
+2. DDoS is absent from cicids-fixed's trusted_eval (§3).
+3. UNSW-NB15 runs on 9 features, and its results are sensitive to the near-duplicate grid (§4).
+4. The XGBoost/B.2 gap above.
+
+None of these was adjusted after seeing results, and no cell was re-run.
+
+## 6. All pre-registered cells
+
+| cell | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | vs. §29 bar |
+|---|---|---|---|---|---|---|---|
+| cicids-fixed · B.1 rf · r=0.2, j=0 · fixed ΔFPR | 15 | +0.9850 | [+0.9837, +0.9862] | 1640.59 | 2.2e-38 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.2, j=0 · recal ΔTPR | 15 | -0.1765 | [-0.2074, -0.1457] | -12.27 | 7.0e-09 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.2, j=0.7 · fixed ΔFPR | 15 | +0.0257 | [+0.0234, +0.0281] | 23.13 | 1.5e-12 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.2, j=0.7 · recal ΔTPR | 15 | -0.0508 | [-0.0645, -0.0372] | -7.98 | 1.4e-06 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.5, j=0 · fixed ΔFPR | 15 | +0.9892 | [+0.9884, +0.9900] | 2565.99 | 4.1e-41 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.5, j=0 · recal ΔTPR | 15 | -0.5587 | [-0.6014, -0.5160] | -28.05 | 1.1e-13 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.5, j=0.7 · fixed ΔFPR | 15 | +0.0388 | [+0.0364, +0.0412] | 34.93 | 5.1e-15 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 rf · r=0.5, j=0.7 · recal ΔTPR | 15 | -0.0418 | [-0.0527, -0.0309] | -8.24 | 9.7e-07 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.2, j=0 · fixed ΔFPR | 15 | +0.9860 | [+0.9848, +0.9872] | 1804.06 | 5.7e-39 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.2, j=0 · recal ΔTPR | 15 | -0.0568 | [-0.0658, -0.0477] | -13.47 | 2.1e-09 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.2, j=0.7 · fixed ΔFPR | 15 | +0.0479 | [+0.0437, +0.0520] | 24.66 | 6.2e-13 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.2, j=0.7 · recal ΔTPR | 15 | +0.0152 | [+0.0075, +0.0228] | 4.27 | 0.00078 | 0.0001 | clears Holm by both tests (opposite direction) |
+| cicids-fixed · B.1 xgboost · r=0.5, j=0 · fixed ΔFPR | 15 | +0.9860 | [+0.9848, +0.9872] | 1803.95 | 5.7e-39 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.5, j=0 · recal ΔTPR | 15 | -0.1081 | [-0.1174, -0.0988] | -25.01 | 5.1e-13 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.5, j=0.7 · fixed ΔFPR | 15 | +0.1227 | [+0.0987, +0.1467] | 10.95 | 3.0e-08 | <0.0001 | clears Holm by both tests |
+| cicids-fixed · B.1 xgboost · r=0.5, j=0.7 · recal ΔTPR | 15 | -0.0315 | [-0.0439, -0.0191] | -5.46 | 8.4e-05 | 0.0003 | clears Holm by both tests |
+| cicids-fixed · B.2 · a1 (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0508 | [-0.0645, -0.0372] | -7.98 | 1.4e-06 | <0.0001 | clears α/4 = 0.0125 by both tests |
+| cicids-fixed · B.2 · a1truth (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0153 | [-0.0228, -0.0077] | -4.32 | 0.0007 | 0.0002 | **CI excludes 0** |
+| cicids-fixed · B.2 · s0j (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0134 | [-0.0175, -0.0093] | -7.03 | 6.0e-06 | 0.0002 | **CI excludes 0** |
+| cicids-fixed · B.2 · junk (j=0, r=0.2) · recal ΔTPR | 15 | -0.0147 | [-0.0185, -0.0108] | -8.15 | 1.1e-06 | <0.0001 | **CI excludes 0** |
+| unsw-nb15 · B.1 rf · r=0.2, j=0 · fixed ΔFPR | 15 | +0.0920 | [+0.0830, +0.1010] | 21.94 | 3.1e-12 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.2, j=0 · recal ΔTPR | 15 | -0.3525 | [-0.3734, -0.3316] | -36.25 | 3.0e-15 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.2, j=0.7 · fixed ΔFPR | 15 | +0.0021 | [+0.0014, +0.0028] | 6.39 | 1.7e-05 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.2, j=0.7 · recal ΔTPR | 15 | -0.0205 | [-0.0300, -0.0110] | -4.64 | 0.00038 | 0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.5, j=0 · fixed ΔFPR | 15 | +0.2543 | [+0.2401, +0.2685] | 38.40 | 1.4e-15 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.5, j=0 · recal ΔTPR | 15 | -0.5141 | [-0.5372, -0.4910] | -47.70 | 6.7e-17 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.5, j=0.7 · fixed ΔFPR | 15 | +0.0038 | [+0.0014, +0.0062] | 3.42 | 0.0042 | 0.0026 | clears Holm by both tests |
+| unsw-nb15 · B.1 rf · r=0.5, j=0.7 · recal ΔTPR | 15 | -0.0462 | [-0.0630, -0.0295] | -5.94 | 3.6e-05 | 0.0004 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.2, j=0 · fixed ΔFPR | 15 | +0.0161 | [+0.0114, +0.0209] | 7.27 | 4.1e-06 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.2, j=0 · recal ΔTPR | 15 | -0.0809 | [-0.1068, -0.0549] | -6.68 | 1.0e-05 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.2, j=0.7 · fixed ΔFPR | 15 | -0.0019 | [-0.0029, -0.0010] | -4.38 | 0.00062 | 0.0013 | clears Holm by both tests (opposite direction) |
+| unsw-nb15 · B.1 xgboost · r=0.2, j=0.7 · recal ΔTPR | 15 | -0.0710 | [-0.0799, -0.0621] | -17.16 | 8.5e-11 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.5, j=0 · fixed ΔFPR | 15 | +0.2105 | [+0.1873, +0.2336] | 19.47 | 1.5e-11 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.5, j=0 · recal ΔTPR | 15 | -0.4890 | [-0.5039, -0.4741] | -70.35 | 3.0e-19 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.5, j=0.7 · fixed ΔFPR | 15 | +0.0013 | [-0.0001, +0.0027] | 2.01 | 0.064 | 0.0647 | does not clear Holm by both tests |
+| unsw-nb15 · B.1 xgboost · r=0.5, j=0.7 · recal ΔTPR | 15 | -0.1869 | [-0.2049, -0.1689] | -22.29 | 2.5e-12 | <0.0001 | clears Holm by both tests |
+| unsw-nb15 · B.2 · a1 (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0205 | [-0.0300, -0.0110] | -4.64 | 0.00038 | 0.0001 | clears α/4 = 0.0125 by both tests |
+| unsw-nb15 · B.2 · a1truth (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0311 | [-0.0401, -0.0222] | -7.47 | 3.0e-06 | <0.0001 | **CI excludes 0** |
+| unsw-nb15 · B.2 · s0j (j=0.7, r=0.2) · recal ΔTPR | 15 | -0.0196 | [-0.0301, -0.0090] | -3.98 | 0.0014 | 0.0019 | **CI excludes 0** |
+| unsw-nb15 · B.2 · junk (j=0, r=0.2) · recal ΔTPR | 15 | -0.0037 | [-0.0145, +0.0071] | -0.73 | 0.48 | 0.473 | CI includes 0 |
+
+**B.1 per (dataset, model) — 4 families.** Bar: *"(a) in family A.1, at least the jitter-0,
+fixed-threshold $\Delta$FPR cells (both ratios) clear the family's Holm threshold"*.
+- **Met in all four families:** cicids-fixed RF, cicids-fixed XGBoost, UNSW-NB15 RF, UNSW-NB15
+  XGBoost. All 8 jitter-0 fixed-threshold ΔFPR cells clear Holm by both tests, in the damage
+  direction.
+- **Off-bar cells:** of the 32 B.1 cells, 3 do not show damage.
+  - cicids-fixed XGBoost, r=0.2, j=0.7, recalibrated ΔTPR: +0.015 (significant, opposite
+    direction).
+  - UNSW-NB15 XGBoost, r=0.2, j=0.7, fixed ΔFPR: −0.002 (significant, opposite direction).
+  - UNSW-NB15 XGBoost, r=0.5, j=0.7, fixed ΔFPR: +0.001 ($p_t$ = 0.064, does not clear).
+
+**B.2 per dataset — 2 families.** Bar: *"(b) in family A.2, the `a1` arm clears the family's
+Bonferroni threshold ($\alpha/4 = 0.0125$) by **both** tests **and** every null arm's 95% CI
+includes 0"*.
+- **Reprocessed CICIDS2017: not met.** `a1` clears, but `a1truth`, `s0j` and `junk` all
+  exclude 0.
+- **UNSW-NB15: not met.** `a1` clears, but `a1truth` and `s0j` exclude 0, and `a1truth`'s
+  effect is larger than `a1`'s.
+
+**Overall: mixed for all four (dataset, model) pairs, with (a) met and (b) not met in every one.**
+The copy-fidelity damage generalizes to both datasets and both models. The claim that the label
+conflict alone is the mechanism does not generalize: it was confirmed on CICIDS2017 (s28), but on
+neither new dataset do the null arms stay null.
