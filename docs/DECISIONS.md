@@ -2582,3 +2582,176 @@ write into it, including to "top up" seeds.
 Smoke-tested locally at 1 seed / 2 rounds for both window sizes before this section was committed
 (`--retention sliding_window --window 5` and `--window 10` both run to completion against
 synthetic data with no errors).
+
+## 30. Phase A results
+
+Three cloud sessions ran §29 items A, B and C (plus an unplanned item C2, below) in parallel, each
+on its own branch, merged into `main` after a regression gate confirmed the merge changes nothing
+about the published pipeline (full detail: the merge commit message; job CSVs, `data/loop/*.npz`
+rebuilds and the full test suite all matched the pre-Phase-A commit exactly). §29 itself is
+unedited — this section reports what the pre-registered bars actually found, including where the
+pre-registration turned out to have a gap. Full tables, per-cell statistics, and every number's
+job-CSV source are in the linked results files; this section is the verdicts and the numbers
+needed to read them, not a restatement of the tables.
+
+### 30.A Models (logreg, MLP)
+
+Full results: `docs/phaseA/models-results.md`. Branch: `claude/practical-meitner-2qsk9a`.
+
+**Bar (§29.A), quoted:** "**Replicates** iff (a) in family A.1, at least the jitter-0,
+fixed-threshold $\Delta$FPR cells (both ratios) clear the family's Holm threshold, matching
+CICIDS2017 RF/XGBoost's own 'damage needs copy-level fidelity' pattern, **and** (b) in family A.2,
+the `a1` arm clears the family's Bonferroni threshold ($\alpha/4 = 0.0125$) by **both** tests
+**and** every null arm's 95% CI includes 0 (the exact s28 bar, applied to this model). **Does not
+replicate** iff neither (a) nor (b) is met. **Mixed** iff exactly one of (a), (b) is met, or if (a)
+is met for one ratio but not the other."
+
+**Logistic regression: did not replicate** (t-test primary; **mixed** under the permutation
+reading — see "Pre-registration problems," below). (a) fails at both ratios under the t-test
+($p_t=0.036$ and $0.17$ against Holm thresholds of $0.025$/$0.05$), though both cells clear Holm
+under the permutation test ($p_{\rm perm}=0.0005$, $0.0023$). (b) fails: `a1` clears $\alpha/4$
+(−0.154 $\Delta$TPR, both tests), but all three null arms *raise* TPR instead of sitting at 0
+(`a1truth` +0.230, `s0j` +0.039, `junk` +0.144) — see the null-arm problem below. Outside the
+bar, logreg's A1 damage is large and significant at every A.1 cell as recalibrated-threshold TPR
+loss (−0.10 to −0.42), just not as fixed-threshold FPR the way RF/XGBoost's is.
+
+**MLP: mixed.** (a) is met at ratio 0.5 only: $\Delta$FPR +0.409 at jitter 0 clears Holm
+($p_t=0.00018$); ratio 0.2's +0.0017 does not ($p_t=0.056$ against a 0.0167 threshold, though it
+clears under the permutation test). (b) fails on both counts: `a1` does not clear $\alpha/4$
+($p_t=0.050$, positive-direction point estimate +0.024), and no null arm's CI includes 0. For MLP,
+A1's damage is fixed-threshold FPR (up to +0.41 at ratio 0.5); recalibration removes it rather
+than exposing it as TPR loss, the opposite of RF/XGBoost and of logreg.
+
+### 30.B Datasets (reprocessed CICIDS2017, UNSW-NB15)
+
+Full results: `docs/phaseA/datasets-results.md`. Branch: `claude/focused-euler-50z4og`. Data:
+`harshitchhabi/IDS-data` @ `94e9d78`.
+
+**Bar (§29.B), quoted:** "Confirmation bar, fixed now, per (dataset, model) for B.1 and per
+dataset for B.2: identical mechanics to 29.A's bar, applied per dataset instead of per new-model —
+replicates / does not replicate / mixed, evaluated independently for each dataset actually run,
+and independently for RF vs. XGBoost within a dataset."
+
+**All four (dataset, model) pairs: mixed.** (a) is met in all four — reprocessed CICIDS2017 RF
+($\Delta$FPR +0.985/+0.989, both ratios, jitter 0), reprocessed CICIDS2017 XGBoost
+(+0.986/+0.986), UNSW-NB15 RF (+0.092/+0.254), UNSW-NB15 XGBoost (+0.016/+0.211) — all clear Holm
+by both tests. (b) is not met in any of the two B.2 families (one per dataset, RF-only — see the
+XGBoost gap below): on reprocessed CICIDS2017, `a1` clears $\alpha/4$ (−0.051 $\Delta$TPR) but all
+three null arms' CIs exclude 0 (`a1truth` −0.015, `s0j` −0.013, `junk` −0.015 — comparable in size
+to `a1` itself). On UNSW-NB15, `a1` clears $\alpha/4$ (−0.021) but `a1truth` (−0.031) is *larger*
+than `a1`, and `s0j` (−0.020) is comparable; only `junk` (−0.004) sits inside its CI.
+
+### 30.C Retention — sliding window vs. accumulate, fixed-ratio budget
+
+Full results: `docs/phaseA/retention-results.md`. Branch: `claude/session-retention-setup-urs8hm`.
+
+**Bar (§29.C), quoted:** "**Replicates** (damage is retention-policy-independent) iff all 6 cells
+clear the family's Holm threshold, same direction as `accumulate`. **Does not replicate** (damage
+needs `accumulate`) iff neither `sliding_window` setting clears Holm at either ratio. **Mixed**
+iff damage survives at one window size (5 or 10) but not the other, or at one ratio but not the
+other."
+
+**Replicated.** All 6 cells (accumulate/w5/w10 × ratio 0.2/0.5) clear Holm by both tests, all
+positive: accumulate +0.528/+0.916, w=5 +0.530/+0.917, w=10 +0.536/+0.919. At the final round the
+three retention settings land within 0.01 $\Delta$FPR of each other at each ratio. **This verdict
+is conditional on the pre-registered `fixed_ratio` budget**, under which retention cannot change
+the final-round poison share by construction (`LoopConfig.budgets()`) — see the budget-mode
+problem below and item C2.
+
+### 30.C2 Retention under a constant attacker budget (not pre-registered in §29; its own pre-reg)
+
+Full results: `docs/phaseA/retention-results.md` (appended section) and the pre-registration,
+`docs/phaseA/retention-c2-prereg.md`. Branch: `claude/session-retention-setup-urs8hm`.
+**Pre-registered at commit `85e9933` (2026-10-06T06:41:22Z), before any C2 run including the
+smoke test** — item C's own result (replicated, under `fixed_ratio`) showed that budget mode
+determined what the family could even test, so this is a second, independently pre-registered
+family answering the question §29.C could not, not a retry of C.
+
+**Family C2.1 (damage, 6 cells, descriptive — no verdict):** every cell positive and clears Holm,
+at both batch sizes (375, 1500 rows/round) and all three retention settings. Smallest effect: w=5
+at 375 rows/round, +0.027 $\Delta$FPR — about 7× the 0.0045 control baseline, still clearly
+significant. **Windowing reduces A1's damage, but never removes it, in any of the 6 cells.**
+
+**Family C2.2 (does windowing reduce damage vs. accumulate, 4 cells; bar quoted:** "'windowing
+reduces damage' for that (w, B) iff its C2.2 contrast has a **negative** mean **and** its
+two-sided paired-$t$ $p$ clears its Holm threshold within C2.2"): **all 4 contrasts negative and
+clear Holm** — w=5 vs. accumulate at 375 rows/round (−0.501), w=10 (−0.371), w=5 at 1500
+rows/round (−0.386), w=10 (−0.121). Windowing reduces damage under a constant attacker budget, in
+every tested configuration.
+
+**Descriptive, not pre-registered:** an attacker who scales its per-round volume to fill the
+window recovers full accumulate-level damage — w=5 at 1,500 rows/round (+0.530) matches accumulate
+at 375 rows/round (+0.528) almost exactly, because both reach the same final honeypot share. What
+windowing buys the defender against *that* attacker is cost (4× the flows under w=5, 2× under
+w=10 for the same damage), not immunity.
+
+**Erratum to the pre-registration, not a design change:** `retention-c2-prereg.md` says each
+invocation runs "45 jobs: 15 control and 15 seeds × 1 A1 cell" — that arithmetic is wrong (15 + 15
+= 30, not 45); the actual, correct total is 180 jobs across 6 invocations. The cells, seeds and
+commands run are exactly as written; only the stated job count was wrong, and the pre-registration
+file itself was not edited (the correction is recorded here and in the results file instead, per
+`common.md` §1's rule against editing a pre-registration after seeing a result).
+
+**Interpretive line:** C2 is why ShareCap, not retention windowing, is this project's recommended
+defense (DECISIONS §25.5, paper §7.3). ShareCap caps the honeypot's *effective share* of the
+training set directly, regardless of attacker volume. A sliding window caps *recency* instead, and
+C2.2's own volume-recovery result shows that an attacker who knows the window size defeats it for
+the cost of more flows, not a different capability. The two defenses are not addressing the same
+quantity.
+
+### Pre-registration problems found
+
+Stated plainly as problems with §29 itself, not with how any session ran it — per `common.md` §1,
+no session edited §29 to work around these, they ran what was written and reported the gap.
+
+1. **§29.A/§29.B's condition (a) does not say which test is primary.** Resolved, for this
+   section, as the paired $t$-test, the project's existing primary-test convention (s27: "the
+   permutation test is reported for transparency rather than as the primary significance claim").
+   Under the permutation reading instead, item A's logreg verdict changes from "did not replicate"
+   to "mixed" (both A.1 jitter-0 cells clear Holm by $p_{\rm perm}$, though (b) still fails either
+   way, so logreg never reaches "replicates" under any reading).
+2. **The null-arm condition ("every null arm's 95% CI includes 0") assumes a saturated detector.**
+   On RF at s28's cell, the null arms leave TPR unchanged because RF is already near its ceiling
+   (TPR ≈ 0.83) and additional correctly-labelled or uninformative data does not move it further.
+   That assumption fails for logreg and the MLP (control TPR ≈ 0.4–0.43, nowhere near saturated —
+   any extra training data moves TPR, mislabelled or not) and, separately, for both new datasets
+   (reprocessed CICIDS2017 and UNSW-NB15), where the null arms move TPR for reasons that have
+   nothing to do with the label-conflict mechanism the condition is meant to isolate.
+3. **§29.B's verdict combines (a) and (b) per model, but B.2 is RF-only — XGBoost's (b) is
+   under-defined.** §29.B's own text evaluates B.2 "per dataset," not per model, so there is no
+   XGBoost mechanism-isolation arm to check. The datasets session resolved this by reading each
+   dataset's single (RF-only) B.2 outcome as the (b) condition for XGBoost too; under the only
+   other coherent reading — (b) undefined for XGBoost — the verdict would be "(a) met, (b) not
+   measured," which is none of §29's three outcomes. Both readings land on the same answer here
+   ((b) is not met on either dataset by either reading), so no verdict in 30.B actually turns on
+   this gap this round, but the pre-registration does not say which reading is correct.
+4. **§29.C used the `fixed_ratio` budget mode, under which retention cannot change the final-round
+   poison share by construction** (`LoopConfig.budgets()`'s own documented behaviour — a sliding
+   window sends a larger per-round batch so the share matches `accumulate` by the time the window
+   fills). §29.C's own hypothesis ("honeypot influence never ages out" vs. "old poison dropped")
+   needs a constant attacker budget to be tested at all; §29.C did not specify one. Item C2 was
+   pre-registered and run, separately, to answer the question §29.C's design could not.
+
+### What the paper can now claim
+
+- **Degeneracy generalizes.** Every family with usable eval volume, benign included, sits well
+  below the guard-(c) leakage threshold on both reprocessed CICIDS2017 and UNSW-NB15, the same
+  pattern §16 found on the original CICIDS2017 release — not an artifact of that release's
+  extraction bugs.
+- **Copy-fidelity fixed-threshold FPR damage generalizes** across both new datasets, RF and
+  XGBoost (8 of 8 jitter-0 cells clear Holm, 30.B), and to the MLP at ratio 0.5 (30.A) — the core
+  A1 finding is not an artifact of CICIDS2017, RF/XGBoost, or tree ensembles specifically.
+- **Damage does not need accumulation.** Under a fixed poison share, retention policy makes no
+  difference (30.C, replicated); under a constant attacker budget, a sliding window reduces damage
+  but never removes it, and an attacker who scales volume to the window recovers full damage
+  (30.C2).
+- **Label-conflict isolation as the sole mechanism holds only for CICIDS2017/RF (s28).** It does
+  not replicate on the new datasets or the new models by the pre-registered bar. Directional
+  support exists on reprocessed CICIDS2017 (the `a1` arm is the largest null-arm effect there,
+  3–4×) and on logreg (only the mislabelled arm lowers TPR; every correctly-labelled or
+  uninformative arm raises it) — but it is contradicted outright on UNSW-NB15, where the
+  correctly-labelled null arm (`a1truth`) damages the detector *more* than the mislabelled `a1`
+  arm does.
+- **Windowing reduces but never removes damage, and is defeated by attacker volume — unlike
+  ShareCap**, which caps the honeypot's effective training-set share directly rather than its
+  recency, and is unaffected by how much an attacker sends (30.C2's interpretive line).

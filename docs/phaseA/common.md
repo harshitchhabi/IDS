@@ -53,12 +53,35 @@ substituting a different dataset or skipping the cell silently.
 `gh repo clone` also works if plain `git clone` is ever blocked by the GitHub App's token scope;
 try that as a fallback, same `--depth 1`.
 
+**Attaching `IDS-data` needs an approval.** The GitHub App has access, but the session's sandbox
+only sees it once you (or whichever ask-mode prompt your runtime shows) approve an `add_repo` /
+attach-repo request for `harshitchhabi/IDS-data` the first time you touch it — expect one
+interactive approval before the clone above succeeds, not a silent failure if it hangs.
+
+**Build the loop dataset cache before running anything else.** `experiments/phase0_loop.py` loads
+`data/loop/<dataset>.npz`, a gitignored derived cache the extraction above does not create. Build
+it once per dataset your item uses, right after extraction:
+
+```
+python -m experiments.phase0_loop_data --source cicids
+python -m experiments.phase0_loop_data --source cicids-fixed   # only if your item uses it
+python -m experiments.phase0_loop_data --source unsw-nb15      # only if your item uses it
+python -m experiments.phase0_loop_data --source synthetic      # only if you need the no-data smoke path
+```
+
+This reads the within-day temporal partition, near-duplicate grid 0.005, and (for `cicids`) the
+DDoS/Hulk withholding arms — unmodified, nothing to configure. Without this step the first smoke
+test fails with `FileNotFoundError` on the `.npz`, not a data problem.
+
 ## 3. VM resources
 
-4 vCPU / 16 GB. Every `experiments/phase0_loop.py` invocation in your session file already has
-`--workers 3` baked in — do not raise it (`--workers 4` has OOM'd on comparably-sized jobs on
-smaller machines in this project before; 3 is the known-safe number here). Set these once per
-shell before any run:
+Expect 4 vCPU / 16 GB, but **the VM has been seen with as little as 1 vCPU** — check `nproc` (or
+equivalent) before assuming either. Every `experiments/phase0_loop.py` invocation in your session
+file already has `--workers 3` baked in — do not raise it regardless of core count (`--workers 4`
+has OOM'd on comparably-sized jobs on smaller machines in this project before; 3 is the known-safe
+number here even on 1 vCPU, where it just means more time-slicing, not more memory pressure). On
+1 vCPU a 45-job sweep has taken 20-23 minutes; budget for that rather than treating a quiet
+`run.log` as stalled. Set these once per shell before any run:
 
 ```
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
@@ -89,7 +112,15 @@ does that correctly.
 
 ## 5. Stay on your branch; stay in your lane
 
-Work only on the branch named in your session file. Commit and push **every hour, or after each
+**Cloud sessions push to their own `claude/<session-name>` branch, not the `phase-a-<item>`
+branch named in the session file.** Each Claude Code cloud session creates its own working branch
+automatically; that is where your commits land, and that is fine — it is what actually happened
+for all three items in practice. The merge step reads from whatever branch the session pushed to,
+not from the literal `phase-a-<item>` name. Don't try to force a push to `phase-a-<item>` itself;
+just commit and push normally and note your actual branch name at the top of your results
+write-up so it's easy to find.
+
+Work only on your own branch. Commit and push **every hour, or after each
 sub-step finishes** (a sub-step = one of the `python -m experiments.phase0_loop` invocations in
 your session file completing) — whichever comes first. Don't batch everything into one commit at
 the end; if your session is interrupted, partial progress on `origin` is what lets it (or you)
