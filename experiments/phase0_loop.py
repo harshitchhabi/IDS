@@ -147,7 +147,7 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dataset", choices=["cicids", "synthetic"], required=True)
+    ap.add_argument("--dataset", choices=["cicids", "cicids-fixed", "unsw-nb15", "synthetic"], required=True)
     ap.add_argument("--scenarios", nargs="+", choices=["control", "s0", "a1", "s0j", "a1truth", "junk"], required=True)
     ap.add_argument("--models", nargs="+", default=["rf", "xgboost"])
     ap.add_argument("--seeds", type=int, default=5)

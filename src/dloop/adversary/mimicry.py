@@ -21,8 +21,9 @@ from dloop.features import schema
 from dloop.features.normalize import _CLIP, Normalizer
 
 
-_COST_FEATURES = ("flow_duration", "fwd_packets", "bwd_packets", "fwd_bytes", "bwd_bytes")
-_COST_IDX = [schema.CANONICAL_FEATURES.index(f) for f in _COST_FEATURES]
+# positions of the cost features; the same for every dataset's feature set
+# (schema.check_feature_subset)
+_COST_IDX = list(range(len(schema.COST_FEATURES)))
 
 
 class JitterAdversary(Adversary):

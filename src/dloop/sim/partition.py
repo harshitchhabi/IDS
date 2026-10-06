@@ -189,6 +189,9 @@ class PartitionedData:
     leakage: LeakageReport
     config: PartitionConfig
     normalizer: Normalizer
+    # the dataset's feature set (default: every canonical feature; a dataset with
+    # no analogue for some of them carries its subset, schema.check_feature_subset)
+    features: tuple[str, ...] = schema.CANONICAL_FEATURES
 
     def __getitem__(self, name: str) -> pd.DataFrame:
         return self.frames[name]
@@ -298,13 +301,14 @@ class PartitionedData:
 # --------------------------------------------------------------------------- #
 # row hashing                                                                 #
 # --------------------------------------------------------------------------- #
-def _row_hashes(df: pd.DataFrame) -> np.ndarray:
+def _row_hashes(df: pd.DataFrame,
+                features: tuple[str, ...] = schema.CANONICAL_FEATURES) -> np.ndarray:
     """Per-row uint64 content hash over features + label (ignores day / timestamp).
     Rolling hash over one column at a time — never materializes a second copy of
     a millions-row feature block."""
     lab = pd.util.hash_array(df[schema.LABEL].to_numpy())   # deterministic across calls
     h = lab * np.uint64(1000003) + np.uint64(11)
-    for feat in schema.CANONICAL_FEATURES:
+    for feat in features:
         # 6 decimal places — matches "the same flow" without float64 fragility
         q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
         h = h * np.uint64(1000003) + q.astype(np.uint64)
@@ -600,9 +604,11 @@ def _nn_leakage_check(
 # public entry point                                                          #
 # --------------------------------------------------------------------------- #
 def build_partitions(
-    raw_by_day: dict[str, pd.DataFrame], *, config: PartitionConfig | None = None
+    raw_by_day: dict[str, pd.DataFrame], *, config: PartitionConfig | None = None,
+    features: tuple[str, ...] = schema.CANONICAL_FEATURES,
 ) -> PartitionedData:
     cfg = config or PartitionConfig()
+    features = schema.check_feature_subset(features)
     report = LeakageReport(strategy=cfg.strategy)
 
     if cfg.strategy == "day_split":
@@ -613,12 +619,12 @@ def build_partitions(
     cleaned: dict[str, pd.DataFrame] = {}
     reports: dict[str, CleaningReport] = {}
     for day, raw in raw_by_day.items():
-        df, rep = clean_flows(raw, source=day)
+        df, rep = clean_flows(raw, source=day, features=features)
         cleaned[day] = df
         reports[day] = rep
 
     all_clean = pd.concat(cleaned.values(), ignore_index=True)
-    normalizer = fit_normalizer(all_clean)
+    normalizer = fit_normalizer(all_clean, features)
 
     # Guard (a) runs GLOBALLY, before the split: a near-duplicate pair that spans
     # two capture days is still a memorization leak if the two rows land in
@@ -646,7 +652,8 @@ def build_partitions(
                  seed_withheld=list(cfg.seed_withheld_families))
 
     result = PartitionedData(
-        frames=out, cleaning=reports, leakage=report, config=cfg, normalizer=normalizer
+        frames=out, cleaning=reports, leakage=report, config=cfg, normalizer=normalizer,
+        features=features,
     )
     assert_disjoint(result)
     _nn_leakage_check(out, normalizer, cfg, report)
@@ -659,7 +666,7 @@ def assert_disjoint(data: PartitionedData) -> dict[str, int]:
     (within_day_temporal). Raises ``AssertionError`` on any hard overlap."""
     frames = data.frames
 
-    hashes = {p: set(_row_hashes(df)) for p, df in frames.items()}
+    hashes = {p: set(_row_hashes(df, data.features)) for p, df in frames.items()}
     overlaps: dict[str, int] = {}
     for a in PARTITIONS:
         for b in PARTITIONS:

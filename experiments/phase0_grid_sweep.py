@@ -36,14 +36,14 @@ FAST = {"rf": {"n_estimators": 40}, "xgboost": {"n_estimators": 40}}
 SEED = 20250903
 
 
-def _xy(df: pd.DataFrame):
-    return (df[list(schema.CANONICAL_FEATURES)].to_numpy("float64"),
+def _xy(df: pd.DataFrame, features: tuple[str, ...]):
+    return (df[list(features)].to_numpy("float64"),
             df[schema.BINARY_LABEL].to_numpy("int64"))
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--source", choices=["auto", "cicids", "synthetic"], default="synthetic")
+    ap.add_argument("--source", choices=["auto", "cicids", "cicids-fixed", "unsw-nb15", "synthetic"], default="synthetic")
     ap.add_argument("--strategy", choices=["within_day_temporal", "day_split"],
                     default="within_day_temporal")
     ap.add_argument("--out", type=Path, default=Path("results/phase0"))
@@ -73,9 +73,9 @@ def main(argv: list[str] | None = None) -> int:
         nd_benign = by_class.pop(schema.BENIGN_LABEL, 0)
         nd_attack = sum(by_class.values())
 
-        Xtr, ytr = _xy(data["seed_train"])
+        Xtr, ytr = _xy(data["seed_train"], data.features)
         te = data["trusted_eval"]
-        Xte, yte = _xy(te)
+        Xte, yte = _xy(te, data.features)
         row = {
             "grid": grid,
             "partition_valid": True,

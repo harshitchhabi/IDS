@@ -21,7 +21,10 @@ import pandas as pd
 
 from dloop.features import schema
 
-_IDX = {name: i for i, name in enumerate(schema.CANONICAL_FEATURES)}
+# Cost columns by position. Every dataset's feature set starts with
+# schema.COST_FEATURES in canonical order (schema.check_feature_subset), so these
+# positions hold for feature subsets too.
+_IDX = {name: i for i, name in enumerate(schema.COST_FEATURES)}
 _PACKET_COLS = (_IDX["fwd_packets"], _IDX["bwd_packets"])
 _BYTE_COLS = (_IDX["fwd_bytes"], _IDX["bwd_bytes"])
 _DURATION_COL = _IDX["flow_duration"]
@@ -71,17 +74,27 @@ def cost_metadata(x: np.ndarray) -> CostMetadata:
     )
 
 
+def _feature_names(n: int) -> list[str]:
+    """Column names for an n-wide feature block: the canonical names for the full
+    set; positional names for a dataset's subset, whose names the adversary does
+    not carry (nothing reads batch features by name -- see :func:`features_of`)."""
+    if n == len(schema.CANONICAL_FEATURES):
+        return list(schema.CANONICAL_FEATURES)
+    return [f"x{j}" for j in range(n)]
+
+
 def batch_frame(x: np.ndarray, true_label: int, *, resampled: bool) -> pd.DataFrame:
-    """Canonical feature columns plus ``true_label``. ``attrs["resampled"]`` is
-    set when the pool was exhausted and rows were reused."""
-    df = pd.DataFrame(x, columns=list(schema.CANONICAL_FEATURES))
+    """Feature columns plus ``true_label``. ``attrs["resampled"]`` is set when
+    the pool was exhausted and rows were reused."""
+    x = np.asarray(x)
+    df = pd.DataFrame(x, columns=_feature_names(x.shape[1]))
     df[TRUE_LABEL] = np.full(len(df), true_label, dtype="int64")
     df.attrs["resampled"] = bool(resampled)
     return df
 
 
 def features_of(batch: pd.DataFrame) -> np.ndarray:
-    return batch[list(schema.CANONICAL_FEATURES)].to_numpy("float64")
+    return batch.drop(columns=[TRUE_LABEL], errors="ignore").to_numpy("float64")
 
 
 class Adversary(abc.ABC):

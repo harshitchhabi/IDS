@@ -13,19 +13,30 @@ from typing import Literal
 
 import pandas as pd
 
+from dloop.features import schema
 from dloop.logging_config import get_logger
-from dloop.sim import cicids, synthetic
+from dloop.sim import cicids, cicids_fixed, synthetic, unsw_nb15
 from dloop.sim.partition import PartitionConfig, PartitionedData, build_partitions
 
 log = get_logger("sim.dataset")
 
-Source = Literal["auto", "cicids", "synthetic"]
+Source = Literal["auto", "cicids", "cicids-fixed", "unsw-nb15", "synthetic"]
+
+# Feature set per source: every canonical feature unless the dataset has no
+# analogue for some of them (then they are left out, not fabricated).
+SOURCE_FEATURES: dict[str, tuple[str, ...]] = {"unsw-nb15": schema.UNSW_FEATURES}
+
+
+def features_for(source: str) -> tuple[str, ...]:
+    return SOURCE_FEATURES.get(source, schema.CANONICAL_FEATURES)
 
 
 def load_raw_by_day(
     source: Source = "auto",
     *,
     cicids_root: Path | str = cicids.DEFAULT_ROOT,
+    cicids_fixed_root: Path | str = cicids_fixed.DEFAULT_ROOT,
+    unsw_root: Path | str = unsw_nb15.DEFAULT_ROOT,
     synthetic_config: synthetic.SyntheticConfig | None = None,
 ) -> tuple[dict[str, pd.DataFrame], str]:
     """Return ``(raw_by_day, resolved_source)``."""
@@ -35,6 +46,10 @@ def load_raw_by_day(
 
     if source == "cicids":
         return cicids.load_raw_by_day(cicids_root), "cicids"
+    if source == "cicids-fixed":
+        return cicids_fixed.load_raw_by_day(cicids_fixed_root), "cicids-fixed"
+    if source == "unsw-nb15":
+        return unsw_nb15.load_raw_by_day(unsw_root), "unsw-nb15"
     if source == "synthetic":
         return synthetic.generate_raw_by_day(synthetic_config), "synthetic"
     raise ValueError(f"unknown source: {source!r}")
@@ -44,13 +59,16 @@ def load_partitions(
     source: Source = "auto",
     *,
     cicids_root: Path | str = cicids.DEFAULT_ROOT,
+    cicids_fixed_root: Path | str = cicids_fixed.DEFAULT_ROOT,
+    unsw_root: Path | str = unsw_nb15.DEFAULT_ROOT,
     synthetic_config: synthetic.SyntheticConfig | None = None,
     partition_config: PartitionConfig | None = None,
 ) -> PartitionedData:
     raw, resolved = load_raw_by_day(
-        source, cicids_root=cicids_root, synthetic_config=synthetic_config
+        source, cicids_root=cicids_root, cicids_fixed_root=cicids_fixed_root,
+        unsw_root=unsw_root, synthetic_config=synthetic_config,
     )
-    data = build_partitions(raw, config=partition_config)
+    data = build_partitions(raw, config=partition_config, features=features_for(resolved))
     log.info("partitions built", source=resolved, strategy=data.config.strategy,
              rows={p: len(df) for p, df in data.frames.items()},
              leak_warning=data.leakage.leak_warning)

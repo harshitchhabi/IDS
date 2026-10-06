@@ -1,0 +1,18 @@
+{"detail": "1 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-06T06:18:00.811531Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "3402e02b032b5ce9", "event": "loop jobs", "level": "info", "timestamp": "2026-10-06T06:18:00.814025Z"}
+{"done": 10, "of": 10, "minutes": 1.1, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:19:06.511050Z"}
+{"detail": "1 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-06T06:19:12.428521Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "afc366ba541c9223", "event": "loop jobs", "level": "info", "timestamp": "2026-10-06T06:19:12.430996Z"}
+{"done": 10, "of": 10, "minutes": 1.7, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:20:53.351293Z"}
+{"detail": "1 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-06T06:20:59.139479Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "d56d077df7a1c6c9", "event": "loop jobs", "level": "info", "timestamp": "2026-10-06T06:20:59.141555Z"}
+{"done": 10, "of": 10, "minutes": 1.7, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:22:41.738099Z"}
+{"detail": "1 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-06T06:22:46.992630Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "fd4af0c9a9485647", "event": "loop jobs", "level": "info", "timestamp": "2026-10-06T06:22:46.994969Z"}
+{"done": 10, "of": 10, "minutes": 1.6, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:24:25.334972Z"}
+{"detail": "1 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-06T06:24:29.997967Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "c1bb37bee6ce49cf", "event": "loop jobs", "level": "info", "timestamp": "2026-10-06T06:24:30.000084Z"}
+{"done": 10, "of": 10, "minutes": 1.6, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:26:03.560664Z"}
+{"detail": "1 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-06T06:26:08.302554Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "b55475377f72e8a0", "event": "loop jobs", "level": "info", "timestamp": "2026-10-06T06:26:08.304504Z"}
+{"done": 10, "of": 10, "minutes": 1.6, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:27:46.841458Z"}

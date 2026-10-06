@@ -69,6 +69,10 @@ class Normalizer:
         """Fit on *data* only. Models call this per round on the training split
         exactly — never on anything that includes validation or eval rows."""
         x = np.log1p(_as_feature_array(data, features))
+        if not isinstance(data, pd.DataFrame) and x.shape[1] != len(features):
+            # a raw array from a dataset's feature subset (models fit on ndarrays):
+            # keep the stored names honest about the width rather than mislabelled
+            features = tuple(f"x{j}" for j in range(x.shape[1]))
         # column-wise stats, one column at a time, so the O(n) sort inside
         # percentile/median never needs a full second copy of a millions-row array
         n_feat = x.shape[1]

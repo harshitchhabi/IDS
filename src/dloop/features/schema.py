@@ -115,12 +115,94 @@ def normalize_label(raw: object) -> str:
     return BENIGN_LABEL if s.upper() == BENIGN_LABEL else s
 
 
-def validate_frame(df: pd.DataFrame) -> None:
-    """Raise ``ValueError`` unless *df* carries exactly the canonical schema."""
-    expected = set(CANONICAL_FEATURES) | set(META_COLUMNS)
+def validate_frame(df: pd.DataFrame, features: tuple[str, ...] = CANONICAL_FEATURES) -> None:
+    """Raise ``ValueError`` unless *df* carries exactly the given feature set
+    (default: the full canonical schema) plus the metadata columns."""
+    expected = set(features) | set(META_COLUMNS)
     missing = expected - set(df.columns)
     extra = set(df.columns) - expected
     if missing or extra:
         raise ValueError(f"schema mismatch: missing={sorted(missing)} extra={sorted(extra)}")
-    if list(df.columns[: len(CANONICAL_FEATURES)]) != list(CANONICAL_FEATURES):
+    if list(df.columns[: len(features)]) != list(features):
         raise ValueError("feature columns must lead the frame in canonical order")
+
+
+# --------------------------------------------------------------------------- #
+# per-dataset feature subsets                                                 #
+# --------------------------------------------------------------------------- #
+# A dataset with no real analogue for some canonical feature runs on a subset
+# rather than a fabricated constant column (a zero column would still change
+# the per-feature-RMS distance metric by diluting it). Every subset keeps
+# canonical order and begins with COST_FEATURES, so the attacker-cost columns
+# (dloop.adversary.base) sit at the same positions for every dataset.
+COST_FEATURES: tuple[str, ...] = ("flow_duration", "fwd_packets", "bwd_packets",
+                                  "fwd_bytes", "bwd_bytes")
+assert CANONICAL_FEATURES[: len(COST_FEATURES)] == COST_FEATURES
+
+
+def check_feature_subset(features: tuple[str, ...]) -> tuple[str, ...]:
+    """Validate a per-dataset feature subset: canonical names, canonical order,
+    and starting with :data:`COST_FEATURES`. Returns it unchanged."""
+    features = tuple(features)
+    unknown = [f for f in features if f not in CANONICAL_FEATURES]
+    if unknown:
+        raise ValueError(f"not canonical features: {unknown}")
+    if list(features) != [f for f in CANONICAL_FEATURES if f in features]:
+        raise ValueError("feature subset must keep canonical order")
+    if features[: len(COST_FEATURES)] != COST_FEATURES:
+        raise ValueError(f"feature subset must start with {COST_FEATURES}")
+    return features
+
+
+# Reprocessed CICIDS2017 (Engelen et al., CNS2022 "improved" release; Phase A item B).
+# Same CICFlowMeter-derived feature set as the original release, but four count
+# columns were renamed (singular "Packet", lower-case "packets"). Every canonical
+# feature has a direct analogue, so none is dropped. Mapping fixed in
+# docs/phaseA/datasets-results.md before any number was computed from it.
+CICIDS_FIXED_COLUMN_MAP: dict[str, str] = {
+    **{raw: canon for raw, canon in CICIDS_COLUMN_MAP.items()
+       if raw not in ("Total Fwd Packets", "Total Backward Packets",
+                      "Total Length of Fwd Packets", "Total Length of Bwd Packets")},
+    "Total Fwd Packet": "fwd_packets",
+    "Total Bwd packets": "bwd_packets",
+    "Total Length of Fwd Packet": "fwd_bytes",
+    "Total Length of Bwd Packet": "bwd_bytes",
+}
+CICIDS_FIXED_LABEL_COLUMN = "Label"
+CICIDS_FIXED_TIMESTAMP_COLUMN = "Timestamp"
+# Engelen et al. tag flows that belong to an attack but carried no malicious
+# payload (e.g. a failed login, a TCP handshake with no request) as "<family> - Attempted".
+CICIDS_FIXED_ATTEMPTED_SUFFIX = " - Attempted"
+
+
+# UNSW-NB15 (Argus/Bro features; Phase A item B). Its part CSVs are headerless;
+# column names come from the official dictionary NUSW-NB15_features.csv, matched
+# ignoring case and whitespace (the dictionary spells e.g. "Sload", "ct_src_ ltm").
+# Only canonical features with a direct per-flow analogue are mapped; the other 15
+# are left out of this dataset's run rather than fabricated or derived (see
+# docs/phaseA/datasets-results.md §2). Keys are normalized dictionary names;
+# values are (canonical feature, multiplier into CICFlowMeter units).
+UNSW_COLUMN_MAP: dict[str, tuple[str, float]] = {
+    "dur": ("flow_duration", 1e6),        # seconds -> microseconds
+    "spkts": ("fwd_packets", 1.0),
+    "dpkts": ("bwd_packets", 1.0),
+    "sbytes": ("fwd_bytes", 1.0),
+    "dbytes": ("bwd_bytes", 1.0),
+    "smeansz": ("fwd_pkt_len_mean", 1.0),
+    "dmeansz": ("bwd_pkt_len_mean", 1.0),
+    "sintpkt": ("fwd_iat_mean", 1e3),     # milliseconds -> microseconds
+    "dintpkt": ("bwd_iat_mean", 1e3),     # milliseconds -> microseconds
+}
+UNSW_FEATURES: tuple[str, ...] = tuple(
+    f for f in CANONICAL_FEATURES if f in {c for c, _ in UNSW_COLUMN_MAP.values()}
+)
+UNSW_LABEL_COLUMN = "label"          # 0 normal / 1 attack
+UNSW_CATEGORY_COLUMN = "attack_cat"  # attack family; blank for normal rows
+UNSW_TIMESTAMP_COLUMN = "stime"      # record start time, unix seconds
+# The release spells one family two ways.
+UNSW_CATEGORY_ALIASES: dict[str, str] = {"Backdoors": "Backdoor"}
+
+
+def normalize_column_name(name: object) -> str:
+    """Dictionary/header name -> match key: lower-case, all whitespace removed."""
+    return "".join(str(name).split()).lower()

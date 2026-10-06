@@ -1,0 +1,17 @@
+{"detail": "1 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-06T06:28:22.755282Z"}
+{"total": 150, "todo": 150, "workers": 3, "config_hash": "5dd6774e8c3468e5", "event": "loop jobs", "level": "info", "timestamp": "2026-10-06T06:28:22.762211Z"}
+{"done": 10, "of": 150, "minutes": 3.2, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:31:32.174356Z"}
+{"done": 20, "of": 150, "minutes": 5.7, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:34:05.889761Z"}
+{"done": 30, "of": 150, "minutes": 8.4, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:36:45.216022Z"}
+{"done": 40, "of": 150, "minutes": 9.5, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:37:50.609934Z"}
+{"done": 50, "of": 150, "minutes": 10.5, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:38:54.421251Z"}
+{"done": 60, "of": 150, "minutes": 11.6, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:39:59.273964Z"}
+{"done": 70, "of": 150, "minutes": 12.7, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:41:06.536408Z"}
+{"done": 80, "of": 150, "minutes": 13.6, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:41:59.621903Z"}
+{"done": 90, "of": 150, "minutes": 14.2, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:42:32.713814Z"}
+{"done": 100, "of": 150, "minutes": 17.8, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:46:10.192567Z"}
+{"done": 110, "of": 150, "minutes": 21.0, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:49:23.180246Z"}
+{"done": 120, "of": 150, "minutes": 24.2, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:52:36.978069Z"}
+{"done": 130, "of": 150, "minutes": 25.5, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:53:51.167633Z"}
+{"done": 140, "of": 150, "minutes": 26.7, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:55:07.434445Z"}
+{"done": 150, "of": 150, "minutes": 28.1, "event": "progress", "level": "info", "timestamp": "2026-10-06T06:56:29.418824Z"}
