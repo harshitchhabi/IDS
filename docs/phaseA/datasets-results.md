@@ -178,3 +178,72 @@ control).
   `assert_disjoint`, with the insensitivity check.
 - **`val-nn-tau`:** the s19 rule, the smallest tau with control fixed-FPR ≤ 0.015 for both RF and
   XGBoost (rounds 11-20, 5 seeds).
+
+## 3. Derived parameters and B.0 — reprocessed CICIDS2017
+
+**Loader output.** 2,087,997 rows across 5 days after dropping 11,979 `- Attempted` rows (largest: Botnet 4,067, DoS Slowhttptest 3,368, DoS Slowloris 1,847) (per label,
+in `results/phaseA/datasets/cicids-fixed/*.log`, event `loaded reprocessed CICIDS2017 file`).
+
+**Near-duplicate grid (guard a)** (`results/phaseA/datasets/cicids-fixed/grid_sweep.csv`):
+
+| grid | valid | benign removed | attack removed | seed_train | RF eval FPR / TPR / AUROC | XGB eval FPR / TPR / AUROC |
+|---|---|---:|---:|---:|---|---|
+| off | **no** (8,314 seed_train/trusted_eval row-content overlaps) | | | | | |
+| **0.005** | yes | 445,701 | 22,752 | 405,451 | 0.014 / 0.9997 / 0.9994 | 0.015 / 0.989 / 0.998 |
+| 0.01 | yes | 562,422 | 46,925 | 360,738 | 0.016 / 0.9994 / 0.9995 | 0.015 / 0.989 / 0.998 |
+| 0.02 | yes | 682,351 | 84,649 | 311,095 | 0.016 / 0.999 / 0.9994 | 0.015 / 0.989 / 0.997 |
+| 0.05 | yes | 863,132 | 153,248 | 229,980 | 0.013 / 0.994 / 0.9986 | 0.015 / 0.982 / 0.996 |
+
+Rule → **grid = 0.005**, the same value as CICIDS2017's. The insensitivity check passes: RF and
+XGBoost AUROC stay within 0.996–0.9995 and TPR within 0.98–1.00 across a 2× range of rows removed.
+
+**`val-nn-tau`** (`tau_sweep/control_floor_by_tau.csv`; control arm, 5 seeds, rounds 11-20,
+fixed threshold):
+
+| tau | benign validation rows dropped | RF FPR (sd) | XGB FPR (sd) | RF TPR | XGB TPR |
+|---:|---:|---:|---:|---:|---:|
+| **0** | 0% | **0.0120** (0.0011) | **0.0145** (0.0028) | 0.986 | 0.956 |
+| 0.005 | 9% | 0.0117 (0.0010) | 0.0145 (0.0028) | 0.986 | 0.956 |
+| 0.01 | 25% | 0.0096 (0.0009) | 0.0131 (0.0022) | 0.984 | 0.955 |
+| 0.02 | 46% | 0.0080 (0.0004) | 0.0113 (0.0028) | 0.981 | 0.954 |
+| 0.05 | 73% | 0.0050 (0.0004) | 0.0070 (0.0018) | 0.972 | 0.948 |
+| 0.1 | 90% | 0.0017 (0.0011) | 0.0034 (0.0006) | 0.879 | 0.937 |
+
+Rule → **tau = 0**: the calibration filter is off for this dataset. The undefended control's
+fixed-threshold FPR is already within 1.5× of the 0.01 target at tau = 0 (RF 0.012, XGBoost
+0.0145, the latter close to the 0.015 bar). On CICIDS2017 it was 0.046 / 0.039 (s19). The
+round-0 threshold transfers here without the near-twin filter. B.1/B.2 run with
+`--val-nn-tau 0`. The fraction of benign validation rows with a training twin is about as high as
+on CICIDS2017: 90% within 0.1 RMS here, 94% there. That twin density just does not move the
+calibrated threshold as much on this release.
+
+**Limitation found before B.1 ran: DDoS is not in trusted_eval.** With real timestamps, Friday's
+DDoS is one continuous burst: 95,144 rows over 19.6 min, largest inter-flow gap 1.76 s, under the
+2 s burst gap. Whole-burst assignment (guard b) sends all of it to its first segment
+(`seed_train`). So:
+- DDoS has no `honeypot_pool` or `trusted_eval` rows.
+- The `seed_only` arm, which CICIDS2017's withholding config fills with DDoS, is empty.
+
+The burst gap was fixed in advance (§1) and is not retuned after seeing this. B.1/B.2 use overall
+FPR (40,000 benign eval rows) and overall TPR (7,650 attack eval rows across the remaining
+families: DoS Hulk 4,000 honeypot_only, plus 3,650 seen_both). Those are defined without DDoS, but
+the attack mix differs from CICIDS2017's eval set, which includes DDoS.
+
+**B.0 — degeneracy** (`nn_degeneracy_by_grid.csv`; grid 0.005, every family exposed to
+`honeypot_pool`, median per-feature-RMS NN distance `trusted_eval` → `honeypot_pool`, normalized
+space; guard-(c) "clean" bar 0.25; families with ≥ 500 eval rows):
+
+| family | n_eval | median NN RMS | min NN RMS | CICIDS2017 median @0.005 (§16) |
+|---|---:|---:|---:|---:|
+| BENIGN | 201,147 | 0.0107 | 7.0e-05 | 0.0065 |
+| DoS Hulk | 23,422 | 0.0077 | 2.7e-05 | 0.0055 |
+| DoS GoldenEye | 1,101 | 0.0251 | 0.0016 | 0.0130 |
+| Infiltration - Portscan | 904 | 0.0031 | 3.4e-08 | — (not in the original labels) |
+| FTP-Patator | 556 | 0.0027 | 2.3e-04 | 0.0030 |
+| *all attack* | 27,072 | 0.0079 | 3.4e-08 | — |
+
+Benign 5th percentile: 0.0009. Every family with ≥ 500 eval rows sits at least 10× below the 0.25
+bar, as on CICIDS2017. Reprocessing the flows (Engelen et al.) does not remove the degeneracy
+§16 measured: it is a property of the CICFlowMeter feature representation of this traffic, not of
+the original release's extraction bugs. Benign and DoS GoldenEye are about 1.5–2× farther than in
+the original. `leak_warning` is set, as on CICIDS2017.
