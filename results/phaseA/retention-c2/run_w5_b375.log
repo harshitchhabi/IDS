@@ -1,0 +1,2 @@
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-06T06:53:59.167904Z"}
+{"total": 30, "todo": 30, "workers": 3, "config_hash": "eb9c75360b580f8b", "event": "loop jobs", "level": "info", "timestamp": "2026-10-06T06:53:59.172327Z"}
