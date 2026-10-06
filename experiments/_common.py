@@ -46,6 +46,7 @@ _CICIDS_WITHHOLD = dict(
 _CICIDS_FIXED_WITHHOLD = dict(
     pool_withheld_families=("DDoS",),
     seed_withheld_families=("DoS Hulk",),
+    near_dup_grid=0.005,   # results/phaseA/datasets/cicids-fixed/grid_sweep.csv
 )
 
 

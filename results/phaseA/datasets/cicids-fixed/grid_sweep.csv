@@ -1,0 +1,6 @@
+grid,partition_valid,note,near_dup_benign,near_dup_attack,seed_train,honeypot_pool,trusted_eval,leak_warning,nn_attack_p5,nn_benign_p5,rf_eval_fpr,rf_eval_tpr,rf_auroc,xgboost_eval_fpr,xgboost_eval_tpr,xgboost_auroc
+0.0,False,row-content overlap between seed_train and trusted_eval: 8314,,,,,,,,,,,,,,
+0.005,True,,445701.0,22752.0,405451.0,419258.0,228219.0,True,0.001,0.0009,0.0142,0.9997,0.9994,0.0151,0.9891,0.9984
+0.01,True,,562422.0,46925.0,360738.0,373645.0,205444.0,True,0.0015,0.0017,0.0163,0.9994,0.9995,0.0154,0.9893,0.9978
+0.02,True,,682351.0,84649.0,311095.0,322784.0,178592.0,True,0.0026,0.003,0.0156,0.999,0.9994,0.0145,0.9886,0.997
+0.05,True,,863132.0,153248.0,229980.0,238143.0,137200.0,True,0.0055,0.0064,0.0129,0.9942,0.9986,0.0154,0.9824,0.9961
