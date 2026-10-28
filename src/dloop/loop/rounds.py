@@ -65,6 +65,30 @@ class _RoundBatch:
     w: np.ndarray
 
 
+def _source_partition_scores(data: LoopData, cfg: ModelConfig, seed_x: np.ndarray,
+                             x_train: np.ndarray, y_train: np.ndarray, w_train: np.ndarray,
+                             is_hp: np.ndarray, alpha: float):
+    """Source-partition vote (:class:`dloop.defense.generic.SourcePartition`). Returns
+    the seed-only model (its threshold and calibration rule are what both threshold
+    modes use) and the combined eval scores. With no honeypot rows yet (round 0) the
+    combined score is the seed model's own, so every arm still starts from the same
+    detector."""
+    n_seed = len(seed_x)
+    seed_model = make_model(cfg).fit(seed_x, data.seed_y, sample_weight=w_train[:n_seed])
+    s_seed = seed_model.score_samples(data.eval_x)
+    if not is_hp.any() or alpha == 0.0:
+        return seed_model, s_seed
+    ben = data.seed_y == 0
+    x_h = np.concatenate([seed_x[ben], x_train[is_hp]])
+    y_h = np.concatenate([data.seed_y[ben], y_train[is_hp]])
+    w_h = np.concatenate([w_train[:n_seed][ben], w_train[is_hp]])
+    if len(np.unique(y_h)) < 2:
+        raise ValueError("source-partition honeypot model has one class: no honeypot row is "
+                         "labelled malicious (ground_truth label policy on benign rows?)")
+    hp_model = make_model(cfg).fit(x_h, y_h, sample_weight=w_h)
+    return seed_model, (1.0 - alpha) * s_seed + alpha * hp_model.score_samples(data.eval_x)
+
+
 def run_arm(
     data: LoopData,
     adversary: Adversary | None,
@@ -140,8 +164,13 @@ def run_arm(
         cfg = ModelConfig(kind=model_kind, seed=seed * 1000 + k, target_fpr=config.target_fpr,
                           hyperparams=hp, val_min_nn_distance=config.val_min_nn_distance)
         t0 = time.perf_counter()
-        model = make_model(cfg).fit(x_train, y_train, sample_weight=w_train)
-        scores = model.score_samples(data.eval_x)
+        alpha = getattr(defense, "ensemble_alpha", None)
+        if alpha is None:
+            model = make_model(cfg).fit(x_train, y_train, sample_weight=w_train)
+            scores = model.score_samples(data.eval_x)
+        else:
+            model, scores = _source_partition_scores(data, cfg, seed_x, x_train, y_train, w_train,
+                                                     is_hp, float(alpha))
         fit_s = time.perf_counter() - t0
 
         if k == 0:

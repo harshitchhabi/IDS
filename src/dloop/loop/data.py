@@ -8,11 +8,16 @@ ever read.
 
 The subsample is fixed by ``LoopDataConfig.seed`` (not by the per-run seeds), so
 between-seed variance in results reflects model/adversary randomness, not a
-changing test set.
+changing test set. :meth:`LoopData.redraw_eval` is the opt-in alternative
+(Phase R item R1, DECISIONS.md §31): the eval subsample is redrawn per run seed,
+at the same sizes and caps, so between-seed variance also covers which trusted
+rows happen to be scored. The fixed subsample stays the default so every
+published result reproduces unchanged.
 """
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -56,6 +61,11 @@ class LoopData:
     # has no analogue for some features (files saved before this field existed
     # load as the full set, which is what they hold)
     features: tuple[str, ...] = schema.CANONICAL_FEATURES
+    # ALL trusted_eval attack rows in reportable arms (for redraw_eval); None in
+    # files built before this field existed
+    eval_attack_full_x: np.ndarray | None = None
+    eval_attack_full_family: np.ndarray | None = None
+    eval_attack_full_arm: np.ndarray | None = None
 
     @property
     def normalizer(self) -> Normalizer:
@@ -64,15 +74,50 @@ class LoopData:
     def arm_counts(self) -> dict[str, int]:
         return {a: int(np.sum(self.eval_arm == a)) for a in ARMS}
 
+    def redraw_eval(self, run_seed: int, cfg: "LoopDataConfig | None" = None) -> "LoopData":
+        """A copy whose eval subsample is redrawn for ``run_seed``: the same benign
+        size and per-family attack cap as the default subsample, drawn from all of
+        trusted_eval with ``default_rng([cfg.seed, run_seed])``. Training and pool
+        arrays are shared, not copied; nothing outside trusted_eval is touched."""
+        if self.eval_attack_full_x is None:
+            raise ValueError("this loop .npz predates per-seed eval redraw; rebuild it with "
+                             "python -m experiments.phase0_loop_data --source <dataset>")
+        cfg = cfg or LoopDataConfig()
+        rng = np.random.default_rng([cfg.seed, int(run_seed)])
+        n_b = len(self.eval_benign_full_x)
+        ib = np.sort(rng.choice(n_b, min(cfg.eval_benign_rows, n_b), replace=False))
+        xs, fams, arms = [self.eval_benign_full_x[ib]], [np.full(len(ib), schema.BENIGN_LABEL)], [
+            np.full(len(ib), "benign")]
+        for fam in sorted(set(self.eval_attack_full_family.tolist())):
+            idx = np.flatnonzero(self.eval_attack_full_family == fam)
+            take = idx[np.sort(rng.choice(len(idx), min(cfg.eval_attack_cap_per_family, len(idx)),
+                                          replace=False))]
+            xs.append(self.eval_attack_full_x[take])
+            fams.append(self.eval_attack_full_family[take])
+            arms.append(self.eval_attack_full_arm[take])
+        n_atk = sum(len(a) for a in xs[1:])
+        return dataclasses.replace(
+            self,
+            eval_x=np.concatenate(xs).astype("float32"),
+            eval_y=np.concatenate([np.zeros(len(ib), dtype="int64"), np.ones(n_atk, dtype="int64")]),
+            eval_family=np.concatenate(fams).astype("U40"),
+            eval_arm=np.concatenate(arms).astype("U16"),
+        )
+
     def save(self, path: str | Path) -> None:
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
+        extra = {}
+        if self.eval_attack_full_x is not None:
+            extra = dict(eval_attack_full_x=self.eval_attack_full_x,
+                         eval_attack_full_family=self.eval_attack_full_family,
+                         eval_attack_full_arm=self.eval_attack_full_arm)
         np.savez_compressed(p, name=np.array(self.name), seed_x=self.seed_x, seed_y=self.seed_y,
                             pool_benign_x=self.pool_benign_x, pool_attack_x=self.pool_attack_x,
                             eval_x=self.eval_x, eval_y=self.eval_y, eval_family=self.eval_family,
                             eval_arm=self.eval_arm, eval_benign_full_x=self.eval_benign_full_x,
                             norm_center=self.norm_center, norm_scale=self.norm_scale,
-                            features=np.array(self.features))
+                            features=np.array(self.features), **extra)
 
     @classmethod
     def load(cls, path: str | Path) -> "LoopData":
@@ -105,6 +150,7 @@ def from_partitions(data: PartitionedData, name: str, cfg: LoopDataConfig | None
     sub_b = te_b.iloc[np.sort(rng.choice(len(te_b), min(cfg.eval_benign_rows, len(te_b)), replace=False))]
 
     parts, arms = [], []
+    full_parts, full_arms = [], []
     for fam, g in te_a.groupby(schema.LABEL, sort=True):
         arm = data.eval_family_arm(str(fam))
         if arm not in ARMS:           # novel: n=0 and no prospect of filling it
@@ -112,7 +158,10 @@ def from_partitions(data: PartitionedData, name: str, cfg: LoopDataConfig | None
         k = min(cfg.eval_attack_cap_per_family, len(g))
         parts.append(g.iloc[np.sort(rng.choice(len(g), k, replace=False))])
         arms.extend([arm] * k)
+        full_parts.append(g)          # no rng draw: the default subsample is unchanged
+        full_arms.extend([arm] * len(g))
     sub_a = pd.concat(parts)
+    full_a = pd.concat(full_parts)
 
     eval_df = pd.concat([sub_b, sub_a])
     eval_arm = np.array(["benign"] * len(sub_b) + arms, dtype="U16")
@@ -127,6 +176,9 @@ def from_partitions(data: PartitionedData, name: str, cfg: LoopDataConfig | None
         eval_benign_full_x=_x(te_b, feats),
         norm_center=np.asarray(data.normalizer.center), norm_scale=np.asarray(data.normalizer.scale),
         features=feats,
+        eval_attack_full_x=_x(full_a, feats),
+        eval_attack_full_family=full_a[schema.LABEL].to_numpy().astype("U40"),
+        eval_attack_full_arm=np.array(full_arms, dtype="U16"),
     )
     log.info("loop data built", name=name, config=asdict(cfg), seed_rows=len(ld.seed_x),
              pool_benign=len(ld.pool_benign_x), pool_attack=len(ld.pool_attack_x),

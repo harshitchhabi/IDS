@@ -2755,3 +2755,265 @@ no session edited §29 to work around these, they ran what was written and repor
 - **Windowing reduces but never removes damage, and is defeated by attacker volume — unlike
   ShareCap**, which caps the honeypot's effective training-set share directly rather than its
   recency, and is unaffected by how much an attacker sends (30.C2's interpretive line).
+
+## 31. Phase R pre-registration: revision experiments after the IJERESM rejection (written before any run)
+
+The third explicit exception to the s26.10 freeze (after s28 and s29). The paper was rejected
+by IJERESM; Phase R targets three weaknesses the paper itself already names as limitations
+(Section 8 and Appendix "Additional limitations"): (1) the main grid is 5 seeds, and XGBoost's
+FPR response was characterised from 5 seeds as bimodal; (2) ShareCap's safe cap is measured
+on one dataset and one model at a time, and no adaptive attacker against it was tested; (3)
+the three datasets run so far use three different feature sets (24 CICFlowMeter features on
+both CICIDS2017 releases, 9 on UNSW-NB15), so a cross-dataset difference cannot be separated
+from a feature-set difference. Three items, R1-R3 below, each run in its own cloud session on
+its own branch (`docs/phaseR/`). **Written and committed before any Phase R run, including
+smoke tests of the statistics. The only runs before this commit are the 1-seed / 2-round smoke
+tests of each command (§31.5).**
+
+**What does not change regardless of outcome.** `results/phase0/` and `results/phaseA/` are the
+published evidence and are not written to; every Phase R run writes under
+`results/phaseR/<item>/`. Every new code path is opt-in (per-seed eval redraw, the
+source-partition defense, the crowd-out scenario, the NetFlow v2 sources); with no new flag the
+loop is bit-identical to before. The one change to a shared artifact, the loop `.npz`, adds
+three arrays (all trusted_eval attack rows) without consuming a random draw: rebuilding
+`data/loop/cicids.npz` with this commit's code gives the same bytes for all 12 pre-existing
+arrays (checked array by array before committing). This section is not edited after this
+commit. A cell that turns out to be mis-specified is reported as such in
+`docs/phaseR/<item>-results.md`, not fixed here. Every verdict is reported as measured; no cell
+is re-run with different settings to change its verdict.
+
+**Common statistical machinery (all items).** Outcome = arm metric minus same-seed control
+metric, final round (20), unless stated otherwise. **Paired $t$-test is primary** (§30,
+pre-registration problem 1, resolved here up front rather than after the fact); paired
+sign-flip permutation test alongside (exact for $n\le12$, 10,000 Monte Carlo resamples above),
+from `experiments/phase0_stats_recompute.py`'s machinery, not reimplemented. Holm-Bonferroni
+within each named family at family-wise $\alpha=0.05$; a cell "clears Holm" only in the
+direction the family's hypothesis names (a cell clearing in the opposite direction is reported
+as such and never counted toward a bar). Seeds are 1..n (15 unless stated). Models use
+`FAST_HYPERPARAMS`. `val-nn-tau`: 0.1 on CICIDS2017 (s19), 0 on reprocessed CICIDS2017 and
+UNSW-NB15 (Phase A's own measured values, §30.B), and §31.3's rule on the NetFlow v2 datasets.
+Verdict vocabulary: **holds / does not hold / mixed**, defined per bar below; "not evaluable"
+only where a bar says so.
+
+### 31.1 R1 Power
+
+**R1.a The 36-cell grid at 15 seeds, eval subsample redrawn per seed.**
+*Hypothesis:* the s26.1 conclusion (three of 36 cells survive Holm, all at jitter 0: RF at ratio
+0.2 and 0.5, XGBoost at ratio 0.5) is a property of the attack, not of 5 seeds and one fixed
+draw of 40,000 benign / 4,000-per-family attack eval rows.
+*Cells:* exactly s26.1's family: model $\in$ {RF, XGBoost} $\times$ ratio $\in$ {0.2, 0.5}
+$\times$ jitter $\in$ {0, 0.002, 0.005, 0.01, 0.03, 0.1, 0.3, 0.7, 1.5} = 36 cells; outcome
+$\Delta$TPR under the recalibrated threshold; CICIDS2017, tau 0.1.
+*Seeds:* 1-15, with `--eval-redraw`: each seed scores on its own eval subsample (same sizes and
+caps as the default, drawn from all of trusted_eval with `default_rng([20250903, seed])`). The
+arm and its control at a given seed share that draw, so every delta stays paired on the same
+eval rows.
+*Test / family:* one family of 36, Holm; paired $t$ primary, permutation alongside.
+*Bar (fixed now):* "the s26.1 survivors hold" iff all three s26.1 survivors clear Holm at
+$n=15$ in the damaging (negative) direction; "does not hold" iff none of the three does;
+"mixed" otherwise. Reported in full regardless: every cell's Holm status at $n=15$ next to its
+$n=5$ status, with cells that newly clear and cells that no longer clear listed by name. Any RF
+cell at jitter $\ge0.3$ that clears is reported as consistent with s26.8, not as a new finding.
+*Confound named now:* R1.a changes the seed count and the eval draw at once, by design (the
+point is a test that does not rest on one draw). Seeds 1-5 under the fixed draw exist in the
+published `results/phase0/loop/cicids_recal/`; the per-cell mean $|\Delta$TPR$|$ difference
+between seeds 1-5 fixed-draw and seeds 1-5 redrawn is reported as a descriptive eval-draw
+sensitivity, not tested.
+
+**R1.b XGBoost bimodality at 30 seeds.**
+*Hypothesis:* XGBoost's fixed-threshold FPR response to A1 (ratio 0.5, jitter 0) is bimodal
+across seeds (s25.6: three of five seeds climb to 0.69-0.91 by round 10, two stay at
+0.006-0.007), not a continuum that 5 seeds happened to split.
+*Cell:* XGBoost, ratio 0.5, jitter 0, fixed threshold, CICIDS2017, tau 0.1, **default (fixed)
+eval subsample**, seeds 1-30, control alongside.
+*Statistic, fixed now:* per-seed absolute FPR at **round 10** (the round s25.6 reads). **High
+mode: FPR$_{r10} > 0.3$. Low mode: FPR$_{r10} < 0.05$. Intermediate: otherwise.** Reported: the
+count and share of seeds in each mode, with an exact (Clopper-Pearson) 95% CI on the high-mode
+share, and every seed's rounds-2-to-20 trajectory (the s25.6 table, 30 rows).
+*Bar (fixed now):* "bimodality holds" iff at least 3 of 30 seeds are in the high mode, at least
+3 in the low mode, and at most 3 are intermediate; "does not hold" iff at most 2 seeds are in
+the high mode or at most 2 in the low mode; "mixed" otherwise (both modes populated but more
+than 3 seeds in between).
+*Reproduction check:* seeds 1-5 must reproduce s25.6's per-seed values exactly (same code path,
+same fixed eval subsample). A mismatch is a determinism bug, reported before anything else, and
+R1.b's verdict is not read until it is explained.
+
+**R1.c RF recalibrated TPR in the mid range, 15 seeds.**
+*Hypothesis:* the jitter 0.01-0.10 range (realized 0.014-0.10), which s26.8 left at 5 seeds and
+which s26.10 lists as an open question, carries RF TPR damage like the far range does.
+*Cells:* RF, recalibrated $\Delta$TPR, jitter $\in$ {0.01, 0.03, 0.10} $\times$ ratio $\in$
+{0.2, 0.5} = 6 cells; CICIDS2017, tau 0.1; **default (fixed) eval subsample**, i.e. exactly
+s26.6's protocol, so the two 6-cell families are comparable; seeds 1-15.
+*Test / family:* one family of 6, Holm; paired $t$ primary, permutation alongside.
+*Bar (fixed now, mirrors s26.6):* "mid-range damage holds" iff at least two adjacent jitters
+clear Holm in the negative direction at both ratios; "does not hold" iff no cell clears Holm
+in the negative direction; "mixed" otherwise. Seeds 1-5 must reproduce the published
+`cicids_recal` values for these cells (same reproduction rule as R1.b).
+
+### 31.2 R2 ShareCap generality
+
+**Pairs.** (a) reprocessed CICIDS2017 and UNSW-NB15, each with RF and XGBoost (4 pairs); (b)
+CICIDS2017 with logistic regression and the MLP (2 pairs); (c) CICIDS2017 with RF and XGBoost
+(2 pairs) — added beyond the brief, because §25 measured ShareCap there at 5 seeds only and
+R2.3's source-partition baseline needs a 15-seed reference on the same pair. 8 pairs in all,
+each evaluated on its own.
+
+**R2.1 ShareCap vs. no defense and the no-skill baseline, per pair.**
+*Arms:* control; A1 at ratios {0.2, 0.5, 0.9}, jitter 0; S0 at ratio 0.2. Each A1 and S0 arm
+under every defense in {none, ShareCap $c\in$ {0.02, 0.05, 0.10, 0.20}, uniform $w=0.05$}. 15
+seeds, default eval subsample. (The control has no honeypot rows, so no defense can act on it;
+one control per pair serves every defense.) Ratio 0.9 needs more pool rows than UNSW-NB15's
+benign pool holds; the adversary then reuses rows and flags `batch_resampled`, as in s24's ratio
+0.9 runs. This is allowed and reported, not avoided.
+*Recovery*, as s24 defines it: $R = 1 - \overline{\Delta\mathrm{FPR}}_{\rm def} /
+\overline{\Delta\mathrm{FPR}}_{\rm none}$, A1, ratio 0.5, jitter 0, fixed threshold, final round,
+means over the 15 seeds.
+*Retention (S0 gain kept):* $U = \overline{g}_{\rm def} / \overline{g}_{\rm none}$, where $g$ =
+S0 TPR minus same-seed control TPR, fixed threshold, final round, on the `honeypot_only` arm
+(DoS Hulk) where it has $\ge500$ eval rows (CICIDS2017, reprocessed CICIDS2017), and on all
+attack rows where it does not (UNSW-NB15 has no withheld family, §30.B). Fixed now, before
+seeing whether UNSW-NB15's overall TPR has room to move.
+*Test / family, per pair:* 15 cells, ratio $\in$ {0.2, 0.5, 0.9} $\times$ defense $\in$ {4
+caps, uniform}, outcome = defended minus undefended FPR at the same seed (fixed threshold, final
+round), direction "defense lowers FPR"; Holm within the 15. Reported in full; the bar below
+uses $R$ and $U$.
+*Bar per pair (fixed now):* **ShareCap $c=0.05$ holds** iff $R_{0.05}\ge0.90$ **and**
+$U_{0.05}\ge U_{\rm uniform\,0.05}$; **does not hold** iff $R_{0.05}<0.90$ and
+$U_{0.05}<U_{\rm uniform\,0.05}$; **mixed** iff exactly one condition is met.
+**Not evaluable** (no damage to recover) iff the undefended A1 $\Delta$FPR at ratio 0.5 is not
+positive with paired-$t$ $p<0.05$. In that case recovery of the recalibrated $\Delta$TPR is
+reported descriptively instead (expected for logistic regression, whose damage is TPR loss,
+§30.A). If $\overline{g}_{\rm none}$ is not positive with paired-$t$ $p<0.05$, $U$ is undefined:
+the retention condition is "not evaluable", and the verdict is "mixed (retention not
+evaluable)" when recovery passes. Seed-bootstrap 95% CIs for $R_{0.05}$ and for
+$U_{0.05}-U_{\rm uniform\,0.05}$ are reported descriptively. The other caps and ratios are
+reported as a cap curve per pair, with no bar. The question they answer is §25.5's: where does
+damage start for this model and dataset?
+
+**R2.2 New code, each with a unit test (in this commit).** (i) **Source-partition baseline**
+(`dloop.defense.generic.SourcePartition`, `--defense srcpart --sp-alpha`): one model on
+seed_train alone, one on the honeypot rows plus seed_train's benign rows, scored by the
+fixed-weight vote $(1-\alpha)\,s_{\rm seed} + \alpha\,s_{\rm honeypot}$, $\alpha=0.5$ fixed now.
+The honeypot model needs seed_train's benign rows because the auto-label policy makes honeypot
+data single-class by construction. A model trained on honeypot rows alone cannot be fit, so
+"one model on honeypot data" is implemented as the smallest change that makes it trainable;
+this is a methodological choice, named here, not a detail. Both threshold modes use the seed
+model's rule; at round 0 the vote is the seed model alone, so every arm still starts from the
+same detector. (ii) **Crowd-out attacker** (`dloop.adversary.crowd.CrowdOutAdversary`,
+`--scenarios s0crowd --crowd-factor m --crowd-jitter 0.7`): each round, S0's genuine attack
+batch plus $m\times$ as many benign-like filler rows (A1's generator at jitter 0.7, off copy
+fidelity), all stamped malicious. Under ShareCap, every filler row takes capped share away from
+the genuine attack rows.
+
+**R2.3 Source-partition vs. ShareCap (descriptive).** Pairs (c) only (CICIDS2017, RF and
+XGBoost), the R2.1 arms under `srcpart` $\alpha=0.5$, 15 seeds. $R$ and $U$ as in R2.1.
+Reported: whether srcpart dominates ShareCap $c=0.05$ ($R_{\rm sp}\ge R_{0.05}$ and
+$U_{\rm sp}\ge U_{0.05}$ by mean), whether ShareCap dominates srcpart, or neither. No verdict
+beyond that statement, and no tuning of $\alpha$.
+
+**R2.4 Crowd-out against ShareCap.** CICIDS2017, RF and XGBoost, tau 0.1, S0 at ratio 0.2
+plus filler factor $m\in$ {1, 4, 9} (the genuine rows are 50%, 20%, 10% of the honeypot), under
+defense $\in$ {none, ShareCap $c=0.05$}, 15 seeds. Loss $\ell(m,d) = g(\mathrm{S0}, d) -
+g(\mathrm{s0crowd}_m, d)$, paired by seed, with $g$ the `honeypot_only` TPR gain from R2.1. The
+S0 arms are R2.1's pair (c) runs, written to the same directory and not rerun.
+*Family per model:* 6 cells ($m\times d$), direction "loss $>0$", Holm.
+*Bar per model (fixed now):* **crowd-out defeats ShareCap** (holds) iff under $c=0.05$ the
+$m=9$ loss clears Holm and $\ell(9, c{=}0.05)\ge0.5\,g(\mathrm{S0}, c{=}0.05)$; **does not
+hold** iff no $m$ clears Holm under $c=0.05$; **mixed** otherwise.
+*Confound named now:* the filler is benign rows at jitter 0.7, stamped malicious. That is A1
+at a distance, which on RF damages recalibrated TPR by itself (s26.8). Without a cap there is
+no dilution (genuine rows keep weight 1), so $\ell(m,\text{none})$ measures the filler's own
+label-conflict effect. The dilution-attributable part, $\ell(m, c{=}0.05) - \ell(m,
+\text{none})$, is reported descriptively next to the bar. Fixed-threshold FPR is reported for
+every crowd arm.
+
+### 31.3 R3 Common-feature datasets: UQ NetFlow v2
+
+**Datasets.** NF-UNSW-NB15-v2, NF-CSE-CIC-IDS2018-v2, NF-ToN-IoT-v2 (Sarhan, Layeghy, Portmann
+2022; one 43-field NetFlow v2 schema shared by all three). NF-BoT-IoT-v2 is excluded: 99.6% of
+its rows are attacks, so its benign class cannot fill a 30/20/30/20 benign split at any useful
+size.
+
+**Data handling, fixed now.** Each full CSV is subsampled once by
+`experiments/phaseR_netflow_subsample.py` before anything reads it. Every attack family keeps
+all its rows up to 200,000; benign keeps 1,000,000 rows. Rows within a class are a uniform draw
+without replacement (`default_rng(20261028)`, one draw per class in sorted class order),
+written in original file order. The tool writes the source file's sha256 and per-class counts
+before and after to `<stem>.sampling.json`, which goes into IDS-data with the CSV. Where a
+zipped subsample would exceed 95 MB, the benign cap (only) is lowered in steps of 100,000 until
+it fits, and the cap used is recorded. The attack cap does not move.
+
+**Column mapping, committed in this commit before any file was opened**
+(`dloop.features.schema.NETFLOW_V2_COLUMN_MAP`, one mapping for all three). Rule: keep every
+field that is a non-negative magnitude; drop endpoint identifiers (IPV4_SRC_ADDR,
+IPV4_DST_ADDR, L4_SRC_PORT, L4_DST_PORT) and categorical codes or bitmasks (PROTOCOL, L7_PROTO,
+TCP_FLAGS, CLIENT_TCP_FLAGS, SERVER_TCP_FLAGS, ICMP_TYPE, ICMP_IPV4_TYPE, DNS_QUERY_ID,
+DNS_QUERY_TYPE, FTP_COMMAND_RET_CODE), whose numeric distance means nothing under the
+per-feature-RMS metric. That leaves 29 features. Five have a direct CICFlowMeter analogue and
+map onto the cost features (FLOW_DURATION_MILLISECONDS $\to$ flow_duration, $\times10^3$ to
+microseconds; IN_PKTS / OUT_PKTS $\to$ fwd/bwd packets; IN_BYTES / OUT_BYTES $\to$ fwd/bwd
+bytes; IN = source to destination = forward). The other 24 are carried as NetFlow-native
+**extension features** (`schema.NETFLOW_V2_EXTENSION_FEATURES`, named `nf_<field>`), the first
+time this project runs on non-CICFlowMeter feature names. They pass through the same
+normalizer and distance metric, and attacker cost still reads the 5 cost features. Labels:
+`Label` (0/1) and `Attack` (family; "Benign" maps to BENIGN); a row whose two labels disagree is
+dropped and counted. If a downloaded file lacks a mapped column, the loader stops. The session
+reports the mismatch and does not edit the mapping to fit.
+
+**Partition.** NetFlow v2 has no timestamp, so the within-day temporal split runs on file order
+(as for CICIDS2017's MachineLearningCVE, s14 erratum), with every row in one capture block. No
+family withholding (as for UNSW-NB15), so there is no `honeypot_only` arm and R3 does not
+measure S0 retention. Near-duplicate grid by the rule every other dataset used: the gentlest
+grid in `phase0_grid_sweep.py`'s sweep that passes `assert_disjoint`, recorded with its sweep.
+
+**Calibration rule, one for all three, fixed now:** `val-nn-tau` = the smallest tau in {0,
+0.005, 0.01, 0.02, 0.05, 0.1, 0.2} at which the control's fixed-threshold FPR, averaged over
+rounds 11-20 and 5 seeds, is $\le0.015$ for both RF and XGBoost (`experiments/phaseA_tau_floor.py`
+unmodified, Phase A's rule). If no tau qualifies, tau = 0.2 and the write-up says so.
+
+**Families, per dataset (15 seeds, default eval subsample):**
+- **R3.0 degeneracy (descriptive, no test):** median NN RMS distance, trusted_eval to
+  honeypot_pool, every family with $\ge500$ eval rows plus benign, grids {0.005, 0.01, 0.02,
+  0.05} (`phase0_degeneracy.py`).
+- **R3.1 damage grid, per (dataset, model), RF and XGBoost:** ratio {0.2, 0.5} $\times$ jitter
+  {0, 0.7} $\times$ {fixed $\Delta$FPR, recalibrated $\Delta$TPR} = 8 cells, Holm within the 8.
+  *Bar:* "copy-fidelity damage holds" iff both jitter-0 fixed-$\Delta$FPR cells clear Holm
+  (positive); "does not hold" iff neither does; "mixed" iff one does.
+- **R3.2 mechanism isolation, per dataset:** RF, recalibrated, ratio 0.2, jitter 0.7, arms a1,
+  a1truth, s0j, junk vs. control, Bonferroni of 4. *Primary bar:* s28's, unchanged for
+  comparability ("holds" iff a1 clears $\alpha/4$ by both tests and every null arm's 95% CI
+  includes 0; "does not hold" iff a1 fails $\alpha/4$; "mixed" otherwise). *Secondary contrast,
+  new and fixed now* in answer to §30's problem 2 (the null-arm condition assumes a saturated
+  detector): a1 minus a1truth at the same seed. These are the same rows and differ only in the
+  stamped label. "The label conflict does damage beyond the rows themselves" iff that contrast
+  is negative with paired-$t$ $p<0.05$. Reported next to the primary bar, never in place of it.
+- **R3.3 ShareCap $c=0.05$, per (dataset, model):** A1 ratios {0.2, 0.5}, jitter 0, under
+  ShareCap $c=0.05$. $R$ at ratio 0.5 as in R2.1. *Bar:* "holds" iff $R\ge0.90$; "does not
+  hold" otherwise; "not evaluable" iff R3.1's ratio-0.5 jitter-0 $\Delta$FPR does not clear Holm.
+  Ratio 0.2 is reported descriptively.
+
+**Cross-dataset reading.** The three datasets share one feature set, so differences between
+them in R3.0-R3.3 are dataset differences, not feature-set differences. That is the point of
+R3. A summary table, one row per dataset with every verdict, closes the results write-up.
+
+### 31.4 Data availability for R3 at the time of writing
+
+None of the three files could be fetched by script from this laptop. The official links
+(`staff.itee.uq.edu.au/marius/NIDS_datasets/`) lead to UQ Research Data Manager pages
+(`rdm.uq.edu.au/files/<uuid>`). These are a browser app with an access-request route, and the
+DOI landing pages (UQ eSpace, `doi.org/10.48610/ffbb0c1`, `/e9636b7`, `/38a2d07`) refuse
+scripted requests (HTTP 403). The download is a manual step for the author. R3 does not start
+until `harshitchhabi/IDS-data` has `netflow-v2/` with all three subsamples; if only some
+arrive, R3 runs on those that did, and the write-up names the missing ones in one sentence.
+
+### 31.5 Smoke tests before this commit
+
+Every command in `docs/phaseR/session-r1.md`, `session-r2.md` and `session-r3.md` was run at
+`--seeds 1 --rounds 2` into a scratch directory, which was then deleted, except where §31.4
+makes that impossible. The R3 commands need data that does not exist yet. For R3, both stages of
+`experiments/run_phaseR_r3.sh` were run end to end at 1 seed / 2 rounds against a *synthetic*
+CSV with the NetFlow v2 header, placed where the real file will go and deleted afterwards. That
+tests the command chain (loader, cache, grid sweep, degeneracy, tau sweep, all stage-2 arms),
+not the real data: the first real-data run of stage 1 is the R3 session's own smoke step. The
+loader, partition, loop and subsampler are also unit-tested on synthetic NetFlow-v2-shaped
+data (`tests/test_phaseR.py`). The session files say exactly what was smoke-tested.

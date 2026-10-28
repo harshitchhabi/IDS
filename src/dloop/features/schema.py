@@ -46,6 +46,21 @@ CANONICAL_FEATURES: tuple[str, ...] = (
     "pkt_size_avg",
 )
 
+# Extension features: NetFlow v2 magnitudes with no CICFlowMeter analogue (Phase R
+# item R3, DECISIONS.md §31). A dataset's feature set is its canonical features (in
+# canonical order, cost features first) followed by any of these, in this order.
+# Names are the raw NetFlow v2 field, lower-cased, prefixed ``nf_``.
+NETFLOW_V2_EXTENSION_FEATURES: tuple[str, ...] = tuple("nf_" + c.lower() for c in (
+    "DURATION_IN", "DURATION_OUT", "MIN_TTL", "MAX_TTL", "LONGEST_FLOW_PKT", "SHORTEST_FLOW_PKT",
+    "MIN_IP_PKT_LEN", "MAX_IP_PKT_LEN", "SRC_TO_DST_SECOND_BYTES", "DST_TO_SRC_SECOND_BYTES",
+    "RETRANSMITTED_IN_BYTES", "RETRANSMITTED_IN_PKTS", "RETRANSMITTED_OUT_BYTES",
+    "RETRANSMITTED_OUT_PKTS", "SRC_TO_DST_AVG_THROUGHPUT", "DST_TO_SRC_AVG_THROUGHPUT",
+    "NUM_PKTS_UP_TO_128_BYTES", "NUM_PKTS_128_TO_256_BYTES", "NUM_PKTS_256_TO_512_BYTES",
+    "NUM_PKTS_512_TO_1024_BYTES", "NUM_PKTS_1024_TO_1514_BYTES", "TCP_WIN_MAX_IN",
+    "TCP_WIN_MAX_OUT", "DNS_TTL_ANSWER",
+))
+EXTENSION_FEATURES: tuple[str, ...] = NETFLOW_V2_EXTENSION_FEATURES
+
 # The two columns CICIDS2017 is documented to fill with NaN / +-Inf: they are
 # byte/packet counts divided by a flow duration that can be zero.
 RATE_FEATURES: frozenset[str] = frozenset({"flow_bytes_per_s", "flow_pkts_per_s"})
@@ -53,7 +68,8 @@ RATE_FEATURES: frozenset[str] = frozenset({"flow_bytes_per_s", "flow_pkts_per_s"
 # Every canonical feature is a physically non-negative quantity (a duration, a
 # count, a length, an inter-arrival time, a ratio). A negative value is a known
 # CICIDS2017 artifact (e.g. negative "Flow Duration") and marks a corrupt row.
-NONNEGATIVE_FEATURES: frozenset[str] = frozenset(CANONICAL_FEATURES)
+# The extension features are magnitudes too (counts, lengths, TTLs, window sizes).
+NONNEGATIVE_FEATURES: frozenset[str] = frozenset(CANONICAL_FEATURES) | frozenset(EXTENSION_FEATURES)
 
 LABEL = "label"          # canonical fine-grained label, e.g. "BENIGN", "PortScan"
 BINARY_LABEL = "is_attack"  # canonical 0/1 target
@@ -141,14 +157,16 @@ assert CANONICAL_FEATURES[: len(COST_FEATURES)] == COST_FEATURES
 
 
 def check_feature_subset(features: tuple[str, ...]) -> tuple[str, ...]:
-    """Validate a per-dataset feature subset: canonical names, canonical order,
-    and starting with :data:`COST_FEATURES`. Returns it unchanged."""
+    """Validate a per-dataset feature set: canonical names in canonical order,
+    starting with :data:`COST_FEATURES`, optionally followed by extension
+    features in :data:`EXTENSION_FEATURES` order. Returns it unchanged."""
     features = tuple(features)
-    unknown = [f for f in features if f not in CANONICAL_FEATURES]
+    known = CANONICAL_FEATURES + EXTENSION_FEATURES
+    unknown = [f for f in features if f not in known]
     if unknown:
-        raise ValueError(f"not canonical features: {unknown}")
-    if list(features) != [f for f in CANONICAL_FEATURES if f in features]:
-        raise ValueError("feature subset must keep canonical order")
+        raise ValueError(f"not canonical or extension features: {unknown}")
+    if list(features) != [f for f in known if f in features]:
+        raise ValueError("feature subset must keep canonical order (extension features last)")
     if features[: len(COST_FEATURES)] != COST_FEATURES:
         raise ValueError(f"feature subset must start with {COST_FEATURES}")
     return features
@@ -201,6 +219,34 @@ UNSW_CATEGORY_COLUMN = "attack_cat"  # attack family; blank for normal rows
 UNSW_TIMESTAMP_COLUMN = "stime"      # record start time, unix seconds
 # The release spells one family two ways.
 UNSW_CATEGORY_ALIASES: dict[str, str] = {"Backdoors": "Backdoor"}
+
+
+# UQ NetFlow v2 datasets (Sarhan, Layeghy, Portmann 2022; Phase R item R3,
+# DECISIONS.md §31). One mapping for all three. Rule, fixed before any file was
+# opened: keep every field that is a non-negative magnitude; drop endpoint
+# identifiers (IPV4_SRC_ADDR, IPV4_DST_ADDR, L4_SRC_PORT, L4_DST_PORT) and
+# categorical codes / bitmasks (PROTOCOL, L7_PROTO, TCP_FLAGS, CLIENT_TCP_FLAGS,
+# SERVER_TCP_FLAGS, ICMP_TYPE, ICMP_IPV4_TYPE, DNS_QUERY_ID, DNS_QUERY_TYPE,
+# FTP_COMMAND_RET_CODE), whose numeric distance is meaningless under the
+# per-feature-RMS metric. The five fields with a direct CICFlowMeter analogue map
+# onto COST_FEATURES (IN = src->dst = forward); the rest are extension features.
+# Values: (feature, multiplier into CICFlowMeter units).
+NETFLOW_V2_COLUMN_MAP: dict[str, tuple[str, float]] = {
+    "FLOW_DURATION_MILLISECONDS": ("flow_duration", 1e3),   # ms -> microseconds
+    "IN_PKTS": ("fwd_packets", 1.0),
+    "OUT_PKTS": ("bwd_packets", 1.0),
+    "IN_BYTES": ("fwd_bytes", 1.0),
+    "OUT_BYTES": ("bwd_bytes", 1.0),
+    **{f[3:].upper(): (f, 1.0) for f in NETFLOW_V2_EXTENSION_FEATURES},
+}
+NETFLOW_V2_FEATURES: tuple[str, ...] = COST_FEATURES + NETFLOW_V2_EXTENSION_FEATURES
+NETFLOW_V2_DROPPED: tuple[str, ...] = (
+    "IPV4_SRC_ADDR", "L4_SRC_PORT", "IPV4_DST_ADDR", "L4_DST_PORT", "PROTOCOL", "L7_PROTO",
+    "TCP_FLAGS", "CLIENT_TCP_FLAGS", "SERVER_TCP_FLAGS", "ICMP_TYPE", "ICMP_IPV4_TYPE",
+    "DNS_QUERY_ID", "DNS_QUERY_TYPE", "FTP_COMMAND_RET_CODE",
+)
+NETFLOW_V2_LABEL_COLUMN = "Label"     # 0 benign / 1 attack
+NETFLOW_V2_ATTACK_COLUMN = "Attack"   # family; "Benign" for benign rows
 
 
 def normalize_column_name(name: object) -> str:

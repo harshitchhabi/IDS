@@ -56,6 +56,19 @@ _UNSW_PARTITION = dict(
 )
 
 
+# UQ NetFlow v2 (Phase R item R3, DECISIONS.md §31): no family withholding, as for
+# UNSW-NB15. Each grid starts at 0.005; the R3 session runs phase0_grid_sweep.py
+# first and, if 0.005 fails assert_disjoint for a dataset, sets that dataset's
+# entry to the gentlest grid that passes (the rule every other dataset used),
+# recording the sweep in results/phaseR/r3/<dataset>/.
+NETFLOW_GRID: dict[str, float] = {
+    "nf-unsw-nb15-v2": 0.005,
+    "nf-cse-cic-ids2018-v2": 0.005,
+    "nf-ton-iot-v2": 0.005,
+}
+NETFLOW_SOURCES = tuple(NETFLOW_GRID)
+
+
 def partition_config(source: str, strategy: str = "within_day_temporal", **overrides) -> PartitionConfig:
     kw: dict = {"strategy": strategy}
     if strategy == "within_day_temporal":
@@ -67,5 +80,7 @@ def partition_config(source: str, strategy: str = "within_day_temporal", **overr
             kw.update(_CICIDS_FIXED_WITHHOLD)
         elif source == "unsw-nb15":
             kw.update(_UNSW_PARTITION)
+        elif source in NETFLOW_SOURCES:
+            kw.update(near_dup_grid=NETFLOW_GRID[source])
     kw.update({k: v for k, v in overrides.items() if v is not None})
     return PartitionConfig(**kw)

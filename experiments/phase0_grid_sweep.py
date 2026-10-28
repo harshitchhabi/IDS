@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from dloop.sim.dataset import ALL_SOURCES
 from dloop.features import schema
 from dloop.logging_config import configure, get_logger
 from dloop.models import ModelConfig, make_model
@@ -43,7 +44,7 @@ def _xy(df: pd.DataFrame, features: tuple[str, ...]):
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--source", choices=["auto", "cicids", "cicids-fixed", "unsw-nb15", "synthetic"], default="synthetic")
+    ap.add_argument("--source", choices=["auto", *ALL_SOURCES], default="synthetic")
     ap.add_argument("--strategy", choices=["within_day_temporal", "day_split"],
                     default="within_day_temporal")
     ap.add_argument("--out", type=Path, default=Path("results/phase0"))

@@ -22,6 +22,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from dloop.sim.dataset import ALL_SOURCES
 from dloop.logging_config import configure, get_logger
 from dloop.sim import synthetic
 from dloop.sim.dataset import load_partitions
@@ -36,7 +37,7 @@ LEAK_THRESHOLD = 0.25              # guard (c) leak_warning gate
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", type=Path, default=Path("results/phase0/cicids"))
-    ap.add_argument("--source", choices=["cicids", "cicids-fixed", "unsw-nb15"], default="cicids")
+    ap.add_argument("--source", choices=[s for s in ALL_SOURCES if s != "synthetic"], default="cicids")
     ap.add_argument("--grids", type=float, nargs="+", default=list(GRIDS))
     args = ap.parse_args(argv)
     configure()

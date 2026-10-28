@@ -25,13 +25,15 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from dloop.sim.dataset import ALL_SOURCES
 from dloop.adversary.clean import CleanAdversary
+from dloop.adversary.crowd import CrowdOutAdversary
 from dloop.adversary.mimicry import (FidelityMeter, JitterAdversary, JunkAdversary, MimicryAdversary,
                                      assert_disjoint_from_eval)
 from dloop.logging_config import configure, get_logger
 from dloop.defense.base import NoOpDefense
 from dloop.defense.d1_cost_weighting import COMPONENTS, D1Config, D1CostWeighting
-from dloop.defense.generic import KNNSanitize, LossFilter, ShareCap, UniformWeight
+from dloop.defense.generic import KNNSanitize, LossFilter, ShareCap, SourcePartition, UniformWeight
 from dloop.loop.config import LoopConfig
 from dloop.loop.data import LoopData
 from dloop.loop.rounds import FAST_HYPERPARAMS, run_arm
@@ -79,6 +81,8 @@ def _defense_tag(j: dict) -> str:
         return f"_uniform_w{j['uniform_w']:g}"
     if j["defense"] == "sharecap":
         return f"_sharecap_c{j['share_cap']:g}"
+    if j["defense"] == "srcpart":
+        return f"_srcpart_a{j['sp_alpha']:g}"
     return "_" + j["defense"]
 
 
@@ -96,19 +100,24 @@ def _make_defense(j: dict):
         return UniformWeight(j["uniform_w"])
     if d == "sharecap":
         return ShareCap(j["share_cap"])
+    if d == "srcpart":
+        return SourcePartition(j["sp_alpha"])
     raise ValueError(d)
 
 
 def _job_key(j: dict) -> str:
     pad = f"_pad{j['pad']:g}" if j["pad"] != 1.0 else ""
-    return (f"{j['scenario']}_{j['model']}_s{j['seed']}_j{j['jitter']}_r{j['ratio']}{pad}"
-            f"{_loop_config(j).tag()}{_defense_tag(j)}")
+    crowd = f"_cf{j['crowd_factor']:g}_cj{j['crowd_jitter']:g}" if j["scenario"] == "s0crowd" else ""
+    evr = "_evr" if j["eval_redraw"] else ""
+    return (f"{j['scenario']}_{j['model']}_s{j['seed']}_j{j['jitter']}_r{j['ratio']}{pad}{crowd}"
+            f"{_loop_config(j).tag()}{_defense_tag(j)}{evr}")
 
 
 def _run_job(j: dict) -> tuple[str, list[dict]]:
     assert _DATA is not None
     t0 = time.time()
     sc, seed = j["scenario"], j["seed"]
+    data = _DATA.redraw_eval(seed) if j["eval_redraw"] else _DATA
     if sc == "control":
         adv = None
     elif sc == "s0":
@@ -120,10 +129,14 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
         adv = JunkAdversary(np.vstack([_DATA.pool_benign_x[::4], _DATA.pool_attack_x[::2]]), seed)
     elif sc == "s0j":   # genuine attack rows, jittered like A1's poison, labelled malicious
         adv = JitterAdversary(_DATA.pool_attack_x, _DATA.normalizer, j["jitter"], seed, true_label=1)
+    elif sc == "s0crowd":   # S0's genuine attacks plus benign-like filler crowding the honeypot share
+        adv = CrowdOutAdversary(CleanAdversary(_DATA.pool_attack_x, seed),
+                                MimicryAdversary(_DATA.pool_benign_x, _DATA.normalizer, j["crowd_jitter"], seed),
+                                j["crowd_factor"])
     else:
         raise ValueError(sc)
     defense = _make_defense(j)
-    res = run_arm(_DATA, adv, scenario=sc, model_kind=j["model"], seed=seed, config=_loop_config(j),
+    res = run_arm(data, adv, scenario=sc, model_kind=j["model"], seed=seed, config=_loop_config(j),
                   defense=defense)
     extra: dict = {"jitter": j["jitter"] if sc in ("a1", "a1truth", "s0j") else float("nan"),
                    "cost_padding": j["pad"], "dataset": _DATA.name,
@@ -133,7 +146,12 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
                    "d1_quantile": j["d1_quantile"] if j["defense"] == "d1" else float("nan"),
                    "d1_reference": j["d1_ref"] if j["defense"] == "d1" else "",
                    "d1_estar_effective": getattr(defense, "e_star_effective", float("nan")),
-                   "uniform_w": j["uniform_w"] if j["defense"] == "uniform" else float("nan")}
+                   "uniform_w": j["uniform_w"] if j["defense"] == "uniform" else float("nan"),
+                   "share_cap": j["share_cap"] if j["defense"] == "sharecap" else float("nan"),
+                   "sp_alpha": j["sp_alpha"] if j["defense"] == "srcpart" else float("nan"),
+                   "crowd_factor": j["crowd_factor"] if sc == "s0crowd" else float("nan"),
+                   "crowd_jitter": j["crowd_jitter"] if sc == "s0crowd" else float("nan"),
+                   "eval_redraw": bool(j["eval_redraw"])}
     if sc in ("a1", "a1truth") and res.poison_x is not None and _FID is not None:
         d = _FID.distances(res.poison_x, max_rows=FIDELITY_ROWS, rng=np.random.default_rng(seed))
         extra.update(fidelity_median=float(np.median(d)), fidelity_p5=float(np.percentile(d, 5)),
@@ -147,15 +165,15 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dataset", choices=["cicids", "cicids-fixed", "unsw-nb15", "synthetic"], required=True)
-    ap.add_argument("--scenarios", nargs="+", choices=["control", "s0", "a1", "s0j", "a1truth", "junk"], required=True)
+    ap.add_argument("--dataset", choices=list(ALL_SOURCES), required=True)
+    ap.add_argument("--scenarios", nargs="+", choices=["control", "s0", "a1", "s0j", "a1truth", "junk", "s0crowd"], required=True)
     ap.add_argument("--models", nargs="+", default=["rf", "xgboost"])
     ap.add_argument("--seeds", type=int, default=5)
     ap.add_argument("--rounds", type=int, default=20)
     ap.add_argument("--ratios", type=float, nargs="+", default=list(RATIOS))
     ap.add_argument("--jitters", type=float, nargs="+", default=list(JITTERS))
     ap.add_argument("--workers", type=int, default=MAX_WORKERS)
-    ap.add_argument("--defense", choices=["none", "d1", "knn", "loss", "uniform", "sharecap"], default="none")
+    ap.add_argument("--defense", choices=["none", "d1", "knn", "loss", "uniform", "sharecap", "srcpart"], default="none")
     ap.add_argument("--d1-estar", type=float, default=8.0, help="D1 saturation effort E* (default fixed in DECISIONS 20)")
     ap.add_argument("--d1-gamma", type=float, default=2.0)
     ap.add_argument("--d1-quantile", type=float, default=0.0, help="D1q: E* = this quantile of benign effort (0 = off)")
@@ -164,6 +182,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--share-cap", type=float, default=0.05,
                     help="effective honeypot share cap for --defense sharecap")
     ap.add_argument("--uniform-w", type=float, default=0.1, help="weight for --defense uniform")
+    ap.add_argument("--sp-alpha", type=float, default=0.5,
+                    help="honeypot-model weight in the --defense srcpart vote")
+    ap.add_argument("--crowd-factor", type=float, default=1.0,
+                    help="s0crowd: filler rows per genuine attack row")
+    ap.add_argument("--crowd-jitter", type=float, default=0.7,
+                    help="s0crowd: jitter of the benign-like filler (A1's generator)")
+    ap.add_argument("--eval-redraw", action="store_true",
+                    help="redraw the trusted_eval subsample per seed (default: the fixed subsample)")
     ap.add_argument("--d1-components", default="", help="comma list from duration_s,packets,bytes,depth (ablation)")
     ap.add_argument("--no-fidelity", action="store_true",
                     help="skip the NN fidelity meter (saves ~100 MB per worker); not for cost-padding runs")
@@ -196,6 +222,13 @@ def main(argv: list[str] | None = None) -> int:
     except AssertionError as e:
         n_checked_atk, atk_note = int(len(data.pool_attack_x)), str(e)
         log.warning("attack-side pool/eval overlap (cross-family, non-fatal)", detail=atk_note)
+    if args.eval_redraw:
+        if data.eval_attack_full_x is None:
+            ap.error(f"{data_path} predates --eval-redraw; rebuild it with phase0_loop_data")
+        try:
+            assert_disjoint_from_eval(data.pool_attack_x, data.eval_attack_full_x)
+        except AssertionError as e:
+            atk_note += f"; full trusted_eval attack: {e}"
 
     jobs: list[dict] = []
     for sc in args.scenarios:
@@ -212,7 +245,9 @@ def main(argv: list[str] | None = None) -> int:
                  budget_mode=args.budget_mode, batch_size=args.batch_size,
                  val_tau=args.val_nn_tau, pad=args.pad, defense=args.defense,
                  d1_estar=args.d1_estar, d1_gamma=args.d1_gamma, d1_components=args.d1_components,
-                 d1_quantile=args.d1_quantile, d1_ref=args.d1_reference, uniform_w=args.uniform_w, share_cap=args.share_cap)
+                 d1_quantile=args.d1_quantile, d1_ref=args.d1_reference, uniform_w=args.uniform_w, share_cap=args.share_cap,
+                 sp_alpha=args.sp_alpha, crowd_factor=args.crowd_factor, crowd_jitter=args.crowd_jitter,
+                 eval_redraw=args.eval_redraw)
         _loop_config(j)   # validate the combination up front
     jobs.sort(key=lambda j: (RATIO_PRIORITY.get(j["ratio"], 0), -j["ratio"], j["scenario"],
                              j["model"] != "rf", j["seed"], j["jitter"]))
@@ -225,6 +260,8 @@ def main(argv: list[str] | None = None) -> int:
               "cost_padding": args.pad, "defense": args.defense, "d1_estar": args.d1_estar,
               "d1_gamma": args.d1_gamma, "d1_components": args.d1_components,
               "d1_quantile": args.d1_quantile, "d1_reference": args.d1_reference, "uniform_w": args.uniform_w, "share_cap": args.share_cap,
+              "sp_alpha": args.sp_alpha, "crowd_factor": args.crowd_factor,
+              "crowd_jitter": args.crowd_jitter, "eval_redraw": args.eval_redraw,
               "fidelity_rows": FIDELITY_ROWS, "arm_counts": data.arm_counts(),
               "seed_rows": int(len(data.seed_x)), "eval_rows": int(len(data.eval_x)),
               "a1_poison_source_rows_checked_disjoint_from_eval_benign": n_checked,

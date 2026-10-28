@@ -91,6 +91,29 @@ class UniformWeight:
         return view.w
 
 
+class SourcePartition:
+    """Source-partition baseline (Phase R item R2, DECISIONS.md §31): never mix sources
+    in one fit. :func:`dloop.loop.rounds.run_arm` trains one model on seed_train alone
+    and one on the honeypot rows plus seed_train's *benign* rows, and scores with the
+    fixed-weight vote ``(1 - alpha) * seed_score + alpha * honeypot_score``. The honeypot
+    model needs those benign rows because the auto-label policy makes honeypot data
+    single-class by construction; seed_train's attack rows are left out so the honeypot
+    model's notion of "malicious" comes from the honeypot alone. ``alpha`` is fixed a
+    priori, not tuned. No row weight is changed."""
+
+    def __init__(self, alpha: float) -> None:
+        if not 0.0 <= alpha <= 1.0:
+            raise ValueError("alpha must be in [0, 1]")
+        self.ensemble_alpha = float(alpha)
+        self.name = f"srcpart_a{alpha:g}"
+
+    def apply(self, batch: pd.DataFrame, cost: CostMetadata, stamped_label: np.ndarray) -> DefenseDecision:
+        return DefenseDecision(weights=np.ones(len(stamped_label)), admit=True)
+
+    def sanitize(self, view: TrainingView) -> np.ndarray:
+        return view.w
+
+
 class ShareCap:
     """The right no-skill baseline for a poison ratio the defender does not control: give every
     honeypot row the same weight, chosen so the honeypot's *effective share* of the training set is
