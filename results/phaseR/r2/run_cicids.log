@@ -17,3 +17,11 @@
 {"done": 50, "of": 180, "minutes": 152.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T23:03:18.233905Z"}
 === resumed after container restart Wed Oct 28 23:05:43 UTC 2026 ===
 >>> phase0_loop --seeds 15 --scenarios control --models rf xgboost logreg mlp
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-28T23:06:57.583259Z"}
+{"total": 60, "todo": 0, "workers": 3, "config_hash": "3d309b22cc301662", "event": "loop jobs", "level": "info", "timestamp": "2026-10-28T23:06:57.587994Z"}
+>>> phase0_loop --seeds 15 --scenarios a1 --models rf xgboost logreg mlp --jitters 0 --ratios 0.2 0.5 0.9 --defense none
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-28T23:07:16.729260Z"}
+{"total": 180, "todo": 130, "workers": 3, "config_hash": "11f20d336ed760f1", "event": "loop jobs", "level": "info", "timestamp": "2026-10-28T23:07:16.738059Z"}
+{"done": 10, "of": 130, "minutes": 21.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T23:28:13.925406Z"}
+{"done": 20, "of": 130, "minutes": 25.7, "event": "progress", "level": "info", "timestamp": "2026-10-28T23:32:56.069264Z"}
+{"done": 30, "of": 130, "minutes": 28.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T23:35:42.815462Z"}
