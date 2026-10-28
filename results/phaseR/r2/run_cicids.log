@@ -14,3 +14,6 @@
 {"done": 20, "of": 180, "minutes": 71.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:41:38.388964Z"}
 {"done": 30, "of": 180, "minutes": 104.1, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:14:48.706144Z"}
 {"done": 40, "of": 180, "minutes": 129.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:40:00.104577Z"}
+{"done": 50, "of": 180, "minutes": 152.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T23:03:18.233905Z"}
+=== resumed after container restart Wed Oct 28 23:05:43 UTC 2026 ===
+>>> phase0_loop --seeds 15 --scenarios control --models rf xgboost logreg mlp
