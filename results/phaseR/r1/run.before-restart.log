@@ -1,0 +1,74 @@
+>>> phase0_loop --seeds 15 --dataset cicids --val-nn-tau 0.1 --scenarios control a1 --models rf xgboost --jitters 0 0.002 0.005 0.01 0.03 0.1 0.3 0.7 1.5 --ratios 0.2 0.5 --eval-redraw --out results/phaseR/r1/grid36
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-28T20:05:33.836855Z"}
+{"total": 570, "todo": 570, "workers": 3, "config_hash": "b3a8c35b8501c0ca", "event": "loop jobs", "level": "info", "timestamp": "2026-10-28T20:05:33.912787Z"}
+{"done": 10, "of": 570, "minutes": 3.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:08:52.780791Z"}
+{"done": 20, "of": 570, "minutes": 6.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:11:36.638212Z"}
+{"done": 30, "of": 570, "minutes": 8.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:14:19.108159Z"}
+{"done": 40, "of": 570, "minutes": 11.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:17:07.435024Z"}
+{"done": 50, "of": 570, "minutes": 14.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:19:50.948815Z"}
+{"done": 60, "of": 570, "minutes": 16.9, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:22:29.287203Z"}
+{"done": 70, "of": 570, "minutes": 19.7, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:25:17.788072Z"}
+{"done": 80, "of": 570, "minutes": 22.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:28:00.036438Z"}
+{"done": 90, "of": 570, "minutes": 25.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:30:43.028733Z"}
+{"done": 100, "of": 570, "minutes": 28.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:33:54.956319Z"}
+{"done": 110, "of": 570, "minutes": 30.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:36:12.878863Z"}
+{"done": 120, "of": 570, "minutes": 33.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:38:46.694096Z"}
+{"done": 130, "of": 570, "minutes": 36.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:41:48.893698Z"}
+{"done": 140, "of": 570, "minutes": 37.9, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:43:25.236505Z"}
+{"done": 150, "of": 570, "minutes": 39.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:44:33.075700Z"}
+{"done": 160, "of": 570, "minutes": 40.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:46:00.737574Z"}
+{"done": 170, "of": 570, "minutes": 41.7, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:47:13.932818Z"}
+{"done": 180, "of": 570, "minutes": 42.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:48:23.984637Z"}
+{"done": 190, "of": 570, "minutes": 44.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:49:53.835032Z"}
+{"done": 200, "of": 570, "minutes": 45.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:51:01.132904Z"}
+{"done": 210, "of": 570, "minutes": 46.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:52:10.663486Z"}
+{"done": 220, "of": 570, "minutes": 48.1, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:53:41.461285Z"}
+{"done": 230, "of": 570, "minutes": 49.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:54:53.228061Z"}
+{"done": 240, "of": 570, "minutes": 50.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:56:04.797276Z"}
+{"done": 250, "of": 570, "minutes": 52.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:57:34.739135Z"}
+{"done": 260, "of": 570, "minutes": 53.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:58:43.761500Z"}
+{"done": 270, "of": 570, "minutes": 54.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:59:51.781684Z"}
+{"done": 280, "of": 570, "minutes": 56.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:01:52.237984Z"}
+{"done": 290, "of": 570, "minutes": 57.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:03:02.917850Z"}
+{"done": 300, "of": 570, "minutes": 58.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:04:02.215450Z"}
+{"done": 310, "of": 570, "minutes": 62.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:08:04.739241Z"}
+{"done": 320, "of": 570, "minutes": 66.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:11:31.210962Z"}
+{"done": 330, "of": 570, "minutes": 69.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:15:00.747034Z"}
+{"done": 340, "of": 570, "minutes": 73.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:18:52.338210Z"}
+{"done": 350, "of": 570, "minutes": 76.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:22:23.096327Z"}
+{"done": 360, "of": 570, "minutes": 80.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:25:49.523422Z"}
+{"done": 370, "of": 570, "minutes": 84.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:29:31.014909Z"}
+{"done": 380, "of": 570, "minutes": 87.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:32:56.302189Z"}
+{"done": 390, "of": 570, "minutes": 90.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:36:19.149211Z"}
+{"done": 400, "of": 570, "minutes": 94.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:40:23.978235Z"}
+{"done": 410, "of": 570, "minutes": 97.9, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:43:28.749133Z"}
+{"done": 420, "of": 570, "minutes": 101.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:46:57.671543Z"}
+{"done": 430, "of": 570, "minutes": 105.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:51:01.515193Z"}
+{"done": 440, "of": 570, "minutes": 107.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:53:08.316627Z"}
+{"done": 450, "of": 570, "minutes": 109.1, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:54:41.628915Z"}
+{"done": 460, "of": 570, "minutes": 111.1, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:56:40.195314Z"}
+{"done": 470, "of": 570, "minutes": 112.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:58:12.196916Z"}
+{"done": 480, "of": 570, "minutes": 114.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:59:45.787922Z"}
+{"done": 490, "of": 570, "minutes": 116.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:01:45.675059Z"}
+{"done": 500, "of": 570, "minutes": 117.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:03:19.058220Z"}
+{"done": 510, "of": 570, "minutes": 119.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:04:50.757598Z"}
+{"done": 520, "of": 570, "minutes": 121.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:06:46.976811Z"}
+{"done": 530, "of": 570, "minutes": 122.7, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:08:18.394420Z"}
+{"done": 540, "of": 570, "minutes": 124.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:09:52.635759Z"}
+{"done": 550, "of": 570, "minutes": 126.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:11:50.015577Z"}
+{"done": 560, "of": 570, "minutes": 127.7, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:13:17.635053Z"}
+{"done": 570, "of": 570, "minutes": 129.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:14:46.848713Z"}
+>>> phase0_loop --seeds 30 --dataset cicids --val-nn-tau 0.1 --scenarios control a1 --models xgboost --jitters 0 --ratios 0.5 --out results/phaseR/r1/fixed
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-28T22:14:51.859652Z"}
+{"total": 60, "todo": 60, "workers": 3, "config_hash": "3004dd92b7edf110", "event": "loop jobs", "level": "info", "timestamp": "2026-10-28T22:14:51.863852Z"}
+{"done": 10, "of": 60, "minutes": 1.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:16:06.249242Z"}
+{"done": 20, "of": 60, "minutes": 2.1, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:17:00.859739Z"}
+{"done": 30, "of": 60, "minutes": 3.1, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:17:55.128835Z"}
+{"done": 40, "of": 60, "minutes": 5.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:20:03.099252Z"}
+{"done": 50, "of": 60, "minutes": 6.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:21:41.364991Z"}
+{"done": 60, "of": 60, "minutes": 8.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:23:18.891124Z"}
+>>> phase0_loop --seeds 15 --dataset cicids --val-nn-tau 0.1 --scenarios control a1 --models rf --jitters 0.01 0.03 0.1 --ratios 0.2 0.5 --out results/phaseR/r1/fixed
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-28T22:23:23.569003Z"}
+{"total": 105, "todo": 105, "workers": 3, "config_hash": "e9595ea88755990f", "event": "loop jobs", "level": "info", "timestamp": "2026-10-28T22:23:23.573823Z"}
+{"done": 10, "of": 105, "minutes": 2.7, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:26:06.396582Z"}
+{"done": 20, "of": 105, "minutes": 4.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:28:12.046077Z"}
