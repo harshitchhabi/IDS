@@ -1,0 +1,34 @@
+>>> phase0_loop --seeds 15 --dataset cicids --val-nn-tau 0.1 --scenarios control a1 --models rf xgboost --jitters 0 0.002 0.005 0.01 0.03 0.1 0.3 0.7 1.5 --ratios 0.2 0.5 --eval-redraw --out results/phaseR/r1/grid36
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-28T20:05:33.836855Z"}
+{"total": 570, "todo": 570, "workers": 3, "config_hash": "b3a8c35b8501c0ca", "event": "loop jobs", "level": "info", "timestamp": "2026-10-28T20:05:33.912787Z"}
+{"done": 10, "of": 570, "minutes": 3.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:08:52.780791Z"}
+{"done": 20, "of": 570, "minutes": 6.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:11:36.638212Z"}
+{"done": 30, "of": 570, "minutes": 8.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:14:19.108159Z"}
+{"done": 40, "of": 570, "minutes": 11.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:17:07.435024Z"}
+{"done": 50, "of": 570, "minutes": 14.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:19:50.948815Z"}
+{"done": 60, "of": 570, "minutes": 16.9, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:22:29.287203Z"}
+{"done": 70, "of": 570, "minutes": 19.7, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:25:17.788072Z"}
+{"done": 80, "of": 570, "minutes": 22.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:28:00.036438Z"}
+{"done": 90, "of": 570, "minutes": 25.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:30:43.028733Z"}
+{"done": 100, "of": 570, "minutes": 28.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:33:54.956319Z"}
+{"done": 110, "of": 570, "minutes": 30.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:36:12.878863Z"}
+{"done": 120, "of": 570, "minutes": 33.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:38:46.694096Z"}
+{"done": 130, "of": 570, "minutes": 36.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:41:48.893698Z"}
+{"done": 140, "of": 570, "minutes": 37.9, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:43:25.236505Z"}
+{"done": 150, "of": 570, "minutes": 39.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:44:33.075700Z"}
+{"done": 160, "of": 570, "minutes": 40.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:46:00.737574Z"}
+{"done": 170, "of": 570, "minutes": 41.7, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:47:13.932818Z"}
+{"done": 180, "of": 570, "minutes": 42.8, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:48:23.984637Z"}
+{"done": 190, "of": 570, "minutes": 44.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:49:53.835032Z"}
+{"done": 200, "of": 570, "minutes": 45.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:51:01.132904Z"}
+{"done": 210, "of": 570, "minutes": 46.6, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:52:10.663486Z"}
+{"done": 220, "of": 570, "minutes": 48.1, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:53:41.461285Z"}
+{"done": 230, "of": 570, "minutes": 49.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:54:53.228061Z"}
+{"done": 240, "of": 570, "minutes": 50.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:56:04.797276Z"}
+{"done": 250, "of": 570, "minutes": 52.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:57:34.739135Z"}
+{"done": 260, "of": 570, "minutes": 53.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:58:43.761500Z"}
+{"done": 270, "of": 570, "minutes": 54.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T20:59:51.781684Z"}
+{"done": 280, "of": 570, "minutes": 56.3, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:01:52.237984Z"}
+{"done": 290, "of": 570, "minutes": 57.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:03:02.917850Z"}
+{"done": 300, "of": 570, "minutes": 58.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:04:02.215450Z"}
+{"done": 310, "of": 570, "minutes": 62.5, "event": "progress", "level": "info", "timestamp": "2026-10-28T21:08:04.739241Z"}
