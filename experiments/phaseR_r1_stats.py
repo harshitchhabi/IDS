@@ -137,13 +137,28 @@ def check_pairing(grid: pd.DataFrame, lines: list[str]) -> bool:
         c = ctrl.loc[idx].values
         if not (sub[cols].values == c).all():
             bad.append(f"{model} s{seed} j{jitter} r{ratio}")
-    # Different seeds must actually draw different eval sets, or "redraw" did nothing.
-    c0 = g[(g.scenario == "control") & (g["round"] == 0) & (g.threshold_mode == "fixed")]
-    distinct = c0.groupby("model")["n_seen_both"].nunique().to_dict()
     lines.append(f"- A1 `_evr` jobs checked: {n_jobs}; mismatches: {len(bad)}"
                  + (" (" + "; ".join(bad[:10]) + ")" if bad else ""))
-    lines.append(f"- distinct round-0 `n_seen_both` across the 15 control seeds, per model "
-                 f"(>1 shows the draw does vary by seed): {distinct}")
+    # The arm sizes are caps, so they are equal for every draw and say nothing about whether the
+    # redraw happened. Instead: a seed's _evr control vs. the published fixed-draw control. The
+    # training side (round-0 fixed threshold) must be identical; the eval counts must differ.
+    same_thr = diff_counts = n_cmp = 0
+    for model in MODELS:
+        for s in range(1, 6):
+            p = PUBLISHED / f"control_{model}_s{s}_j0.0_r0.0_vt0.1.csv"
+            e = g[(g.scenario == "control") & (g.model == model) & (g.seed == s)
+                  & (g["round"] == 0) & (g.threshold_mode == "fixed")]
+            if not p.exists() or e.empty:
+                continue
+            b = pd.read_csv(p)
+            b = b[(b["round"] == 0) & (b.threshold_mode == "fixed")].iloc[0]
+            e = e.iloc[0]
+            n_cmp += 1
+            same_thr += int(e.threshold == b.threshold)
+            diff_counts += int((e.tn, e.fp, e.fn, e.tp) != (b.tn, b.fp, b.fn, b.tp))
+    lines.append(f"- redraw took effect: of {n_cmp} seed-1-5 controls, {same_thr} have the published "
+                 f"round-0 fixed threshold (same training) and {diff_counts} have different eval "
+                 f"confusion counts (different eval rows)")
     return not bad
 
 
