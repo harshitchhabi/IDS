@@ -1,0 +1,294 @@
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:45:05.812237Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:45:07.495174Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:45:07.524262Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:45:07.550780Z"}
+{"total": 9902, "by_day": {"all": 9902}, "grid": 0.005, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T07:45:07.621987Z"}
+{"stream": "all/Analysis", "rows": 48, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:07.638627Z"}
+{"stream": "all/BENIGN", "rows": 523, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:07.642167Z"}
+{"stream": "all/Backdoor", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:07.644881Z"}
+{"stream": "all/DoS", "rows": 43, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:07.646433Z"}
+{"stream": "all/Exploits", "rows": 257, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:07.649932Z"}
+{"stream": "all/Fuzzers", "rows": 169, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:07.653011Z"}
+{"stream": "all/Generic", "rows": 35, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:07.654637Z"}
+{"stream": "all/Reconnaissance", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:07.655721Z"}
+{"stream": "all/Shellcode", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:07.656661Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T07:45:07.688861Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0006, "benign_p5": 0.0011, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T07:45:10.048582Z"}
+{"source": "nf-unsw-nb15-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 21967, "prod_benign": 6083, "honeypot_pool": 21717, "trusted_eval": 12522}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T07:45:10.050386Z"}
+{"name": "nf-unsw-nb15-v2", "config": {"seed_train_rows": 30000, "eval_benign_rows": 40000, "eval_attack_cap_per_family": 4000, "seed": 20250903}, "seed_rows": 21967, "pool_benign": 9204, "pool_attack": 12513, "eval_rows": 12522, "arm_counts": {"seen_both": 6262, "seed_only": 0, "honeypot_only": 0}, "event": "loop data built", "level": "info", "timestamp": "2026-10-29T07:45:10.089570Z"}
+{
+  "path": "data/loop/nf-unsw-nb15-v2.npz",
+  "seed_rows": 21967,
+  "pool_benign": 9204,
+  "pool_attack": 12513,
+  "eval_rows": 12522,
+  "arm_counts": {
+    "seen_both": 6262,
+    "seed_only": 0,
+    "honeypot_only": 0
+  },
+  "near_dup_grid": 0.005,
+  "leak_warning": true
+}
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:45:22.971305Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:45:24.590598Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:45:24.613890Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:45:24.636273Z"}
+{"stream": "all/Analysis", "rows": 50, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.679540Z"}
+{"stream": "all/BENIGN", "rows": 78, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.683115Z"}
+{"stream": "all/Backdoor", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.685887Z"}
+{"stream": "all/DoS", "rows": 48, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.687452Z"}
+{"stream": "all/Exploits", "rows": 309, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.690578Z"}
+{"stream": "all/Fuzzers", "rows": 198, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.693534Z"}
+{"stream": "all/Generic", "rows": 36, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.695046Z"}
+{"stream": "all/Reconnaissance", "rows": 9, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.696054Z"}
+{"stream": "all/Shellcode", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.696962Z"}
+{"stream": "all/Worms", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:24.697805Z"}
+{"grid": 0.0, "error": "partition 'prod_benign' received no rows (strategy=within_day_temporal)", "event": "grid point produced an invalid partition", "level": "warning", "timestamp": "2026-10-29T07:45:24.699688Z"}
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:45:30.970331Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:45:32.483623Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:45:32.510511Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:45:32.533463Z"}
+{"total": 9902, "by_day": {"all": 9902}, "grid": 0.005, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T07:45:32.602126Z"}
+{"stream": "all/Analysis", "rows": 48, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:32.617194Z"}
+{"stream": "all/BENIGN", "rows": 523, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:32.620579Z"}
+{"stream": "all/Backdoor", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:32.623095Z"}
+{"stream": "all/DoS", "rows": 43, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:32.624508Z"}
+{"stream": "all/Exploits", "rows": 257, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:32.627478Z"}
+{"stream": "all/Fuzzers", "rows": 169, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:32.630006Z"}
+{"stream": "all/Generic", "rows": 35, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:32.631432Z"}
+{"stream": "all/Reconnaissance", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:32.632389Z"}
+{"stream": "all/Shellcode", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:32.633140Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T07:45:32.661775Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0006, "benign_p5": 0.0011, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T07:45:33.050831Z"}
+{"source": "nf-unsw-nb15-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 21967, "prod_benign": 6083, "honeypot_pool": 21717, "trusted_eval": 12522}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T07:45:33.052263Z"}
+{"kind": "rf", "config_hash": "53eb4a8e9910c2c7", "threshold": 0.998115, "val_fpr": 0.0096, "val_tpr": 0.4329, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T07:45:37.033247Z"}
+{"kind": "xgboost", "config_hash": "30632d9bb7b7622d", "threshold": 0.970612, "val_fpr": 0.0096, "val_tpr": 0.3877, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T07:45:37.215776Z"}
+{"grid": 0.005, "partition_valid": true, "near_dup_benign": 6051, "near_dup_attack": 3851, "seed_train": 21967, "honeypot_pool": 21717, "trusted_eval": 12522, "leak_warning": true, "nn_attack_p5": 0.0006, "nn_benign_p5": 0.0011, "rf_eval_fpr": 0.0802, "rf_eval_tpr": 0.3911, "rf_auroc": 0.8958, "xgboost_eval_fpr": 0.0482, "xgboost_eval_tpr": 0.3555, "xgboost_auroc": 0.9034, "event": "grid point done", "level": "info", "timestamp": "2026-10-29T07:45:37.224718Z"}
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:45:43.695865Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:45:46.736560Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:45:46.760269Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:45:46.783846Z"}
+{"total": 16709, "by_day": {"all": 16709}, "grid": 0.01, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T07:45:46.849851Z"}
+{"stream": "all/Analysis", "rows": 43, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.863876Z"}
+{"stream": "all/BENIGN", "rows": 516, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.867330Z"}
+{"stream": "all/Backdoor", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.869757Z"}
+{"stream": "all/DoS", "rows": 25, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.871241Z"}
+{"stream": "all/Exploits", "rows": 215, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.874389Z"}
+{"stream": "all/Fuzzers", "rows": 94, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.877004Z"}
+{"stream": "all/Generic", "rows": 17, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.878448Z"}
+{"stream": "all/Reconnaissance", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.879402Z"}
+{"stream": "all/Shellcode", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.880209Z"}
+{"stream": "all/Worms", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:46.880931Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T07:45:46.905762Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0008, "benign_p5": 0.002, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T07:45:47.194269Z"}
+{"source": "nf-unsw-nb15-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 19577, "prod_benign": 5536, "honeypot_pool": 19398, "trusted_eval": 11138}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T07:45:47.196137Z"}
+{"kind": "rf", "config_hash": "53eb4a8e9910c2c7", "threshold": 1.0, "val_fpr": 0.0, "val_tpr": 0.0, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T07:45:47.849662Z"}
+{"kind": "xgboost", "config_hash": "30632d9bb7b7622d", "threshold": 0.971173, "val_fpr": 0.0088, "val_tpr": 0.2572, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T07:45:48.002990Z"}
+{"grid": 0.01, "partition_valid": true, "near_dup_benign": 8855, "near_dup_attack": 7854, "seed_train": 19577, "honeypot_pool": 19398, "trusted_eval": 11138, "leak_warning": true, "nn_attack_p5": 0.0008, "nn_benign_p5": 0.002, "rf_eval_fpr": 0.0, "rf_eval_tpr": 0.0, "rf_auroc": 0.9123, "xgboost_eval_fpr": 0.0309, "xgboost_eval_tpr": 0.2794, "xgboost_auroc": 0.9126, "event": "grid point done", "level": "info", "timestamp": "2026-10-29T07:45:48.010965Z"}
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:45:55.449288Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:45:57.293943Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:45:57.319989Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:45:57.343441Z"}
+{"total": 24830, "by_day": {"all": 24830}, "grid": 0.02, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T07:45:57.446594Z"}
+{"stream": "all/Analysis", "rows": 34, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.459042Z"}
+{"stream": "all/BENIGN", "rows": 415, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.462172Z"}
+{"stream": "all/Backdoor", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.464385Z"}
+{"stream": "all/DoS", "rows": 41, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.465755Z"}
+{"stream": "all/Exploits", "rows": 163, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.468831Z"}
+{"stream": "all/Fuzzers", "rows": 55, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.471209Z"}
+{"stream": "all/Generic", "rows": 24, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.472499Z"}
+{"stream": "all/Reconnaissance", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.473444Z"}
+{"stream": "all/Shellcode", "rows": 8, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.474186Z"}
+{"stream": "all/Worms", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:45:57.474861Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T07:45:57.497715Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0016, "benign_p5": 0.0038, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T07:45:57.705650Z"}
+{"source": "nf-unsw-nb15-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 16693, "prod_benign": 4855, "honeypot_pool": 16566, "trusted_eval": 9589}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T07:45:57.706995Z"}
+{"kind": "rf", "config_hash": "53eb4a8e9910c2c7", "threshold": 1.0, "val_fpr": 0.0, "val_tpr": 0.0, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T07:45:58.222107Z"}
+{"kind": "xgboost", "config_hash": "30632d9bb7b7622d", "threshold": 0.967619, "val_fpr": 0.0094, "val_tpr": 0.2404, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T07:45:58.363996Z"}
+{"grid": 0.02, "partition_valid": true, "near_dup_benign": 12276, "near_dup_attack": 12554, "seed_train": 16693, "honeypot_pool": 16566, "trusted_eval": 9589, "leak_warning": true, "nn_attack_p5": 0.0016, "nn_benign_p5": 0.0038, "rf_eval_fpr": 0.0, "rf_eval_tpr": 0.0, "rf_auroc": 0.9168, "xgboost_eval_fpr": 0.0247, "xgboost_eval_tpr": 0.2362, "xgboost_auroc": 0.9234, "event": "grid point done", "level": "info", "timestamp": "2026-10-29T07:45:58.371177Z"}
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:46:04.591319Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:46:06.319344Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:46:06.344619Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:46:06.367990Z"}
+{"total": 35477, "by_day": {"all": 35477}, "grid": 0.05, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T07:46:06.431583Z"}
+{"stream": "all/Analysis", "rows": 26, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.442958Z"}
+{"stream": "all/BENIGN", "rows": 421, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.445940Z"}
+{"stream": "all/Backdoor", "rows": 8, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.448103Z"}
+{"stream": "all/DoS", "rows": 19, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.449339Z"}
+{"stream": "all/Exploits", "rows": 134, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.451919Z"}
+{"stream": "all/Fuzzers", "rows": 32, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.453939Z"}
+{"stream": "all/Generic", "rows": 33, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.455199Z"}
+{"stream": "all/Reconnaissance", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.456131Z"}
+{"stream": "all/Shellcode", "rows": 6, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.457032Z"}
+{"stream": "all/Worms", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:06.457831Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T07:46:06.477658Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0034, "benign_p5": 0.008, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T07:46:06.631908Z"}
+{"source": "nf-unsw-nb15-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 12972, "prod_benign": 3927, "honeypot_pool": 12789, "trusted_eval": 7431}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T07:46:06.633107Z"}
+{"kind": "rf", "config_hash": "53eb4a8e9910c2c7", "threshold": 1.0, "val_fpr": 0.0, "val_tpr": 0.0, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T07:46:07.085278Z"}
+{"kind": "xgboost", "config_hash": "30632d9bb7b7622d", "threshold": 0.962984, "val_fpr": 0.0092, "val_tpr": 0.2538, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T07:46:07.204171Z"}
+{"grid": 0.05, "partition_valid": true, "near_dup_benign": 17241, "near_dup_attack": 18236, "seed_train": 12972, "honeypot_pool": 12789, "trusted_eval": 7431, "leak_warning": true, "nn_attack_p5": 0.0034, "nn_benign_p5": 0.008, "rf_eval_fpr": 0.0, "rf_eval_tpr": 0.0, "rf_auroc": 0.9256, "xgboost_eval_fpr": 0.032, "xgboost_eval_tpr": 0.2304, "xgboost_auroc": 0.9325, "event": "grid point done", "level": "info", "timestamp": "2026-10-29T07:46:07.209472Z"}
+
+=== guard (a) grid sweep (nf-unsw-nb15-v2 / within_day_temporal) ===
+
+ grid  partition_valid                                                                    note  near_dup_benign  near_dup_attack  seed_train  honeypot_pool  trusted_eval leak_warning  nn_attack_p5  nn_benign_p5  rf_eval_fpr  rf_eval_tpr  rf_auroc  xgboost_eval_fpr  xgboost_eval_tpr  xgboost_auroc
+0.000            False partition 'prod_benign' received no rows (strategy=within_day_temporal)              NaN              NaN         NaN            NaN           NaN          NaN           NaN           NaN          NaN          NaN       NaN               NaN               NaN            NaN
+0.005             True                                                                     NaN           6051.0           3851.0     21967.0        21717.0       12522.0         True        0.0006        0.0011       0.0802       0.3911    0.8958            0.0482            0.3555         0.9034
+0.010             True                                                                     NaN           8855.0           7854.0     19577.0        19398.0       11138.0         True        0.0008        0.0020       0.0000       0.0000    0.9123            0.0309            0.2794         0.9126
+0.020             True                                                                     NaN          12276.0          12554.0     16693.0        16566.0        9589.0         True        0.0016        0.0038       0.0000       0.0000    0.9168            0.0247            0.2362         0.9234
+0.050             True                                                                     NaN          17241.0          18236.0     12972.0        12789.0        7431.0         True        0.0034        0.0080       0.0000       0.0000    0.9256            0.0320            0.2304         0.9325
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:46:15.450845Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:46:17.106433Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:46:17.128544Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:46:17.149855Z"}
+{"total": 9902, "by_day": {"all": 9902}, "grid": 0.005, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T07:46:17.211014Z"}
+{"stream": "all/Analysis", "rows": 48, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:17.224962Z"}
+{"stream": "all/BENIGN", "rows": 523, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:17.228042Z"}
+{"stream": "all/Backdoor", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:17.230340Z"}
+{"stream": "all/DoS", "rows": 43, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:17.231797Z"}
+{"stream": "all/Exploits", "rows": 257, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:17.234658Z"}
+{"stream": "all/Fuzzers", "rows": 169, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:17.237232Z"}
+{"stream": "all/Generic", "rows": 35, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:17.238667Z"}
+{"stream": "all/Reconnaissance", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:17.239650Z"}
+{"stream": "all/Shellcode", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:17.240404Z"}
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T07:46:17.268652Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0006, "benign_p5": 0.0011, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T07:46:18.218594Z"}
+{"source": "nf-unsw-nb15-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 21967, "prod_benign": 6083, "honeypot_pool": 21717, "trusted_eval": 12522}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T07:46:18.220100Z"}
+{"grid": 0.005, "attack_p5": 0.0005520428584685759, "benign_p5": 0.0011366417703754155, "event": "degeneracy grid done", "level": "info", "timestamp": "2026-10-29T07:46:18.253638Z"}
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:46:24.348504Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:46:26.764833Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:46:26.789531Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:46:26.812374Z"}
+{"total": 16709, "by_day": {"all": 16709}, "grid": 0.01, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T07:46:26.877216Z"}
+{"stream": "all/Analysis", "rows": 43, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.890319Z"}
+{"stream": "all/BENIGN", "rows": 516, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.893676Z"}
+{"stream": "all/Backdoor", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.896266Z"}
+{"stream": "all/DoS", "rows": 25, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.897706Z"}
+{"stream": "all/Exploits", "rows": 215, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.900880Z"}
+{"stream": "all/Fuzzers", "rows": 94, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.903596Z"}
+{"stream": "all/Generic", "rows": 17, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.905070Z"}
+{"stream": "all/Reconnaissance", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.906129Z"}
+{"stream": "all/Shellcode", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.907149Z"}
+{"stream": "all/Worms", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:26.907874Z"}
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T07:46:26.933970Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0008, "benign_p5": 0.002, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T07:46:27.205795Z"}
+{"source": "nf-unsw-nb15-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 19577, "prod_benign": 5536, "honeypot_pool": 19398, "trusted_eval": 11138}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T07:46:27.207327Z"}
+{"grid": 0.01, "attack_p5": 0.0008301258213659006, "benign_p5": 0.002021570008441049, "event": "degeneracy grid done", "level": "info", "timestamp": "2026-10-29T07:46:27.238341Z"}
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:46:32.689522Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:46:34.406771Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:46:34.430418Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:46:34.451739Z"}
+{"total": 24830, "by_day": {"all": 24830}, "grid": 0.02, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T07:46:34.515371Z"}
+{"stream": "all/Analysis", "rows": 34, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.526753Z"}
+{"stream": "all/BENIGN", "rows": 415, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.529714Z"}
+{"stream": "all/Backdoor", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.531872Z"}
+{"stream": "all/DoS", "rows": 41, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.533109Z"}
+{"stream": "all/Exploits", "rows": 163, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.535860Z"}
+{"stream": "all/Fuzzers", "rows": 55, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.538201Z"}
+{"stream": "all/Generic", "rows": 24, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.539499Z"}
+{"stream": "all/Reconnaissance", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.540404Z"}
+{"stream": "all/Shellcode", "rows": 8, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.541138Z"}
+{"stream": "all/Worms", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:34.541883Z"}
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T07:46:34.563782Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0016, "benign_p5": 0.0038, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T07:46:34.792979Z"}
+{"source": "nf-unsw-nb15-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 16693, "prod_benign": 4855, "honeypot_pool": 16566, "trusted_eval": 9589}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T07:46:34.794379Z"}
+{"grid": 0.02, "attack_p5": 0.0015694602327790388, "benign_p5": 0.003838069424263491, "event": "degeneracy grid done", "level": "info", "timestamp": "2026-10-29T07:46:34.821973Z"}
+{"source": "nf-unsw-nb15-v2", "rows": 1095053, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "Exploits": 31551, "Fuzzers": 22310, "Generic": 16560, "Reconnaissance": 12779, "DoS": 5794, "Analysis": 2299, "Backdoor": 2169, "Shellcode": 1427, "Worms": 164}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T07:46:40.475945Z"}
+{"rows": 1021769, "by_class": {"BENIGN": 962539, "Fuzzers": 15503, "Generic": 14640, "Reconnaissance": 12078, "Exploits": 9555, "DoS": 2490, "Backdoor": 1874, "Analysis": 1856, "Shellcode": 1133, "Worms": 101}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T07:46:42.095037Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T07:46:42.118600Z"}
+{"source": "all", "rows_in": 1095053, "rows_out": 73284, "dropped_total": 1021769, "imbalance_ratio_out": 1.045724813667197, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T07:46:42.140706Z"}
+{"total": 35477, "by_day": {"all": 35477}, "grid": 0.05, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T07:46:42.204051Z"}
+{"stream": "all/Analysis", "rows": 26, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.213605Z"}
+{"stream": "all/BENIGN", "rows": 421, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.216409Z"}
+{"stream": "all/Backdoor", "rows": 8, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.218303Z"}
+{"stream": "all/DoS", "rows": 19, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.219504Z"}
+{"stream": "all/Exploits", "rows": 134, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.221945Z"}
+{"stream": "all/Fuzzers", "rows": 32, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.223760Z"}
+{"stream": "all/Generic", "rows": 33, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.224924Z"}
+{"stream": "all/Reconnaissance", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.225801Z"}
+{"stream": "all/Shellcode", "rows": 6, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.226602Z"}
+{"stream": "all/Worms", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T07:46:42.227303Z"}
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T07:46:42.245820Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0034, "benign_p5": 0.008, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T07:46:42.370205Z"}
+{"source": "nf-unsw-nb15-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 12972, "prod_benign": 3927, "honeypot_pool": 12789, "trusted_eval": 7431}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T07:46:42.371331Z"}
+{"grid": 0.05, "attack_p5": 0.0033660324087954564, "benign_p5": 0.008026167251559477, "event": "degeneracy grid done", "level": "info", "timestamp": "2026-10-29T07:46:42.394748Z"}
+ grid  class         family  n_trusted_eval  min_rms  median_rms       tier   p5_rms
+0.005 attack       Analysis              49 0.000000    0.001392 degenerate      NaN
+0.005 attack       Backdoor              57 0.000000    0.017926 degenerate      NaN
+0.005 attack            DoS             618 0.000000    0.004873 degenerate      NaN
+0.005 attack       Exploits            3856 0.000000    0.005392 degenerate      NaN
+0.005 attack        Fuzzers            1122 0.000000    0.003028 degenerate      NaN
+0.005 attack        Generic             367 0.000000    0.019977 degenerate      NaN
+0.005 attack Reconnaissance             126 0.000000    0.000887 degenerate      NaN
+0.005 attack      Shellcode              56 0.000000    0.001781 degenerate      NaN
+0.005 attack          Worms              11 0.000000    0.013703 degenerate      NaN
+0.005 benign         BENIGN            6260 0.000195    0.018040 degenerate 0.001137
+0.005 attack     ALL_ATTACK            6262 0.000000    0.004943 degenerate 0.000552
+0.010 attack       Analysis              43 0.000000    0.002295 degenerate      NaN
+0.010 attack       Backdoor              57 0.000000    0.017926 degenerate      NaN
+0.010 attack            DoS             581 0.000000    0.005592 degenerate      NaN
+0.010 attack       Exploits            3359 0.000000    0.007963 degenerate      NaN
+0.010 attack        Fuzzers             886 0.000000    0.005987 degenerate      NaN
+0.010 attack        Generic             358 0.000000    0.025171 degenerate      NaN
+0.010 attack Reconnaissance              98 0.000000    0.002426 degenerate      NaN
+0.010 attack      Shellcode              57 0.000000    0.002053 degenerate      NaN
+0.010 attack          Worms               9 0.000000    0.013703 degenerate      NaN
+0.010 benign         BENIGN            5690 0.000293    0.023940 degenerate 0.002022
+0.010 attack     ALL_ATTACK            5448 0.000000    0.007633 degenerate 0.000830
+0.020 attack       Analysis              57 0.000000    0.005775 degenerate      NaN
+0.020 attack       Backdoor              53 0.000000    0.026176 degenerate      NaN
+0.020 attack            DoS             499 0.000000    0.008784 degenerate      NaN
+0.020 attack       Exploits            2777 0.000000    0.011764 degenerate      NaN
+0.020 attack        Fuzzers             722 0.000000    0.014162 degenerate      NaN
+0.020 attack        Generic             329 0.000000    0.030874 degenerate      NaN
+0.020 attack Reconnaissance              80 0.000000    0.005364 degenerate      NaN
+0.020 attack      Shellcode              47 0.000000    0.002819 degenerate      NaN
+0.020 attack          Worms               8 0.002153    0.011785 structured      NaN
+0.020 benign         BENIGN            5017 0.000751    0.032898 degenerate 0.003838
+0.020 attack     ALL_ATTACK            4572 0.000000    0.012050 degenerate 0.001569
+0.050 attack       Analysis              34 0.000000    0.014192 degenerate      NaN
+0.050 attack       Backdoor              47 0.000000    0.039818 degenerate      NaN
+0.050 attack            DoS             414 0.000000    0.017640 degenerate      NaN
+0.050 attack       Exploits            2042 0.000000    0.018904 degenerate      NaN
+0.050 attack        Fuzzers             520 0.000000    0.035321 degenerate      NaN
+0.050 attack        Generic             298 0.000000    0.039533 degenerate      NaN
+0.050 attack Reconnaissance              60 0.000000    0.017063 degenerate      NaN
+0.050 attack      Shellcode              37 0.000000    0.004416 degenerate      NaN
+0.050 attack          Worms               7 0.000037    0.013703 degenerate      NaN
+0.050 benign         BENIGN            3972 0.000769    0.045551 degenerate 0.008026
+0.050 attack     ALL_ATTACK            3459 0.000000    0.020807 degenerate 0.003366
+>>> phase0_loop --seeds 5 --val-nn-tau 0 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-unsw-nb15-v2/tau_sweep
+{"detail": "155 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T07:46:44.666914Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "b8a8d9bd0b640fdb", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T07:46:44.667968Z"}
+{"done": 10, "of": 10, "minutes": 0.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T07:47:08.079277Z"}
+>>> phase0_loop --seeds 5 --val-nn-tau 0.005 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-unsw-nb15-v2/tau_sweep
+{"detail": "155 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T07:47:10.867284Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "3d585711df44acda", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T07:47:10.868680Z"}
+{"done": 10, "of": 10, "minutes": 0.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T07:47:41.966960Z"}
+>>> phase0_loop --seeds 5 --val-nn-tau 0.01 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-unsw-nb15-v2/tau_sweep
+{"detail": "155 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T07:47:44.635170Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "6ec69804827d0ea5", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T07:47:44.636269Z"}
