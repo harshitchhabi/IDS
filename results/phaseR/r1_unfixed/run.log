@@ -1,0 +1,16 @@
+>>> phase0_loop --seeds 15 --dataset cicids --val-nn-tau 0.1 --scenarios control a1 --models rf xgboost --jitters 0 0.002 0.005 0.01 0.03 0.1 0.3 0.7 1.5 --ratios 0.2 0.5 --eval-redraw --out results/phaseR/r1/grid36
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-28T22:32:16.938959Z"}
+{"total": 570, "todo": 0, "workers": 3, "config_hash": "b3a8c35b8501c0ca", "event": "loop jobs", "level": "info", "timestamp": "2026-10-28T22:32:16.994972Z"}
+>>> phase0_loop --seeds 30 --dataset cicids --val-nn-tau 0.1 --scenarios control a1 --models xgboost --jitters 0 --ratios 0.5 --out results/phaseR/r1/fixed
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-28T22:32:31.295379Z"}
+{"total": 60, "todo": 0, "workers": 3, "config_hash": "3004dd92b7edf110", "event": "loop jobs", "level": "info", "timestamp": "2026-10-28T22:32:31.300612Z"}
+>>> phase0_loop --seeds 15 --dataset cicids --val-nn-tau 0.1 --scenarios control a1 --models rf --jitters 0.01 0.03 0.1 --ratios 0.2 0.5 --out results/phaseR/r1/fixed
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-28T22:32:36.170045Z"}
+{"total": 105, "todo": 77, "workers": 3, "config_hash": "e9595ea88755990f", "event": "loop jobs", "level": "info", "timestamp": "2026-10-28T22:32:36.175142Z"}
+{"done": 10, "of": 77, "minutes": 3.1, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:35:43.477904Z"}
+{"done": 20, "of": 77, "minutes": 5.2, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:37:50.249670Z"}
+{"done": 30, "of": 77, "minutes": 6.9, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:39:31.712535Z"}
+{"done": 40, "of": 77, "minutes": 10.4, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:43:02.337556Z"}
+{"done": 50, "of": 77, "minutes": 13.9, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:46:30.126663Z"}
+{"done": 60, "of": 77, "minutes": 17.7, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:50:17.003721Z"}
+{"done": 70, "of": 77, "minutes": 21.0, "event": "progress", "level": "info", "timestamp": "2026-10-28T22:53:37.530412Z"}
