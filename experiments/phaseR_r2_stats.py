@@ -12,9 +12,11 @@ defense (and, for R2.4, by crowd factor), which that machinery does not key on.
   R_0.05 and U_0.05 - U_uniform0.05.
 * **R2.3** (cicids, RF/XGBoost): R and U of ``srcpart_a0.5`` next to ShareCap 0.05, dominance by
   mean.
-* **R2.4** (cicids, RF/XGBoost): loss l(m, d) = g(S0, d) - g(s0crowd_m, d), 6-cell Holm family per
-  model (direction loss > 0), the bar, the dilution-attributable difference, and fixed-threshold
-  Delta FPR for every crowd arm.
+* **R2.4** (cicids, RF/XGBoost; fillers as amended by §31.6): loss l(m, d) = g(S0, d) -
+  g(s0crowd_m, d), 6-cell Holm family per (model, filler) (direction loss > 0), the bar (verdict
+  read on the primary stale-replay filler, the benign filler reported beside it), the
+  dilution-attributable difference, fixed-threshold Delta FPR for every crowd arm, and for the
+  stale filler the ``tpr_seed_only`` (DDoS) change.
 
 "Clears Holm" uses the paired t-test (primary, §31); the permutation family is reported beside it.
 
@@ -45,20 +47,26 @@ CAPS = (0.02, 0.05, 0.1, 0.2)
 DEFENSES = ["none"] + [f"sharecap_c{c:g}" for c in CAPS] + ["uniform_w0.05"]
 RATIOS = (0.2, 0.5, 0.9)
 CROWD = (1, 4, 9)
+FILLERS = ("stale", "benign")   # §31.6: stale replay is primary
 
 
 def defense_label(df: pd.DataFrame) -> pd.Series:
     """The job-key suffix form of each row's defense (phase0_loop._defense_suffix)."""
-    d = df.defense.fillna("none")
-    out = d.copy()
-    out[d == "sharecap"] = "sharecap_c" + df.share_cap[d == "sharecap"].map(lambda v: f"{v:g}")
-    out[d == "uniform"] = "uniform_w" + df.uniform_w[d == "uniform"].map(lambda v: f"{v:g}")
-    out[d == "srcpart"] = "srcpart_a" + df.sp_alpha[d == "srcpart"].map(lambda v: f"{v:g}")
-    return out
+    param = {"sharecap": ("share_cap", "c"), "uniform": ("uniform_w", "w"), "srcpart": ("sp_alpha", "a")}
+
+    def one(row) -> str:
+        d = row.defense if isinstance(row.defense, str) else "none"
+        if d not in param:
+            return d
+        col, letter = param[d]
+        return f"{d}_{letter}{row[col]:g}"
+
+    return df.apply(one, axis=1)
 
 
 def final_by_seed(df: pd.DataFrame, model: str, scenario: str, defense: str, mode: str, metric: str,
-                  ratio: float | None = None, crowd: float | None = None) -> pd.Series:
+                  ratio: float | None = None, crowd: float | None = None,
+                  filler: str | None = None) -> pd.Series:
     """Final-round ``metric`` per seed (index = seed) for one arm."""
     sub = df[(df.model == model) & (df.scenario == scenario) & (df.threshold_mode == mode)
              & (df.def_label == defense) & df.seed.isin(SEEDS)]
@@ -67,13 +75,13 @@ def final_by_seed(df: pd.DataFrame, model: str, scenario: str, defense: str, mod
     if scenario == "a1":
         sub = sub[np.isclose(sub.jitter.fillna(0.0), 0.0)]
     if scenario == "s0crowd":
-        sub = sub[np.isclose(sub.crowd_factor, crowd)]
+        sub = sub[np.isclose(sub.crowd_factor, crowd) & (sub.crowd_filler == filler)]
     if sub.empty:
         return pd.Series(dtype=float)
     last = sub.groupby("seed")["round"].transform("max")
     sub = sub[sub["round"] == last]
     if sub.seed.duplicated().any():
-        raise ValueError(f"duplicate final rows for {model} {scenario} {defense} {ratio} {crowd}")
+        raise ValueError(f"duplicate final rows for {model} {scenario} {defense} {ratio} {crowd} {filler}")
     return sub.set_index("seed")[metric].sort_index()
 
 
@@ -122,11 +130,11 @@ class Pair:
         return a.loc[s] - self.ctrl_fpr.loc[s]
 
     def g(self, defense: str, scenario: str = "s0", crowd: float | None = None,
-          metric: str | None = None) -> pd.Series:
+          metric: str | None = None, filler: str | None = None) -> pd.Series:
         metric = metric or self.u_metric
         ctrl = self.ctrl_u if metric == self.u_metric else final_by_seed(
             self.df, self.model, "control", "none", "fixed", metric)
-        a = final_by_seed(self.df, self.model, scenario, defense, "fixed", metric, 0.2, crowd)
+        a = final_by_seed(self.df, self.model, scenario, defense, "fixed", metric, 0.2, crowd, filler)
         s = sorted(set(a.index) & set(ctrl.index))
         return a.loc[s] - ctrl.loc[s]
 
@@ -245,34 +253,41 @@ def r23(p: Pair) -> dict:
                           "tie on both" if sp_dom and sc_dom else "neither dominates")}
 
 
-def r24(p: Pair) -> tuple[list[dict], dict]:
+def r24(p: Pair, filler: str) -> tuple[list[dict], dict]:
     sc = "sharecap_c0.05"
     fam, extra = [], []
+    tag = f"{p.model} {filler}"
     for d in ("none", sc):
         g0 = p.g(d)
         for m in CROWD:
-            gm = p.g(d, "s0crowd", m)
-            fam.append(cell(paired(g0, gm), f"R2.4 {p.model} loss m={m} {d}", model=p.model,
-                            family=f"R2.4 {p.model}", crowd_factor=m, defense=d, metric="loss l(m,d)"))
+            gm = p.g(d, "s0crowd", m, filler=filler)
+            fam.append(cell(paired(g0, gm), f"R2.4 {tag} loss m={m} {d}", model=p.model, filler=filler,
+                            family=f"R2.4 {tag}", crowd_factor=m, defense=d, metric="loss l(m,d)"))
     apply_holm(fam, "positive")
     for m in CROWD:
-        l_sc = p.g(sc) - p.g(sc, "s0crowd", m)
-        l_none = p.g("none") - p.g("none", "s0crowd", m)
+        l_sc = p.g(sc) - p.g(sc, "s0crowd", m, filler=filler)
+        l_none = p.g("none") - p.g("none", "s0crowd", m, filler=filler)
         extra.append(cell(paired(l_sc.dropna(), l_none.dropna()),
-                          f"R2.4 {p.model} dilution-attributable m={m}", model=p.model,
+                          f"R2.4 {tag} dilution-attributable m={m}", model=p.model, filler=filler,
                           family="R2.4 dilution (descriptive)", crowd_factor=m,
                           metric="l(m,c0.05) - l(m,none)"))
         for d in ("none", sc):
-            a = final_by_seed(p.df, p.model, "s0crowd", d, "fixed", "fpr", 0.2, m)
-            extra.append(cell(paired(a, p.ctrl_fpr), f"R2.4 {p.model} crowd m={m} {d} dFPR fixed",
-                              model=p.model, family="R2.4 crowd FPR (descriptive)", crowd_factor=m,
-                              defense=d, metric="dFPR fixed"))
+            a = final_by_seed(p.df, p.model, "s0crowd", d, "fixed", "fpr", 0.2, m, filler)
+            extra.append(cell(paired(a, p.ctrl_fpr), f"R2.4 {tag} crowd m={m} {d} dFPR fixed",
+                              model=p.model, filler=filler, family="R2.4 crowd FPR (descriptive)",
+                              crowd_factor=m, defense=d, metric="dFPR fixed"))
+            if filler == "stale":   # §31.6: replaying DDoS may move the seed_only (DDoS) arm
+                extra.append(cell(p.g(d, "s0crowd", m, "tpr_seed_only", filler).to_numpy(),
+                                  f"R2.4 {tag} crowd m={m} {d} dTPR_seed_only fixed",
+                                  model=p.model, filler=filler, family="R2.4 seed_only TPR (descriptive)",
+                                  crowd_factor=m, defense=d, metric="dTPR_seed_only fixed"))
     by = {(r["crowd_factor"], r["defense"]): r for r in fam}
     g_sc = float(p.g(sc).mean())
     l9 = by[(9, sc)]["mean"]
     any_clear = any(by[(m, sc)]["clears_holm"] for m in CROWD)
     holds = by[(9, sc)]["clears_holm"] and l9 >= 0.5 * g_sc
-    v = {"model": p.model, "l9_c0.05": l9, "half_g_S0_c0.05": 0.5 * g_sc, "g_S0_c0.05": g_sc,
+    v = {"model": p.model, "filler": filler, "role": "primary" if filler == "stale" else "secondary",
+         "l9_c0.05": l9, "half_g_S0_c0.05": 0.5 * g_sc, "g_S0_c0.05": g_sc,
          "m9_clears_holm": by[(9, sc)]["clears_holm"], "any_m_clears_holm_c0.05": any_clear,
          "verdict": "holds" if holds else "does not hold" if not any_clear else "mixed"}
     return fam + extra, v
@@ -297,9 +312,10 @@ def main(argv: list[str] | None = None) -> int:
         verdicts["R2.1"].append(v)
         if args.dataset == "cicids" and model in ("rf", "xgboost"):
             verdicts["R2.3"].append(r23(p))
-            fam4, v4 = r24(p)
-            cells += fam4
-            verdicts["R2.4"].append(v4)
+            for filler in FILLERS:
+                fam4, v4 = r24(p, filler)
+                cells += fam4
+                verdicts["R2.4"].append(v4)
 
     out = args.root / args.dataset
     pd.DataFrame(cells).to_csv(out / "stats.csv", index=False)
