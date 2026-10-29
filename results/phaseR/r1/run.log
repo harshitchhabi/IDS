@@ -78,3 +78,7 @@
 {"done": 60, "of": 105, "minutes": 12.8, "event": "progress", "level": "info", "timestamp": "2026-10-29T07:21:56.117175Z"}
 {"done": 70, "of": 105, "minutes": 16.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T07:25:28.145862Z"}
 {"done": 80, "of": 105, "minutes": 19.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T07:28:15.435386Z"}
+{"done": 90, "of": 105, "minutes": 22.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T07:31:04.841267Z"}
+{"done": 100, "of": 105, "minutes": 25.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T07:34:33.571635Z"}
+{"done": 105, "of": 105, "minutes": 26.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T07:35:37.550088Z"}
+R1 runs complete
