@@ -1,0 +1,39 @@
+>>> phase0_loop --seeds 15 --val-nn-tau 0 --scenarios control a1 --models rf xgboost --jitters 0 0.7 --ratios 0.2 0.5 --out results/phaseR/r3/nf-cse-cic-ids2018-v2
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:25:53.719562Z"}
+{"total": 150, "todo": 150, "workers": 3, "config_hash": "a19eb6ca86b3e900", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:25:53.726124Z"}
+{"done": 10, "of": 150, "minutes": 1.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:27:20.043544Z"}
+{"done": 20, "of": 150, "minutes": 2.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:28:23.597699Z"}
+{"done": 30, "of": 150, "minutes": 3.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:29:27.187734Z"}
+{"done": 40, "of": 150, "minutes": 4.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:30:04.874171Z"}
+{"done": 50, "of": 150, "minutes": 4.7, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:30:35.449250Z"}
+{"done": 60, "of": 150, "minutes": 5.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:31:08.306179Z"}
+{"done": 70, "of": 150, "minutes": 6.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:32:12.593840Z"}
+{"done": 80, "of": 150, "minutes": 6.9, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:32:50.250044Z"}
+{"done": 90, "of": 150, "minutes": 7.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:33:23.078231Z"}
+{"done": 100, "of": 150, "minutes": 9.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:35:09.900630Z"}
+{"done": 110, "of": 150, "minutes": 10.7, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:36:35.291045Z"}
+{"done": 120, "of": 150, "minutes": 12.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:38:04.627398Z"}
+{"done": 130, "of": 150, "minutes": 12.8, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:38:44.024324Z"}
+{"done": 140, "of": 150, "minutes": 13.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:39:22.178759Z"}
+{"done": 150, "of": 150, "minutes": 14.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:40:04.450539Z"}
+>>> phase0_loop --seeds 15 --val-nn-tau 0 --scenarios a1truth s0j --models rf --jitters 0.7 --ratios 0.2 --out results/phaseR/r3/nf-cse-cic-ids2018-v2
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:40:07.262518Z"}
+{"total": 30, "todo": 30, "workers": 3, "config_hash": "c030a699c14be631", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:40:07.264700Z"}
+{"done": 10, "of": 30, "minutes": 1.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:41:31.047021Z"}
+{"done": 20, "of": 30, "minutes": 2.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:42:33.128179Z"}
+{"done": 30, "of": 30, "minutes": 3.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:43:35.740564Z"}
+>>> phase0_loop --seeds 15 --val-nn-tau 0 --scenarios junk --models rf --jitters 0.0 --ratios 0.2 --out results/phaseR/r3/nf-cse-cic-ids2018-v2
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:43:38.450338Z"}
+{"total": 15, "todo": 15, "workers": 3, "config_hash": "0c3f7c12677f1cde", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:43:38.452431Z"}
+{"done": 10, "of": 15, "minutes": 1.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:44:54.498936Z"}
+{"done": 15, "of": 15, "minutes": 1.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:45:13.389406Z"}
+>>> phase0_loop --seeds 15 --val-nn-tau 0 --scenarios a1 --models rf xgboost --jitters 0 --ratios 0.2 0.5 --defense sharecap --share-cap 0.05 --out results/phaseR/r3/nf-cse-cic-ids2018-v2
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:45:16.076823Z"}
+{"total": 60, "todo": 60, "workers": 3, "config_hash": "d5522383b9b07b1d", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:45:16.079903Z"}
+{"done": 10, "of": 60, "minutes": 1.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:46:38.388706Z"}
+{"done": 20, "of": 60, "minutes": 2.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:47:18.305558Z"}
+{"done": 30, "of": 60, "minutes": 2.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:47:47.635834Z"}
+{"done": 40, "of": 60, "minutes": 4.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:49:18.751047Z"}
+{"done": 50, "of": 60, "minutes": 4.8, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:50:03.673290Z"}
+{"done": 60, "of": 60, "minutes": 5.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:50:36.667610Z"}
+R3 main runs complete for nf-cse-cic-ids2018-v2
