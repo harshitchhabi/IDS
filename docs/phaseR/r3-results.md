@@ -64,3 +64,20 @@ filter. Reported here instead of substituting tau 0.1.
 | 0.05 | 0.0047 | 0.0079 | 0.562 |
 | 0.1 | 0.0027 | 0.0055 | 0.724 |
 | 0.2 | 0.0019 | 0.0023 | 0.886 |
+
+### NF-ToN-IoT-v2
+
+**Grid:** 0.005 (passes `assert_disjoint`; 0.0 is valid here too, no near-duplicates, but the
+committed `NETFLOW_GRID` and §31.3's rule keep 0.005). Unchanged.
+
+**Tau: 0.** Every tau meets the bar; the rule takes the smallest. `phaseA_tau_floor.py` printed 0.0.
+
+| tau | RF FPR | XGB FPR | val benign dropped |
+|---|---:|---:|---:|
+| 0 | 0.0044 | 0.0082 | 0.000 |
+| 0.005 | 0.0037 | 0.0073 | 0.171 |
+| 0.01 | 0.0036 | 0.0087 | 0.263 |
+| 0.02 | 0.0034 | 0.0055 | 0.388 |
+| 0.05 | 0.0025 | 0.0041 | 0.572 |
+| 0.1 | 0.0022 | 0.0023 | 0.744 |
+| 0.2 | 0.0006 | 0.0006 | 0.883 |
