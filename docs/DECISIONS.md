@@ -3017,3 +3017,58 @@ tests the command chain (loader, cache, grid sweep, degeneracy, tau sweep, all s
 not the real data: the first real-data run of stage 1 is the R3 session's own smoke step. The
 loader, partition, loop and subsampler are also unit-tested on synthetic NetFlow-v2-shaped
 data (`tests/test_phaseR.py`). The session files say exactly what was smoke-tested.
+
+### 31.6 Addendum, dated 2026-10-29, before any Phase R run: the R2.4 crowd-out filler
+
+Written before any Phase R run: the only runs so far are §31.5's 1-seed / 2-round smoke tests.
+This addendum changes one thing, R2.4's filler. Nothing else in §31 changes, and §31.2's text is
+left as written; for R2.4's filler, this section supersedes it.
+
+**Why.** R2.4 as registered fills the honeypot with benign rows at jitter 0.7, stamped
+malicious. Those rows damage RF on their own: that is s26.6/s26.8's confirmed at-distance
+result (recalibrated $\Delta$TPR about $-0.13$ at ratio 0.2, realized distance about 0.56). Under
+that filler, a loss of S0's detection gain mixes two things: dilution of the genuine attack
+rows' share of the capped budget, which is what R2.4 is meant to measure, and the filler's own
+label conflict. §31.2 named this confound and planned to separate the two by subtraction
+(capped minus uncapped). A filler with no label conflict separates them by construction.
+
+**Primary filler (new): stale replay.** Rows of one attack family that is already in
+seed_train, replayed into the honeypot batch at the same factors as before ($m\in$ {1, 4, 9}
+filler rows per genuine row). Each row is correctly labelled (true label 1, stamped 1). It adds
+volume with no label conflict and no information the detector has not already trained on, so
+any loss of S0's gain under the cap is dilution alone. **Family, by a rule fixed now:** the
+attack family with the most rows in the loop's seed_train subsample. On CICIDS2017 that is
+**DDoS**: 4,980 of the subsample's 5,577 attack rows (next largest: DoS GoldenEye, 223).
+
+DoS Hulk, given as an example when this addendum was requested, cannot be used. On CICIDS2017
+it is withheld from seed_train, and it is the `honeypot_only` family whose TPR gain R2.4
+measures. Replaying it would add exactly the information whose dilution is being measured.
+DDoS is the `seed_only` arm (withheld from the honeypot pool), so replaying it touches neither
+the outcome arm nor the pool S0 draws from. At $m=9$ the replay needs up to 67,500 rows from
+4,980 unique ones, so rows repeat (`batch_resampled` = True). For a replay of stale traffic that
+is the intended behaviour, not a pool shortage.
+
+**Secondary filler: kept.** Benign rows at jitter 0.7, stamped malicious, as originally
+registered.
+
+**Cells.** Both fillers $\times$ $m\in$ {1, 4, 9} $\times$ defense $\in$ {none, ShareCap
+$c=0.05$} $\times$ {RF, XGBoost}; CICIDS2017, tau 0.1, S0 at ratio 0.2, 15 seeds. The uncapped
+(`none`) measurement is kept for both fillers. Loss $\ell(m,d)$ and the S0 reference arms are as
+R2.4 defines them. Family: 6 cells ($m\times d$) per (model, filler), Holm within each.
+
+**Bar: unchanged**, quoted from R2.4: "**crowd-out defeats ShareCap** (holds) iff under $c=0.05$
+the $m=9$ loss clears Holm and $\ell(9, c{=}0.05)\ge0.5\,g(\mathrm{S0}, c{=}0.05)$; **does not
+hold** iff no $m$ clears Holm under $c=0.05$; **mixed** otherwise." **The verdict is read on the
+primary (stale) filler.** The same bar, evaluated on the secondary filler, is reported next to
+it as secondary, never in its place. Also reported for both fillers, descriptively: the
+dilution-attributable difference $\ell(m, c{=}0.05) - \ell(m, \text{none})$, and fixed-threshold
+FPR. For the stale filler, `seed_only` (DDoS) TPR is reported too, since replaying DDoS may move
+it.
+
+**Code (this commit).** `dloop.adversary.crowd.StaleReplayAdversary`, and `LoopData.seed_family`
+(a new array in the loop `.npz`, added without consuming a random draw). Rebuilding
+`data/loop/cicids.npz` gives byte-identical copies of all 16 arrays the previous build had,
+checked array by array. Runner flags: `--crowd-filler stale --crowd-family DDoS` (the default,
+`--crowd-filler benign`, keeps the earlier job keys). Unit tests are in `tests/test_phaseR.py`.
+The updated `experiments/run_phaseR_r2.sh cicids` was smoke-tested end to end at 1 seed / 2
+rounds before this commit. R2.4 grows from 180 to 360 jobs.

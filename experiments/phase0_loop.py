@@ -27,7 +27,7 @@ import pandas as pd
 
 from dloop.sim.dataset import ALL_SOURCES
 from dloop.adversary.clean import CleanAdversary
-from dloop.adversary.crowd import CrowdOutAdversary
+from dloop.adversary.crowd import CrowdOutAdversary, StaleReplayAdversary
 from dloop.adversary.mimicry import (FidelityMeter, JitterAdversary, JunkAdversary, MimicryAdversary,
                                      assert_disjoint_from_eval)
 from dloop.logging_config import configure, get_logger
@@ -107,7 +107,10 @@ def _make_defense(j: dict):
 
 def _job_key(j: dict) -> str:
     pad = f"_pad{j['pad']:g}" if j["pad"] != 1.0 else ""
-    crowd = f"_cf{j['crowd_factor']:g}_cj{j['crowd_jitter']:g}" if j["scenario"] == "s0crowd" else ""
+    crowd = ""
+    if j["scenario"] == "s0crowd":
+        crowd = (f"_cf{j['crowd_factor']:g}_cj{j['crowd_jitter']:g}" if j["crowd_filler"] == "benign"
+                 else f"_cf{j['crowd_factor']:g}_cstale{j['crowd_family'].replace(' ', '-')}")
     evr = "_evr" if j["eval_redraw"] else ""
     return (f"{j['scenario']}_{j['model']}_s{j['seed']}_j{j['jitter']}_r{j['ratio']}{pad}{crowd}"
             f"{_loop_config(j).tag()}{_defense_tag(j)}{evr}")
@@ -130,9 +133,10 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
     elif sc == "s0j":   # genuine attack rows, jittered like A1's poison, labelled malicious
         adv = JitterAdversary(_DATA.pool_attack_x, _DATA.normalizer, j["jitter"], seed, true_label=1)
     elif sc == "s0crowd":   # S0's genuine attacks plus benign-like filler crowding the honeypot share
-        adv = CrowdOutAdversary(CleanAdversary(_DATA.pool_attack_x, seed),
-                                MimicryAdversary(_DATA.pool_benign_x, _DATA.normalizer, j["crowd_jitter"], seed),
-                                j["crowd_factor"])
+        filler = (MimicryAdversary(_DATA.pool_benign_x, _DATA.normalizer, j["crowd_jitter"], seed)
+                  if j["crowd_filler"] == "benign"
+                  else StaleReplayAdversary(_DATA.seed_family_rows(j["crowd_family"]), seed))
+        adv = CrowdOutAdversary(CleanAdversary(_DATA.pool_attack_x, seed), filler, j["crowd_factor"])
     else:
         raise ValueError(sc)
     defense = _make_defense(j)
@@ -150,7 +154,10 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
                    "share_cap": j["share_cap"] if j["defense"] == "sharecap" else float("nan"),
                    "sp_alpha": j["sp_alpha"] if j["defense"] == "srcpart" else float("nan"),
                    "crowd_factor": j["crowd_factor"] if sc == "s0crowd" else float("nan"),
-                   "crowd_jitter": j["crowd_jitter"] if sc == "s0crowd" else float("nan"),
+                   "crowd_jitter": (j["crowd_jitter"] if sc == "s0crowd" and j["crowd_filler"] == "benign"
+                                    else float("nan")),
+                   "crowd_filler": j["crowd_filler"] if sc == "s0crowd" else "",
+                   "crowd_family": j["crowd_family"] if sc == "s0crowd" and j["crowd_filler"] == "stale" else "",
                    "eval_redraw": bool(j["eval_redraw"])}
     if sc in ("a1", "a1truth") and res.poison_x is not None and _FID is not None:
         d = _FID.distances(res.poison_x, max_rows=FIDELITY_ROWS, rng=np.random.default_rng(seed))
@@ -188,6 +195,11 @@ def main(argv: list[str] | None = None) -> int:
                     help="s0crowd: filler rows per genuine attack row")
     ap.add_argument("--crowd-jitter", type=float, default=0.7,
                     help="s0crowd: jitter of the benign-like filler (A1's generator)")
+    ap.add_argument("--crowd-filler", choices=["benign", "stale"], default="benign",
+                    help="s0crowd filler: benign rows at --crowd-jitter (stamped malicious), or "
+                         "stale replay of one seed_train attack family (correctly labelled)")
+    ap.add_argument("--crowd-family", default="",
+                    help="s0crowd --crowd-filler stale: the seed_train attack family replayed")
     ap.add_argument("--eval-redraw", action="store_true",
                     help="redraw the trusted_eval subsample per seed (default: the fixed subsample)")
     ap.add_argument("--d1-components", default="", help="comma list from duration_s,packets,bytes,depth (ablation)")
@@ -222,6 +234,13 @@ def main(argv: list[str] | None = None) -> int:
     except AssertionError as e:
         n_checked_atk, atk_note = int(len(data.pool_attack_x)), str(e)
         log.warning("attack-side pool/eval overlap (cross-family, non-fatal)", detail=atk_note)
+    if "s0crowd" in args.scenarios and args.crowd_filler == "stale":
+        if not args.crowd_family:
+            ap.error("--crowd-filler stale needs --crowd-family")
+        try:
+            data.seed_family_rows(args.crowd_family)   # fails fast: old cache or family absent
+        except ValueError as e:
+            ap.error(str(e))
     if args.eval_redraw:
         if data.eval_attack_full_x is None:
             ap.error(f"{data_path} predates --eval-redraw; rebuild it with phase0_loop_data")
@@ -247,6 +266,7 @@ def main(argv: list[str] | None = None) -> int:
                  d1_estar=args.d1_estar, d1_gamma=args.d1_gamma, d1_components=args.d1_components,
                  d1_quantile=args.d1_quantile, d1_ref=args.d1_reference, uniform_w=args.uniform_w, share_cap=args.share_cap,
                  sp_alpha=args.sp_alpha, crowd_factor=args.crowd_factor, crowd_jitter=args.crowd_jitter,
+                 crowd_filler=args.crowd_filler, crowd_family=args.crowd_family,
                  eval_redraw=args.eval_redraw)
         _loop_config(j)   # validate the combination up front
     jobs.sort(key=lambda j: (RATIO_PRIORITY.get(j["ratio"], 0), -j["ratio"], j["scenario"],
@@ -261,7 +281,8 @@ def main(argv: list[str] | None = None) -> int:
               "d1_gamma": args.d1_gamma, "d1_components": args.d1_components,
               "d1_quantile": args.d1_quantile, "d1_reference": args.d1_reference, "uniform_w": args.uniform_w, "share_cap": args.share_cap,
               "sp_alpha": args.sp_alpha, "crowd_factor": args.crowd_factor,
-              "crowd_jitter": args.crowd_jitter, "eval_redraw": args.eval_redraw,
+              "crowd_jitter": args.crowd_jitter, "crowd_filler": args.crowd_filler,
+              "crowd_family": args.crowd_family, "eval_redraw": args.eval_redraw,
               "fidelity_rows": FIDELITY_ROWS, "arm_counts": data.arm_counts(),
               "seed_rows": int(len(data.seed_x)), "eval_rows": int(len(data.eval_x)),
               "a1_poison_source_rows_checked_disjoint_from_eval_benign": n_checked,

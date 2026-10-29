@@ -11,7 +11,7 @@ import pytest
 
 from dloop.adversary.base import TRUE_LABEL, features_of
 from dloop.adversary.clean import CleanAdversary
-from dloop.adversary.crowd import CrowdOutAdversary
+from dloop.adversary.crowd import CrowdOutAdversary, StaleReplayAdversary
 from dloop.adversary.mimicry import MimicryAdversary
 from dloop.defense.base import NoOpDefense
 from dloop.defense.generic import ShareCap, SourcePartition
@@ -146,6 +146,39 @@ def test_crowd_out_factor_zero_is_s0(loop_data):
     assert np.array_equal(features_of(a), features_of(b))
     with pytest.raises(ValueError):
         _crowd(loop_data, -1.0)
+
+
+def _largest_seed_attack_family(ld):
+    fams, counts = np.unique(ld.seed_family[ld.seed_y == 1], return_counts=True)
+    return str(fams[np.argmax(counts)])
+
+
+def test_stale_filler_replays_correctly_labelled_seed_rows_of_one_family(loop_data):
+    fam = _largest_seed_attack_family(loop_data)
+    rows = loop_data.seed_family_rows(fam)
+    assert len(rows) == int(((loop_data.seed_family == fam) & (loop_data.seed_y == 1)).sum())
+    adv = CrowdOutAdversary(CleanAdversary(loop_data.pool_attack_x, 1), StaleReplayAdversary(rows, 1), 4.0)
+    batch, cost = adv.generate_batch(1, 40)
+    filler = features_of(batch)[~CrowdOutAdversary.genuine_mask(batch)]
+    assert len(filler) == 160 and cost.flows == 200
+    assert (batch[TRUE_LABEL] == 1).all()                      # no label conflict anywhere
+    seed_keys = {r.tobytes() for r in rows.astype("float64")}
+    assert all(r.tobytes() in seed_keys for r in filler)       # every filler row is already trained on
+
+
+def test_stale_filler_reuses_rows_once_the_family_runs_out(loop_data):
+    rows = loop_data.seed_family_rows(_largest_seed_attack_family(loop_data))
+    batch, _ = StaleReplayAdversary(rows, 1).generate_batch(1, 3 * len(rows))
+    assert len(batch) == 3 * len(rows) and batch.attrs["resampled"]
+
+
+def test_stale_filler_refuses_a_family_absent_from_seed_train(loop_data):
+    # DoS Hulk is withheld from seed_train in this fixture (and on CICIDS2017)
+    with pytest.raises(ValueError, match="no seed_train attack rows"):
+        loop_data.seed_family_rows("DoS Hulk")
+    old = LoopData(**{k: v for k, v in vars(loop_data).items() if k != "seed_family"})
+    with pytest.raises(ValueError, match="predates"):
+        old.seed_family_rows("DDoS")
 
 
 def test_crowd_out_dilutes_genuine_rows_under_share_cap(loop_data):
