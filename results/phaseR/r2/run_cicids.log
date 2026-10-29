@@ -89,3 +89,5 @@
 {"total": 180, "todo": 180, "workers": 3, "config_hash": "5a00ece209d6a688", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T04:33:30.261335Z"}
 {"done": 10, "of": 180, "minutes": 39.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T05:12:59.877207Z"}
 {"done": 20, "of": 180, "minutes": 68.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T05:41:38.189635Z"}
+=== resumed after container restart Thu Oct 29 05:50:23 UTC 2026 ===
+>>> phase0_loop --seeds 15 --scenarios control --models rf xgboost logreg mlp
