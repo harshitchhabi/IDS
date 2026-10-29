@@ -51,3 +51,16 @@
 {"done": 90, "of": 180, "minutes": 193.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:28:49.170423Z"}
 {"done": 100, "of": 180, "minutes": 196.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:31:22.185499Z"}
 {"done": 110, "of": 180, "minutes": 198.7, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:34:02.859198Z"}
+{"done": 120, "of": 180, "minutes": 201.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:36:36.495476Z"}
+{"done": 130, "of": 180, "minutes": 205.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:40:53.701887Z"}
+{"done": 140, "of": 180, "minutes": 209.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:44:24.254511Z"}
+{"done": 150, "of": 180, "minutes": 212.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:47:16.618413Z"}
+{"done": 160, "of": 180, "minutes": 215.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:50:23.558098Z"}
+{"done": 170, "of": 180, "minutes": 218.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:53:29.794047Z"}
+{"done": 180, "of": 180, "minutes": 221.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:56:54.222137Z"}
+>>> phase0_loop --seeds 15 --scenarios s0 --models rf xgboost logreg mlp --ratios 0.2 --defense sharecap --share-cap 0.02
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T22:56:59.555505Z"}
+{"total": 60, "todo": 60, "workers": 3, "config_hash": "16d5f15e7d064e0a", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T22:56:59.560073Z"}
+{"done": 10, "of": 60, "minutes": 2.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T22:59:22.023482Z"}
+{"done": 20, "of": 60, "minutes": 4.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T23:01:23.485439Z"}
+{"done": 30, "of": 60, "minutes": 6.7, "event": "progress", "level": "info", "timestamp": "2026-10-29T23:03:41.029950Z"}
