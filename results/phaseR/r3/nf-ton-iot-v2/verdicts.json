@@ -1,0 +1,22 @@
+{
+  "rf": {
+    "R3.1": "holds",
+    "R3.1_per_ratio": {
+      "0.2": true,
+      "0.5": true
+    },
+    "R3.3": "does not hold",
+    "R3.3_R_0.5": 0.2256716253746529
+  },
+  "xgboost": {
+    "R3.1": "holds",
+    "R3.1_per_ratio": {
+      "0.2": true,
+      "0.5": true
+    },
+    "R3.3": "does not hold",
+    "R3.3_R_0.5": 0.29867817642298355
+  },
+  "R3.2": "mixed",
+  "R3.2_secondary_holds": true
+}

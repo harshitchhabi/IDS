@@ -1,0 +1,39 @@
+>>> phase0_loop --seeds 15 --val-nn-tau 0 --scenarios control a1 --models rf xgboost --jitters 0 0.7 --ratios 0.2 0.5 --out results/phaseR/r3/nf-ton-iot-v2
+{"detail": "55 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T15:03:21.766098Z"}
+{"total": 150, "todo": 150, "workers": 3, "config_hash": "9e95f79b8d79aab6", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T15:03:21.770288Z"}
+{"done": 10, "of": 150, "minutes": 1.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:04:31.058177Z"}
+{"done": 20, "of": 150, "minutes": 2.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:05:24.384287Z"}
+{"done": 30, "of": 150, "minutes": 2.9, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:06:17.726997Z"}
+{"done": 40, "of": 150, "minutes": 3.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:06:45.797438Z"}
+{"done": 50, "of": 150, "minutes": 3.8, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:07:10.178817Z"}
+{"done": 60, "of": 150, "minutes": 4.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:07:36.301080Z"}
+{"done": 70, "of": 150, "minutes": 5.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:08:30.336148Z"}
+{"done": 80, "of": 150, "minutes": 5.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:08:58.198317Z"}
+{"done": 90, "of": 150, "minutes": 6.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:09:21.355704Z"}
+{"done": 100, "of": 150, "minutes": 7.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:10:51.483818Z"}
+{"done": 110, "of": 150, "minutes": 8.8, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:12:08.292813Z"}
+{"done": 120, "of": 150, "minutes": 10.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:13:24.497356Z"}
+{"done": 130, "of": 150, "minutes": 10.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:13:53.889826Z"}
+{"done": 140, "of": 150, "minutes": 11.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:14:23.744256Z"}
+{"done": 150, "of": 150, "minutes": 11.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:14:56.741499Z"}
+>>> phase0_loop --seeds 15 --val-nn-tau 0 --scenarios a1truth s0j --models rf --jitters 0.7 --ratios 0.2 --out results/phaseR/r3/nf-ton-iot-v2
+{"detail": "55 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T15:14:59.221935Z"}
+{"total": 30, "todo": 30, "workers": 3, "config_hash": "830e42c34cfa333b", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T15:14:59.223680Z"}
+{"done": 10, "of": 30, "minutes": 1.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:16:09.729571Z"}
+{"done": 20, "of": 30, "minutes": 2.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:17:03.439148Z"}
+{"done": 30, "of": 30, "minutes": 3.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:17:58.393436Z"}
+>>> phase0_loop --seeds 15 --val-nn-tau 0 --scenarios junk --models rf --jitters 0.0 --ratios 0.2 --out results/phaseR/r3/nf-ton-iot-v2
+{"detail": "55 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T15:18:01.114255Z"}
+{"total": 15, "todo": 15, "workers": 3, "config_hash": "98ad2c73131be7e5", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T15:18:01.116153Z"}
+{"done": 10, "of": 15, "minutes": 1.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:19:07.833693Z"}
+{"done": 15, "of": 15, "minutes": 1.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:19:24.911600Z"}
+>>> phase0_loop --seeds 15 --val-nn-tau 0 --scenarios a1 --models rf xgboost --jitters 0 --ratios 0.2 0.5 --defense sharecap --share-cap 0.05 --out results/phaseR/r3/nf-ton-iot-v2
+{"detail": "55 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T15:19:27.608603Z"}
+{"total": 60, "todo": 60, "workers": 3, "config_hash": "a4f5ddcb9545ffe3", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T15:19:27.611360Z"}
+{"done": 10, "of": 60, "minutes": 1.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:20:34.038068Z"}
+{"done": 20, "of": 60, "minutes": 1.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:21:05.553038Z"}
+{"done": 30, "of": 60, "minutes": 2.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:21:27.507717Z"}
+{"done": 40, "of": 60, "minutes": 3.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:22:47.221667Z"}
+{"done": 50, "of": 60, "minutes": 4.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:23:25.157213Z"}
+{"done": 60, "of": 60, "minutes": 4.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T15:23:50.795595Z"}
+R3 main runs complete for nf-ton-iot-v2
