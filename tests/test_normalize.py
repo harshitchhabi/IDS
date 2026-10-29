@@ -29,3 +29,17 @@ def test_constant_feature_does_not_blow_up():
     norm = fit_normalizer(df)
     x = norm.transform(df)
     assert np.isfinite(x).all()
+
+
+def test_log1p_is_float64_path_so_transform_is_platform_independent():
+    # Regression for the R1 determinism fix (DECISIONS §31.2): log1p must be computed
+    # in float64 and rounded once to float32, not via numpy's SIMD-dispatched float32
+    # log1p, which is 1 ulp off on some x86 builds and flips near-dup grid rows.
+    from dloop.features.normalize import _log1p32
+
+    rng = np.random.default_rng(7)
+    x = rng.lognormal(3.0, 1.0, 50_000).astype("float32")
+    expected = np.log1p(x.astype("float64")).astype("float32")
+    got = _log1p32(x)
+    # Bit-identical to the correctly-rounded float64 path, every input.
+    assert np.array_equal(got.view("uint32"), expected.view("uint32"))

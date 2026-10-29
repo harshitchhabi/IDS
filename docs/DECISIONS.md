@@ -3126,3 +3126,49 @@ surfaced, neither of which changes a cell, a bar or the pipeline's behaviour:
    exactly as it already did for guard (a)'s `AssertionError`. On NF-UNSW-NB15-v2, grid 0.0 is
    invalid and 0.005-0.05 are valid. §31.3's rule (gentlest valid grid) therefore still gives
    0.005, and `NETFLOW_GRID` is unchanged.
+
+### 31.8 Addendum, dated 2026-10-29: R1 determinism fix on main, and why thread count is *not* R1.b's explanation
+
+The platform-independent `log1p` fix (branch `claude/phase-r-session-r1-oxrgw5`, the
+single commit that computes `log1p` in float64 and rounds once to float32,
+`dloop.features.normalize._log1p32`) is now on main, with a regression test
+(`tests/test_normalize.py::test_log1p_is_float64_path_so_transform_is_platform_independent`).
+The R1 *results* are deliberately not merged. This addendum records what the fix does on this
+laptop and resolves the reproduction check R1.b (§31.1) withheld its verdict behind. It changes
+no cell, no bar and no published number.
+
+**What the fix changes here (loop-cache rebuild, byte-level).** Rebuilding `data/loop/*.npz`
+with the fix and comparing against a same-code pre-fix baseline:
+
+- **synthetic: every array byte-identical.** The fix is a no-op for the synthetic source.
+- **cicids: every data array byte-identical** — `seed_x`, `pool_benign_x` (344,221 rows, the
+  published count), `pool_attack_x`, all eval arrays, labels, families — **except `norm_scale`**,
+  the stored 24-element global-normalizer IQR, which differs in **1 of 24 elements by one float64
+  ULP (1.49e-8, 3.3e-9 relative)**. On this machine the pre-fix build already produced the
+  published partitions (344,221, not the cloud build's 344,227), so the only local effect of the
+  float64 path is that sub-ULP shift in one normalizer constant.
+
+**Published-job reruns (one RF, one XGBoost; control, seed 2, 20 rounds, fixed build).**
+
+- **RF: bit-identical to the published CSV** — max absolute difference 0.000 over every numeric
+  cell, round-0 fixed threshold 0.1159999999999999 and recalibrated 0.3502222222222222 both exact.
+- **XGBoost: differs** — round-0 fixed threshold 0.0715470761060714 here vs the published
+  0.0715088546276092 (~3.8e-5), which flips borderline eval rows (fp/tn differ by 239, tp/fn by
+  31). RF, which consumes the *identical* normalized inputs and is bit-identical, rules out the
+  data path and the `log1p` fix as the cause: the XGBoost gap is cross-machine, in XGBoost alone.
+
+**Thread count is ruled out (the R1.b explanation, negative).** Running the same XGBoost control
+seed-2 job three times with `n_jobs` = 1, 4 and default gives the **identical** round-0 threshold
+every time (0.0715470761060714 in all three) — equal to this machine's rerun and still different
+from the published cloud value. So the cross-machine XGBoost mismatch is **not** driven by thread
+count, and is not a bug in this project's code (the model already fixes `n_jobs=1`, inputs are
+bit-identical via RF). It is XGBoost's `hist` algorithm not being bit-reproducible across CPU
+microarchitecture / XGBoost build. The consequence for R1.b: its reproduction check ("seeds 1-5
+must reproduce §25.6 exactly") is only meaningful **within one build**; a cross-machine XGBoost
+threshold difference at the 1e-5 scale is expected and is not the determinism bug the check was
+guarding against. R1.b's verdict may therefore be read from runs pinned to a single machine/build,
+with this XGBoost cross-build nondeterminism noted as a limitation, not resolved by the `log1p`
+fix. RF reproduces bit-for-bit cross-machine and needs no such caveat.
+
+(The user's step named this "§31.2"; §31.2 is already R2 ShareCap generality, so it is recorded
+here as §31.8, cross-referenced from R1.b.)
