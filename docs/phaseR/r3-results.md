@@ -339,3 +339,162 @@ iff that contrast is negative with paired-$t$ $p<0.05$. **Met** on all three (p_
 evaluable" iff R3.1's ratio-0.5 jitter-0 $\Delta$FPR does not clear Holm. All six pairs are
 evaluable. NF-CSE-CIC-IDS2018-v2: **holds** (RF 0.969, XGBoost 0.960). NF-UNSW-NB15-v2: **does
 not hold** (RF 0.380, XGBoost 0.524). NF-ToN-IoT-v2: **does not hold** (RF 0.226, XGBoost 0.299).
+
+## R3.4 Follow-up: ShareCap with the cap below the damage-onset share
+
+Pre-registered in `docs/phaseR/r3-followup-prereg.md`, committed and pushed on its own (fc04152,
+2026-10-29T17:20:17Z) before any R3.4 run. Runner `experiments/run_phaseR_r3_4.sh` (commands as
+pre-registered), stats `experiments/phaseR_r3_4_stats.py`, outputs
+`results/phaseR/r3/<dataset>/{stats_r3_4.csv, verdicts_r3_4.json}`. Smoke test (1 seed, 2 rounds,
+NF-UNSW-NB15-v2): 32 jobs, exit 0. Full run: 390 new jobs per dataset, 1,170 in all, no errors.
+R3's control, undefended A1 r=0.5, and ShareCap 0.05 jobs were reused (same file names, skipped by the runner).
+
+**Settings, as pre-registered:** grid 0.005 on all three. Tau: NF-UNSW-NB15-v2 0.2 (the §31.3 fallback,
+numerically the same as no twin filter, R3's limitation carried over), NF-ToN-IoT-v2 0, NF-CSE-CIC-IDS2018-v2 0.
+RF and XGBoost, seeds 1-15, 20 rounds. Paired $t$ primary, permutation alongside. "Clears Holm" means both tests, in the stated direction.
+
+**The bar, quoted from the pre-registration:** "Let $c^*$ be the largest tested $c$ strictly below the
+measured onset share. ... **\"The onset rule holds\"** iff $R_{c^*}\ge0.90$. **\"The onset rule does not
+hold\"** iff $R_{c^*}<0.90$. **\"No tested c is below the onset\"** iff no $c$ in {0.005, 0.01, 0.02,
+0.05} is below the onset share. ... **\"Not evaluable\"** iff the undefended A1 $\Delta$FPR at ratio
+0.5 (R3.1's cell) does not clear Holm." The S0 gain kept at $c^*$ is reported against uniform $w=0.05$.
+$U$ is defined only if $\overline g_{\rm none}>0$ with paired-$t$ $p<0.05$. It is defined on all six pairs.
+
+### nf-unsw-nb15-v2 (tau 0.2 (§31.3 fallback; numerically = no twin filter, see R3))
+
+**Stage a, onset** (A1 no defense, jitter 0, fixed $\Delta$FPR; Holm within the 4 per model):
+
+| model | ratio | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | Holm (t / perm) | clears |
+|---|---|---|---|---|---|---|---|---|---|
+| rf | 0.01 | 15 | 0.03323 | [0.01644, 0.05001] | 4.25 | 0.000814 | 0.0001 | rej / rej | yes |
+| rf | 0.02 | 15 | 0.07236 | [0.05412, 0.09061] | 8.51 | 6.65e-07 | <0.0001 | rej / rej | yes |
+| rf | 0.05 | 15 | 0.1241 | [0.108, 0.1401] | 16.55 | 1.37e-10 | <0.0001 | rej / rej | yes |
+| rf | 0.1 | 15 | 0.1536 | [0.1385, 0.1687] | 21.78 | 3.39e-12 | <0.0001 | rej / rej | yes |
+| xgboost | 0.01 | 15 | -0.002471 | [-0.0102, 0.005257] | -0.69 | 0.504 | 0.5456 | no / no | no |
+| xgboost | 0.02 | 15 | 0.02976 | [0.01031, 0.0492] | 3.28 | 0.00545 | 0.0053 | rej / rej | yes |
+| xgboost | 0.05 | 15 | 0.1099 | [0.09029, 0.1295] | 12.02 | 9.15e-09 | <0.0001 | rej / rej | yes |
+| xgboost | 0.1 | 15 | 0.1509 | [0.1332, 0.1686] | 18.31 | 3.54e-11 | <0.0001 | rej / rej | yes |
+
+**Stage b, caps at ratio 0.5** (defended minus undefended $\Delta$FPR, Holm within the 4 caps per model; $R$ and $U$ with seed-bootstrap 95% CIs):
+
+| model | c | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | Holm (t / perm) | $R_c$ [95%] | $U_c$ | $U_{\rm unif\,0.05}$ | $U_c-U_{\rm unif}$ 95% |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| rf | 0.005 | 15 | -0.2004 | [-0.2313, -0.1694] | -13.9 | 1.41e-09 | <0.0001 | rej / rej | 0.835 [0.743, 0.919] | -0.028 | -0.011 | [-0.109, 0.081] |
+| rf | 0.01 | 15 | -0.162 | [-0.1873, -0.1367] | -13.7 | 1.6e-09 | <0.0001 | rej / rej | 0.675 [0.590, 0.758] | -0.010 | -0.011 | [-0.091, 0.104] |
+| rf | 0.02 | 15 | -0.1332 | [-0.1635, -0.1029] | -9.4 | 1.95e-07 | <0.0001 | rej / rej | 0.555 [0.459, 0.657] | 0.017 | -0.011 | [-0.074, 0.135] |
+| rf | 0.05 | 15 | -0.09116 | [-0.1136, -0.06877] | -8.7 | 4.88e-07 | <0.0001 | rej / rej | 0.380 [0.310, 0.451] | 0.188 | -0.011 | [0.088, 0.321] |
+| xgboost | 0.005 | 15 | -0.2413 | [-0.2506, -0.232] | -55.9 | 7.33e-18 | <0.0001 | rej / rej | 1.006 [0.984, 1.027] | 0.005 | 0.043 | [-0.065, -0.011] |
+| xgboost | 0.01 | 15 | -0.234 | [-0.2446, -0.2234] | -47.3 | 7.44e-17 | <0.0001 | rej / rej | 0.976 [0.941, 1.013] | 0.025 | 0.043 | [-0.044, 0.012] |
+| xgboost | 0.02 | 15 | -0.1898 | [-0.2135, -0.1661] | -17.2 | 8.37e-11 | <0.0001 | rej / rej | 0.791 [0.718, 0.856] | 0.081 | 0.043 | [0.004, 0.074] |
+| xgboost | 0.05 | 15 | -0.1256 | [-0.1511, -0.1002] | -10.6 | 4.62e-08 | <0.0001 | rej / rej | 0.524 [0.443, 0.608] | 0.258 | 0.043 | [0.177, 0.260] |
+
+S0 gain with no defense ($\overline g_{\rm none}$, fixed-threshold TPR gain at ratio 0.2, all attack rows): rf 0.161 (p_t 8.18e-12); xgboost 0.3221 (p_t 4.38e-12).
+
+- **rf:** onset 0.01, $c^*$ = 0.005, $R_{c^*}$ = 0.835. **The onset rule does not hold.** $U_{c^*}$ = -0.028 vs. $U_{\rm uniform\,0.05}$ = -0.011.
+- **xgboost:** onset 0.02, $c^*$ = 0.01, $R_{c^*}$ = 0.976. **The onset rule holds.** $U_{c^*}$ = 0.025 vs. $U_{\rm uniform\,0.05}$ = 0.043.
+
+### nf-ton-iot-v2 (tau 0)
+
+**Stage a, onset** (A1 no defense, jitter 0, fixed $\Delta$FPR; Holm within the 4 per model):
+
+| model | ratio | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | Holm (t / perm) | clears |
+|---|---|---|---|---|---|---|---|---|---|
+| rf | 0.01 | 15 | 0.127 | [0.1226, 0.1315] | 60.93 | 2.22e-18 | <0.0001 | rej / rej | yes |
+| rf | 0.02 | 15 | 0.1446 | [0.139, 0.1502] | 55.62 | 7.91e-18 | <0.0001 | rej / rej | yes |
+| rf | 0.05 | 15 | 0.1776 | [0.1716, 0.1836] | 63.48 | 1.25e-18 | <0.0001 | rej / rej | yes |
+| rf | 0.1 | 15 | 0.2138 | [0.2082, 0.2194] | 82.02 | 3.49e-20 | <0.0001 | rej / rej | yes |
+| xgboost | 0.01 | 15 | 0.1555 | [0.1497, 0.1612] | 58.20 | 4.2e-18 | <0.0001 | rej / rej | yes |
+| xgboost | 0.02 | 15 | 0.1701 | [0.1659, 0.1743] | 87.61 | 1.39e-20 | <0.0001 | rej / rej | yes |
+| xgboost | 0.05 | 15 | 0.1919 | [0.1878, 0.196] | 100.74 | 1.97e-21 | <0.0001 | rej / rej | yes |
+| xgboost | 0.1 | 15 | 0.2205 | [0.2154, 0.2256] | 92.95 | 6.08e-21 | <0.0001 | rej / rej | yes |
+
+**Stage b, caps at ratio 0.5** (defended minus undefended $\Delta$FPR, Holm within the 4 caps per model; $R$ and $U$ with seed-bootstrap 95% CIs):
+
+| model | c | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | Holm (t / perm) | $R_c$ [95%] | $U_c$ | $U_{\rm unif\,0.05}$ | $U_c-U_{\rm unif}$ 95% |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| rf | 0.005 | 15 | -0.1496 | [-0.1575, -0.1418] | -41.1 | 5.41e-16 | <0.0001 | rej / rej | 0.554 [0.529, 0.581] | 0.413 | 0.619 | [-0.246, -0.173] |
+| rf | 0.01 | 15 | -0.1257 | [-0.1294, -0.122] | -72.8 | 1.83e-19 | <0.0001 | rej / rej | 0.465 [0.452, 0.478] | 0.572 | 0.619 | [-0.065, -0.028] |
+| rf | 0.02 | 15 | -0.1007 | [-0.106, -0.09543] | -41.0 | 5.6e-16 | <0.0001 | rej / rej | 0.373 [0.354, 0.391] | 0.705 | 0.619 | [0.059, 0.112] |
+| rf | 0.05 | 15 | -0.06096 | [-0.06414, -0.05778] | -41.1 | 5.27e-16 | <0.0001 | rej / rej | 0.226 [0.215, 0.237] | 0.848 | 0.619 | [0.207, 0.248] |
+| xgboost | 0.005 | 15 | -0.1381 | [-0.1427, -0.1334] | -63.7 | 1.18e-18 | <0.0001 | rej / rej | 0.501 [0.483, 0.520] | 0.319 | 0.546 | [-0.280, -0.174] |
+| xgboost | 0.01 | 15 | -0.1155 | [-0.1196, -0.1114] | -60.7 | 2.32e-18 | <0.0001 | rej / rej | 0.420 [0.406, 0.433] | 0.497 | 0.546 | [-0.082, -0.013] |
+| xgboost | 0.02 | 15 | -0.1028 | [-0.1053, -0.1003] | -88.5 | 1.2e-20 | <0.0001 | rej / rej | 0.373 [0.365, 0.381] | 0.663 | 0.546 | [0.086, 0.155] |
+| xgboost | 0.05 | 15 | -0.08224 | [-0.08532, -0.07917] | -57.4 | 5.07e-18 | <0.0001 | rej / rej | 0.299 [0.287, 0.309] | 0.831 | 0.546 | [0.249, 0.321] |
+
+S0 gain with no defense ($\overline g_{\rm none}$, fixed-threshold TPR gain at ratio 0.2, all attack rows): rf 0.2955 (p_t 2.64e-18); xgboost 0.1816 (p_t 1.9e-15).
+
+- **rf:** onset 0.01, $c^*$ = 0.005, $R_{c^*}$ = 0.554. **The onset rule does not hold.** $U_{c^*}$ = 0.413 vs. $U_{\rm uniform\,0.05}$ = 0.619.
+- **xgboost:** onset 0.01, $c^*$ = 0.005, $R_{c^*}$ = 0.501. **The onset rule does not hold.** $U_{c^*}$ = 0.319 vs. $U_{\rm uniform\,0.05}$ = 0.546.
+
+### nf-cse-cic-ids2018-v2 (tau 0 (reference))
+
+**Stage a, onset** (A1 no defense, jitter 0, fixed $\Delta$FPR; Holm within the 4 per model):
+
+| model | ratio | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | Holm (t / perm) | clears |
+|---|---|---|---|---|---|---|---|---|---|
+| rf | 0.01 | 15 | 0.001596 | [0.001009, 0.002182] | 5.83 | 4.34e-05 | 0.0001 | rej / rej | yes |
+| rf | 0.02 | 15 | 0.004206 | [0.003302, 0.005111] | 9.98 | 9.62e-08 | <0.0001 | rej / rej | yes |
+| rf | 0.05 | 15 | 0.01702 | [0.01438, 0.01967] | 13.81 | 1.51e-09 | <0.0001 | rej / rej | yes |
+| rf | 0.1 | 15 | 0.08827 | [0.07143, 0.1051] | 11.24 | 2.15e-08 | <0.0001 | rej / rej | yes |
+| xgboost | 0.01 | 15 | 0.004285 | [0.003143, 0.005427] | 8.05 | 1.28e-06 | <0.0001 | rej / rej | yes |
+| xgboost | 0.02 | 15 | 0.01005 | [0.008791, 0.01132] | 17.09 | 8.99e-11 | <0.0001 | rej / rej | yes |
+| xgboost | 0.05 | 15 | 0.03746 | [0.03245, 0.04246] | 16.05 | 2.07e-10 | <0.0001 | rej / rej | yes |
+| xgboost | 0.1 | 15 | 0.3935 | [0.3425, 0.4446] | 16.53 | 1.4e-10 | <0.0001 | rej / rej | yes |
+
+**Stage b, caps at ratio 0.5** (defended minus undefended $\Delta$FPR, Holm within the 4 caps per model; $R$ and $U$ with seed-bootstrap 95% CIs):
+
+| model | c | n | effect | 95% CI | $t$ | $p_t$ | $p_{\rm perm}$ | Holm (t / perm) | $R_c$ [95%] | $U_c$ | $U_{\rm unif\,0.05}$ | $U_c-U_{\rm unif}$ 95% |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| rf | 0.005 | 15 | -0.9677 | [-0.9718, -0.9636] | -506.1 | 3.06e-31 | <0.0001 | rej / rej | 0.999 [0.998, 1.000] | 0.094 | 0.088 | [-0.071, 0.092] |
+| rf | 0.01 | 15 | -0.9669 | [-0.971, -0.9628] | -506.8 | 2.99e-31 | <0.0001 | rej / rej | 0.998 [0.998, 0.999] | 0.139 | 0.088 | [-0.049, 0.180] |
+| rf | 0.02 | 15 | -0.9642 | [-0.9678, -0.9606] | -568.7 | 5.96e-32 | <0.0001 | rej / rej | 0.995 [0.994, 0.996] | 0.233 | 0.088 | [0.014, 0.289] |
+| rf | 0.05 | 15 | -0.9386 | [-0.9413, -0.9359] | -751.3 | 1.21e-33 | <0.0001 | rej / rej | 0.969 [0.964, 0.973] | 0.404 | 0.088 | [0.206, 0.442] |
+| xgboost | 0.005 | 15 | -0.9837 | [-0.9853, -0.9822] | -1374.3 | 2.58e-37 | <0.0001 | rej / rej | 0.997 [0.997, 0.998] | 0.064 | 0.083 | [-0.062, 0.021] |
+| xgboost | 0.01 | 15 | -0.9814 | [-0.9834, -0.9795] | -1087.8 | 6.8e-36 | <0.0001 | rej / rej | 0.995 [0.994, 0.996] | 0.086 | 0.083 | [-0.026, 0.033] |
+| xgboost | 0.02 | 15 | -0.976 | [-0.9781, -0.9739] | -991.2 | 2.5e-35 | <0.0001 | rej / rej | 0.989 [0.988, 0.990] | 0.115 | 0.083 | [-0.009, 0.073] |
+| xgboost | 0.05 | 15 | -0.9465 | [-0.9519, -0.9412] | -382.4 | 1.54e-29 | <0.0001 | rej / rej | 0.960 [0.956, 0.963] | 0.218 | 0.083 | [0.081, 0.192] |
+
+S0 gain with no defense ($\overline g_{\rm none}$, fixed-threshold TPR gain at ratio 0.2, all attack rows): rf 0.004567 (p_t 1.21e-08); xgboost 0.006975 (p_t 2.06e-08).
+
+- **rf:** onset 0.01, $c^*$ = 0.005, $R_{c^*}$ = 0.999. **The onset rule holds.** $U_{c^*}$ = 0.094 vs. $U_{\rm uniform\,0.05}$ = 0.088.
+- **xgboost:** onset 0.01, $c^*$ = 0.005, $R_{c^*}$ = 0.997. **The onset rule holds.** $U_{c^*}$ = 0.064 vs. $U_{\rm uniform\,0.05}$ = 0.083.
+
+### R3.4 summary
+
+| dataset | model | onset | $c^*$ | $R_{c^*}$ | verdict | $U_{c^*}$ | $U_{\rm uniform\,0.05}$ | R3.3 $R_{0.05}$ |
+|---|---|---|---|---|---|---|---|---|
+| nf-unsw-nb15-v2 | rf | 0.01 | 0.005 | 0.835 | does not hold | -0.028 | -0.011 | 0.380 |
+| nf-unsw-nb15-v2 | xgboost | 0.02 | 0.01 | 0.976 | holds | 0.025 | 0.043 | 0.524 |
+| nf-ton-iot-v2 | rf | 0.01 | 0.005 | 0.554 | does not hold | 0.413 | 0.619 | 0.226 |
+| nf-ton-iot-v2 | xgboost | 0.01 | 0.005 | 0.501 | does not hold | 0.319 | 0.546 | 0.299 |
+| nf-cse-cic-ids2018-v2 | rf | 0.01 | 0.005 | 0.999 | holds | 0.094 | 0.088 | 0.969 |
+| nf-cse-cic-ids2018-v2 | xgboost | 0.01 | 0.005 | 0.997 | holds | 0.064 | 0.083 | 0.960 |
+
+**Reading against the bar.** The onset rule **holds** on 3 of 6 (dataset, model) pairs:
+NF-UNSW-NB15-v2/XGBoost ($R_{0.01}$ = 0.976) and both NF-CSE-CIC-IDS2018-v2 pairs (0.999, 0.997).
+It **does not hold** on NF-UNSW-NB15-v2/RF (0.835) or on either NF-ToN-IoT-v2 pair (0.554, 0.501).
+In every case $R$ rises as the cap drops. Every cap at every pair lowers FPR significantly (all
+24 stage-b cells clear Holm). On NF-ToN-IoT-v2 even $c=0.005$, ten times below the measured
+onset, leaves about half of the damage.
+
+**What it costs in S0 gain.** At $c^*$, the S0 gain kept is at or below uniform $w=0.05$'s on
+5 of 6 pairs. NF-CSE-CIC-IDS2018-v2/RF is the exception (0.094 vs. 0.088; CI of the difference
+[−0.071, 0.092]). On NF-UNSW-NB15-v2/RF both $U$ are about 0: no cap below 0.05, and no uniform
+weight, keeps any S0 gain. On NF-ToN-IoT-v2 the caps that recover most keep less of the gain than
+uniform 0.05 (CIs of the difference exclude 0 at $c$ = 0.005 and 0.01). NF-CSE-CIC-IDS2018-v2's
+S0 gain is tiny to begin with ($\overline g_{\rm none}$ ≈ 0.005-0.007, a near-saturated
+detector), so its $U$ values carry little information.
+
+**Limitations of R3.4, named after the fact.**
+- **Onset is at the floor of the grid on 5 of 6 pairs.** Ratio 0.01, the smallest tested,
+  already clears Holm everywhere except NF-UNSW-NB15-v2/XGBoost. The true onset may be lower,
+  and $c^*$ = 0.005 is fixed by the grid rather than by a measured onset. On those pairs "below
+  onset" is not established, only "below the smallest ratio tested". That bears directly on the
+  NF-ToN-IoT-v2 and NF-UNSW-NB15-v2/RF failures: they may sit below an onset smaller than 0.005.
+- **Batch resampling at ratio 0.5.** On NF-UNSW-NB15-v2 and NF-ToN-IoT-v2, every A1 ratio-0.5 job
+  (undefended and capped) carries `batch_resampled` (720 rows each): the benign pool is too small
+  for ratio 0.5. This was already the case for R3.1/R3.3's ratio-0.5 cells and is allowed (R2.1's
+  rule). No stage-a (≤0.10) or S0 job is resampled. NF-CSE-CIC-IDS2018-v2 has none.
+- **Within-sample $c^*$** (named in the pre-registration). The onset and $R_{c^*}$ share seeds
+  and the control.
+- **NF-UNSW-NB15-v2 tau** is R3's fallback, numerically no twin filter (see R3).
