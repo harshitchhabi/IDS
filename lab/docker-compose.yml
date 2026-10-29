@@ -81,6 +81,8 @@ services:
     environment:
       - LAB_SEED=${LAB_SEED:-1}
       - BENIGN_RATE=${BENIGN_RATE:-1.0}
+      - BENIGN_WORKERS=${BENIGN_WORKERS:-1}
+      - BENIGN_DENSE=${BENIGN_DENSE:-0}
       - WEB_TARGETS=http://172.28.0.10
       - SSH_TARGETS=172.28.0.11
       - GROUND_TRUTH=/data/logs/ground_truth/benign.jsonl

@@ -28,6 +28,7 @@ import pandas as pd
 from dloop.sim.dataset import ALL_SOURCES
 from dloop.adversary.clean import CleanAdversary
 from dloop.adversary.crowd import CrowdOutAdversary, StaleReplayAdversary
+from dloop.adversary.lab_replay import LabReplayAdversary
 from dloop.adversary.mimicry import (FidelityMeter, JitterAdversary, JunkAdversary, MimicryAdversary,
                                      assert_disjoint_from_eval)
 from dloop.logging_config import configure, get_logger
@@ -126,8 +127,11 @@ def _run_job(j: dict) -> tuple[str, list[dict]]:
     elif sc == "s0":
         adv = CleanAdversary(_DATA.pool_attack_x, seed)
     elif sc in ("a1", "a1truth"):
-        adv = MimicryAdversary(_DATA.pool_benign_x, _DATA.normalizer, j["jitter"], seed,
-                               cost_padding=j["pad"])
+        if j.get("a1_replay"):   # Phase B: replay the real honeypot_pool mimic flows unchanged
+            adv = LabReplayAdversary(_DATA.pool_benign_x, seed)
+        else:
+            adv = MimicryAdversary(_DATA.pool_benign_x, _DATA.normalizer, j["jitter"], seed,
+                                   cost_padding=j["pad"])
     elif sc == "junk":  # marginal-shuffled bulk rows stamped malicious (volume with no fidelity)
         adv = JunkAdversary(np.vstack([_DATA.pool_benign_x[::4], _DATA.pool_attack_x[::2]]), seed)
     elif sc == "s0j":   # genuine attack rows, jittered like A1's poison, labelled malicious
@@ -202,6 +206,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="s0crowd --crowd-filler stale: the seed_train attack family replayed")
     ap.add_argument("--eval-redraw", action="store_true",
                     help="redraw the trusted_eval subsample per seed (default: the fixed subsample)")
+    ap.add_argument("--a1-replay", action="store_true",
+                    help="Phase B: a1/a1truth replay the real honeypot_pool mimic flows "
+                         "unchanged (LabReplayAdversary) instead of synthesising poison")
     ap.add_argument("--d1-components", default="", help="comma list from duration_s,packets,bytes,depth (ablation)")
     ap.add_argument("--no-fidelity", action="store_true",
                     help="skip the NN fidelity meter (saves ~100 MB per worker); not for cost-padding runs")
@@ -257,7 +264,8 @@ def main(argv: list[str] | None = None) -> int:
                     jobs.append(dict(scenario=sc, model=model, seed=seed, jitter=0.0, ratio=0.0))
                     continue
                 for ratio in (args.ratios if args.budget_mode == "fixed_ratio" else (0.0,)):
-                    for jit in (args.jitters if sc in ("a1", "a1truth", "s0j") else (0.0,)):
+                    _sweep_jit = sc in ("a1", "a1truth", "s0j") and not args.a1_replay
+                    for jit in (args.jitters if _sweep_jit else (0.0,)):
                         jobs.append(dict(scenario=sc, model=model, seed=seed, jitter=jit, ratio=ratio))
     for j in jobs:
         j.update(rounds=args.rounds, retention=args.retention, window=args.window,
@@ -267,7 +275,7 @@ def main(argv: list[str] | None = None) -> int:
                  d1_quantile=args.d1_quantile, d1_ref=args.d1_reference, uniform_w=args.uniform_w, share_cap=args.share_cap,
                  sp_alpha=args.sp_alpha, crowd_factor=args.crowd_factor, crowd_jitter=args.crowd_jitter,
                  crowd_filler=args.crowd_filler, crowd_family=args.crowd_family,
-                 eval_redraw=args.eval_redraw)
+                 eval_redraw=args.eval_redraw, a1_replay=args.a1_replay)
         _loop_config(j)   # validate the combination up front
     jobs.sort(key=lambda j: (RATIO_PRIORITY.get(j["ratio"], 0), -j["ratio"], j["scenario"],
                              j["model"] != "rf", j["seed"], j["jitter"]))
@@ -283,6 +291,7 @@ def main(argv: list[str] | None = None) -> int:
               "sp_alpha": args.sp_alpha, "crowd_factor": args.crowd_factor,
               "crowd_jitter": args.crowd_jitter, "crowd_filler": args.crowd_filler,
               "crowd_family": args.crowd_family, "eval_redraw": args.eval_redraw,
+              "a1_replay": args.a1_replay,
               "fidelity_rows": FIDELITY_ROWS, "arm_counts": data.arm_counts(),
               "seed_rows": int(len(data.seed_x)), "eval_rows": int(len(data.eval_x)),
               "a1_poison_source_rows_checked_disjoint_from_eval_benign": n_checked,

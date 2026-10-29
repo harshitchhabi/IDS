@@ -27,9 +27,34 @@ GT = GroundTruth(os.environ.get("GROUND_TRUTH", "/data/logs/ground_truth/benign.
 
 SSH_USER, SSH_PASS = "admin", "correct-horse-battery"
 SSH_CMDS = ["whoami", "uptime", "ls -la /home/admin", "cat /etc/motd", "df -h", "ps aux"]
+SITE_PATHS = ["/", "/about.html", "/docs.html", "/status.html", "/contact.html",
+              "/assets/style.css", "/assets/app.js", "/assets/logo.svg", "/assets/manual.txt"]
 HREF = re.compile(r'(?:href|src)="(/[^"]*)"')
 
+# Dense mode: many parallel workers, each request its own TCP connection (so one
+# flow per request), minimal think time — to build a large benign capture quickly.
+WORKERS = int(os.environ.get("BENIGN_WORKERS", "1"))
+DENSE = os.environ.get("BENIGN_DENSE", "0") == "1"
+
 rng = random.Random(SEED)
+
+
+def dense_web_session(base: str, wrng: random.Random) -> None:
+    """One short web burst, each GET on a fresh connection (Connection: close),
+    so every request is a distinct flow. Used only in dense capture mode."""
+    t0 = time.time()
+    host = base.split("//", 1)[-1].split("/", 1)[0]
+    n_req, n_bytes = 0, 0
+    for path in wrng.sample(SITE_PATHS, wrng.randint(2, len(SITE_PATHS))):
+        try:
+            r = requests.get(base + path, timeout=5,
+                             headers={"User-Agent": "Mozilla/5.0 AcmeBrowse/1.0",
+                                      "Connection": "close"})
+            n_req += 1; n_bytes += len(r.content)
+        except requests.RequestException:
+            pass
+    GT.log(dst=host, dst_port=80, intent="benign", kind="web",
+           t_start=t0, t_end=time.time(), requests=n_req, bytes=n_bytes)
 
 
 def think() -> None:
@@ -84,14 +109,37 @@ def ssh_session(host: str) -> None:
            t_start=t0, t_end=time.time(), commands=n_cmds)
 
 
-def main() -> None:
-    print(f"benign-client: seed={SEED} rate={RATE} web={WEB} ssh={SSH}", flush=True)
+def _worker(wid: int) -> None:
+    wrng = random.Random(SEED * 100003 + wid)  # per-worker stream, reproducible
     while True:
-        if rng.random() < 0.7 and WEB:
-            web_session(rng.choice(WEB))
-        elif SSH:
-            ssh_session(rng.choice(SSH))
-        think()
+        if DENSE:
+            # mostly web (dense flows); an occasional ssh session for realism
+            if wrng.random() < 0.9 and WEB:
+                dense_web_session(wrng.choice(WEB), wrng)
+            elif SSH:
+                ssh_session(wrng.choice(SSH))
+            # tiny gap so workers don't lockstep; dense = high throughput
+            time.sleep(wrng.uniform(0.0, 0.2))
+        else:
+            if wrng.random() < 0.7 and WEB:
+                web_session(wrng.choice(WEB))
+            elif SSH:
+                ssh_session(wrng.choice(SSH))
+            time.sleep(wrng.expovariate(RATE / 3.0))
+
+
+def main() -> None:
+    print(f"benign-client: seed={SEED} rate={RATE} workers={WORKERS} dense={DENSE} "
+          f"web={WEB} ssh={SSH}", flush=True)
+    if WORKERS <= 1:
+        _worker(0)
+        return
+    import threading
+    threads = [threading.Thread(target=_worker, args=(i,), daemon=True) for i in range(WORKERS)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
 
 
 if __name__ == "__main__":

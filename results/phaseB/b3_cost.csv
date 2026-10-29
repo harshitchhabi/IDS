@@ -1,0 +1,2 @@
+strategy,n_mimic_flows,total_packets,total_bytes,connections,capture_span_min,per_flow_packets,per_flow_bytes,per_flow_connections,per_flow_wall_clock_s,seed_train_rows,honeypot_rows_for_20pct,mimic_flows_per_min,retrain_every_min,rounds_to_20pct,wall_clock_to_20pct_min
+oracle,12365,148384.0,10124549.0,4554,12.92482355038325,12.000323493732308,818.8070359886777,0.3682976142337242,0.01951504592417321,30000,7500.0,956.6861746157726,10,1,10

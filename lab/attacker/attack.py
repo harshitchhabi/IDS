@@ -32,6 +32,7 @@ SEED = int(os.environ.get("LAB_SEED", "1"))
 GT = GroundTruth(os.environ.get("GROUND_TRUTH", "/data/logs/ground_truth/attacker.jsonl"))
 HTTP_HONEYPOT = "172.28.0.21"
 SSH_HONEYPOT = ("172.28.0.20", 2222)
+PROD_IP = "172.28.0.10"
 
 # Decoy site paths the mimic can request (same pages prod-web/the honeypot serve).
 SITE_PATHS = ["/", "/about.html", "/docs.html", "/status.html", "/contact.html",
@@ -51,12 +52,15 @@ def _load_profile(path: str) -> dict:
 
 
 def mimic(args: argparse.Namespace) -> int:
+    """Profile-based mimic (strategies (i) profile and (iii) oracle: same code,
+    different --profile source). Each request a fresh connection so one flow per
+    request, matching the dense benign capture. --tag sets the ground-truth kind
+    so build_lab can tell the strategies apart."""
     prof = _load_profile(args.profile)
     rng = random.Random(SEED)
     base = f"http://{require_allowed(HTTP_HONEYPOT)}"
     web = prof.get("web", {})
     rps = web.get("requests_per_session") or [3]
-    thinks = web.get("think_times") or [1.0]
     inter = prof.get("inter_arrival") or [1.5]
 
     n = 0
@@ -64,23 +68,82 @@ def mimic(args: argparse.Namespace) -> int:
     while time.time() < deadline and (args.sessions == 0 or n < args.sessions):
         t0 = time.time()
         n_req, n_bytes = 0, 0
-        k = int(rng.choice(rps))
-        sess = requests.Session()
-        sess.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64) AcmeBrowse/1.0"
-        for _ in range(max(1, k)):
+        k = max(1, int(rng.choice(rps)))
+        for _ in range(k):
             path = rng.choice(SITE_PATHS)
             try:
-                r = sess.get(base + path, timeout=5)
+                r = requests.get(base + path, timeout=5,
+                                 headers={"User-Agent": "Mozilla/5.0 AcmeBrowse/1.0",
+                                          "Connection": "close"})
                 n_req += 1; n_bytes += len(r.content)
             except requests.RequestException:
                 pass
-            time.sleep(min(float(rng.choice(thinks)), 3.0))
-        sess.close()
-        GT.log(dst=HTTP_HONEYPOT, dst_port=80, intent="poison", kind="mimic_web",
+        GT.log(dst=HTTP_HONEYPOT, dst_port=80, intent="poison", kind=args.tag,
                t_start=t0, t_end=time.time(), requests=n_req, bytes=n_bytes)
         n += 1
-        time.sleep(min(float(rng.choice(inter)), 5.0))
-    print(f"mimic: {n} sessions -> {HTTP_HONEYPOT}", flush=True)
+        time.sleep(min(float(rng.choice(inter)), 1.0))
+    print(f"mimic[{args.tag}]: {n} sessions -> {HTTP_HONEYPOT}", flush=True)
+    return 0
+
+
+def benign(args: argparse.Namespace) -> int:
+    """The attacker's OWN benign browsing of prod, logged intent=benign,
+    kind=attacker_benign. Strategy (i)'s profile is learned from this capture
+    (separate from the defender's benign data). Fresh connection per request."""
+    base = f"http://{require_allowed(PROD_IP)}"
+    rng = random.Random(SEED + 41)
+    n = 0
+    deadline = time.time() + args.seconds
+    while time.time() < deadline:
+        t0 = time.time(); nr = 0; nb = 0
+        for path in rng.sample(SITE_PATHS, rng.randint(2, len(SITE_PATHS))):
+            try:
+                r = requests.get(base + path, timeout=5,
+                                 headers={"User-Agent": "Mozilla/5.0 AcmeBrowse/1.0",
+                                          "Connection": "close"})
+                nr += 1; nb += len(r.content)
+            except requests.RequestException:
+                pass
+        # kind="web" so learn_profile picks these up (they live in the attacker's
+        # own ground-truth file, separate from the defender's benign capture).
+        GT.log(dst=PROD_IP, dst_port=80, intent="benign", kind="web",
+               t_start=t0, t_end=time.time(), requests=nr, bytes=nb)
+        n += 1
+        time.sleep(rng.uniform(0.0, 0.3))
+    print(f"benign(attacker): {n} sessions -> prod", flush=True)
+    return 0
+
+
+def replay(args: argparse.Namespace) -> int:
+    """Strategy (ii) replay: the attacker performs concrete benign sessions against
+    prod (recording the exact path sequence it used), then re-issues the identical
+    sequence to the honeypot. The prod leg is logged benign; the honeypot leg poison
+    (kind=mimic_replay). Each request a fresh connection."""
+    prod = f"http://{require_allowed('172.28.0.10')}"
+    hp = f"http://{require_allowed(HTTP_HONEYPOT)}"
+    rng = random.Random(SEED + 23)
+    n = 0
+    deadline = time.time() + args.seconds
+    while time.time() < deadline and (args.sessions == 0 or n < args.sessions):
+        k = rng.randint(2, len(SITE_PATHS))
+        seq = [rng.choice(SITE_PATHS) for _ in range(k)]  # the concrete sequence
+        # perform it against prod (real benign session), then replay to the honeypot
+        for dst, base, intent, kind in ((PROD_IP, prod, "benign", "replay_record"),
+                                        (HTTP_HONEYPOT, hp, "poison", "mimic_replay")):
+            t0 = time.time(); nb = 0; nr = 0
+            for path in seq:
+                try:
+                    r = requests.get(base + path, timeout=5,
+                                     headers={"User-Agent": "Mozilla/5.0 AcmeBrowse/1.0",
+                                              "Connection": "close"})
+                    nr += 1; nb += len(r.content)
+                except requests.RequestException:
+                    pass
+            GT.log(dst=dst, dst_port=80, intent=intent, kind=kind,
+                   t_start=t0, t_end=time.time(), requests=nr, bytes=nb)
+        n += 1
+        time.sleep(rng.uniform(0.0, 0.3))
+    print(f"replay: {n} sessions (prod then honeypot)", flush=True)
     return 0
 
 
@@ -168,6 +231,14 @@ def main(argv: list[str] | None = None) -> int:
     m.add_argument("--profile", default=os.environ.get("PROFILE", "/profiles/benign_profile.json"))
     m.add_argument("--seconds", type=float, default=300.0)
     m.add_argument("--sessions", type=int, default=0, help="0 = until --seconds elapses")
+    m.add_argument("--tag", default="mimic_profile", help="ground-truth kind (strategy label)")
+
+    rp = sub.add_parser("replay"); rp.set_defaults(fn=replay)
+    rp.add_argument("--seconds", type=float, default=300.0)
+    rp.add_argument("--sessions", type=int, default=0, help="0 = until --seconds elapses")
+
+    bn = sub.add_parser("benign"); bn.set_defaults(fn=benign)
+    bn.add_argument("--seconds", type=float, default=120.0)
 
     g = sub.add_parser("ssh-guess"); g.set_defaults(fn=ssh_guess)
     g.add_argument("--target", choices=["honeypot", "prod"], default="honeypot")

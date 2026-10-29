@@ -124,3 +124,58 @@ def test_validate_extractor_matches_on_flowid_and_offset_start_time():
     fwd = agree.set_index("feature").loc["fwd_packets"]
     assert dur["exact_match_rate"] == 1.0         # duration identical on both
     assert fwd["exact_match_rate"] == 0.5         # one of two fwd_packets differs
+
+
+# --- Phase B lab dataset + replay adversary (DECISIONS §32) ---
+
+def _canon_cols():
+    return list(schema.CANONICAL_FEATURES)
+
+
+def test_lab_replay_adversary_emits_pool_rows_true_benign():
+    import numpy as np
+    from dloop.adversary.base import features_of
+    from dloop.adversary.lab_replay import LabReplayAdversary
+    pool = np.arange(5 * len(schema.CANONICAL_FEATURES), dtype="float64").reshape(5, -1) + 1.0
+    adv = LabReplayAdversary(pool, seed=1)
+    batch, cost = adv.generate_batch(1, 3)
+    assert len(batch) == 3
+    assert (batch["true_label"].to_numpy() == 0).all()      # truly benign
+    # emitted rows are drawn from the pool, unchanged (no jitter)
+    x = features_of(batch)
+    poolset = {tuple(r) for r in pool}
+    assert all(tuple(r) in poolset for r in x)
+    assert cost.flows == 3
+
+
+def test_build_lab_partitions_roles_disjoint_and_pool_is_mimic():
+    import numpy as np
+    import pandas as pd
+    from dloop.sim.lab import LabSplitConfig, build_lab_partitions
+    rng = np.random.default_rng(0)
+    cols = _canon_cols()
+
+    def block(n, base, intent, kind):
+        x = rng.uniform(base, base + 1, size=(n, len(cols))) + np.arange(n)[:, None] * 10.0
+        d = pd.DataFrame(x, columns=cols)
+        d["true_intent"] = intent; d["true_kind"] = kind
+        d["policy_label"] = 1 if intent in ("poison", "attack") else 0
+        return d
+
+    df = pd.concat([
+        block(200, 1.0, "benign", "web"),
+        block(40, 500.0, "attack", "portscan"),
+        block(60, 1000.0, "poison", "mimic_oracle"),
+        block(60, 2000.0, "poison", "mimic_profile"),
+    ], ignore_index=True)
+    data = build_lab_partitions(df, LabSplitConfig(primary_strategy="oracle"))
+    for p in ("seed_train", "prod_benign", "honeypot_pool", "trusted_eval"):
+        assert p in data.frames and len(data.frames[p]) > 0
+    # honeypot_pool is the oracle mimic flows, all true-benign (BINARY_LABEL 0)
+    pool = data.frames["honeypot_pool"]
+    assert (pool[schema.BINARY_LABEL] == 0).all()
+    assert len(pool) == 60
+    # 24-feature schema preserved and in canonical order
+    assert tuple(data.features) == schema.CANONICAL_FEATURES
+    # the build asserts trusted_eval disjoint from training internally; reaching
+    # here without raising means it held.

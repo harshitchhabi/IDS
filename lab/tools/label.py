@@ -40,13 +40,22 @@ F_SRC, F_DST, F_DPORT, F_TS = "Src IP", "Dst IP", "Dst Port", "Timestamp"
 def parse_ground_truth(paths: list[Path]) -> pd.DataFrame:
     """Load ground-truth JSONL files into a frame with one row per session."""
     rows: list[dict] = []
+    skipped = 0
     for p in paths:
         if not p.is_file():
             continue
-        for line in p.read_text().splitlines():
+        for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
             line = line.strip()
-            if line:
+            if not line:
+                continue
+            try:
                 rows.append(json.loads(line))
+            except json.JSONDecodeError:
+                # A few lines can be truncated/interleaved when separate processes
+                # append concurrently to one ground-truth file; skip them (counted).
+                skipped += 1
+    if skipped:
+        print(f"parse_ground_truth: skipped {skipped} malformed line(s)")
     if not rows:
         return pd.DataFrame(columns=["src", "dst", "dst_port", "t_start", "t_end",
                                      "intent", "kind"])
@@ -70,27 +79,33 @@ def _flow_ts_seconds(ts: pd.Series) -> pd.Series:
     return pd.Series(secs, index=getattr(ts, "index", None))
 
 
-def match_intent(flow: pd.Series, gt: pd.DataFrame, slack: float = MATCH_SLACK_S) -> str:
-    """True intent of one flow: the ground-truth session with the same
+def match_record(flow: pd.Series, gt: pd.DataFrame, slack: float = MATCH_SLACK_S) -> tuple[str, str]:
+    """True (intent, kind) of one flow: the ground-truth session with the same
     (src, dst, dst_port) whose [t_start, t_end] window contains the flow start
-    (within *slack*). Nearest window centre wins ties. ``unknown`` if none —
-    background traffic (ARP, retransmit-only flows) that no generator logged."""
+    (within *slack*). Nearest window centre wins ties. ``("unknown", "")`` if none
+    — background traffic (ARP, retransmit-only flows) that no generator logged."""
     if gt.empty:
-        return "unknown"
+        return "unknown", ""
     cand = gt[(gt["src"] == flow[F_SRC]) & (gt["dst"] == flow[F_DST])
               & (gt["dst_port"] == int(flow[F_DPORT]))]
     if cand.empty:
-        return "unknown"
+        return "unknown", ""
     t = flow["_ts_s"]
     if pd.isna(t):
-        # No usable timestamp: fall back to the only intent present, else unknown.
-        intents = cand["intent"].unique()
-        return str(intents[0]) if len(intents) == 1 else "unknown"
+        if len(cand) == 1:
+            return str(cand.iloc[0]["intent"]), str(cand.iloc[0].get("kind", ""))
+        return "unknown", ""
     within = cand[(cand["t_start"] - slack <= t) & (t <= cand["t_end"] + slack)]
     if within.empty:
-        return "unknown"
+        return "unknown", ""
     centre = (within["t_start"] + within["t_end"]) / 2.0
-    return str(within.loc[(centre - t).abs().idxmin(), "intent"])
+    row = within.loc[(centre - t).abs().idxmin()]
+    return str(row["intent"]), str(row.get("kind", ""))
+
+
+def match_intent(flow: pd.Series, gt: pd.DataFrame, slack: float = MATCH_SLACK_S) -> str:
+    """Back-compat wrapper returning only the intent (see :func:`match_record`)."""
+    return match_record(flow, gt, slack)[0]
 
 
 def map_to_canonical(flows: pd.DataFrame,
@@ -105,16 +120,57 @@ def map_to_canonical(flows: pd.DataFrame,
     return df[list(features)].copy()
 
 
+def _gt_index(gt: pd.DataFrame) -> dict:
+    """Group ground-truth sessions by (src, dst, dst_port) so each flow matches
+    against only its own key's sessions, not the whole table (O(n·k), not O(n·m))."""
+    idx: dict[tuple, list[tuple]] = {}
+    if gt.empty:
+        return idx
+    for src, dst, port, ts, te, intent, kind in zip(
+            gt["src"], gt["dst"], gt["dst_port"], gt["t_start"], gt["t_end"],
+            gt["intent"], gt.get("kind", pd.Series([""] * len(gt)))):
+        idx.setdefault((src, dst, int(port)), []).append(
+            (float(ts), float(te), str(intent), str(kind)))
+    return idx
+
+
 def label_flows(flows: pd.DataFrame, gt: pd.DataFrame, *,
                 honeypots: tuple[str, ...] = HONEYPOT_IPS,
-                features: tuple[str, ...] = schema.CANONICAL_FEATURES) -> pd.DataFrame:
-    """Full pipeline: canonical features + policy_label + true_intent, one row per flow."""
+                features: tuple[str, ...] = schema.CANONICAL_FEATURES,
+                slack: float = MATCH_SLACK_S) -> pd.DataFrame:
+    """Full pipeline: canonical features + policy_label + true_intent/true_kind,
+    one row per flow. Ground truth is indexed by (src, dst, dst_port) for speed."""
     flows = flows.rename(columns={c: str(c).strip() for c in flows.columns})
     out = map_to_canonical(flows, features)
-    flows = flows.assign(_ts_s=_flow_ts_seconds(flows[F_TS]))
-    out["policy_label"] = [policy_label(d, honeypots) for d in flows[F_DST]]
-    out["true_intent"] = [match_intent(r, gt) for _, r in flows.iterrows()]
-    out["dst_ip"] = flows[F_DST].to_numpy()
+    ts = _flow_ts_seconds(flows[F_TS]).to_numpy()
+    idx = _gt_index(gt)
+    src = flows[F_SRC].to_numpy(); dst = flows[F_DST].to_numpy(); dport = flows[F_DPORT].to_numpy()
+    intents, kinds = [], []
+    for i in range(len(flows)):
+        cand = idx.get((src[i], dst[i], int(dport[i])))
+        t = ts[i]
+        if not cand:
+            intents.append("unknown"); kinds.append(""); continue
+        if np.isnan(t):
+            if len(cand) == 1:
+                intents.append(cand[0][2]); kinds.append(cand[0][3])
+            else:
+                intents.append("unknown"); kinds.append("")
+            continue
+        best, best_d = None, None
+        for t0, t1, intent, kind in cand:
+            if t0 - slack <= t <= t1 + slack:
+                d = abs((t0 + t1) / 2.0 - t)
+                if best_d is None or d < best_d:
+                    best, best_d = (intent, kind), d
+        if best is None:
+            intents.append("unknown"); kinds.append("")
+        else:
+            intents.append(best[0]); kinds.append(best[1])
+    out["policy_label"] = [policy_label(d, honeypots) for d in dst]
+    out["true_intent"] = intents
+    out["true_kind"] = kinds
+    out["dst_ip"] = dst
     return out
 
 

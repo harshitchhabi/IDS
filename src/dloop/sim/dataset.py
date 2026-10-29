@@ -21,7 +21,7 @@ from dloop.sim.partition import PartitionConfig, PartitionedData, build_partitio
 log = get_logger("sim.dataset")
 
 Source = Literal["auto", "cicids", "cicids-fixed", "unsw-nb15", "nf-unsw-nb15-v2",
-                 "nf-cse-cic-ids2018-v2", "nf-ton-iot-v2", "synthetic"]
+                 "nf-cse-cic-ids2018-v2", "nf-ton-iot-v2", "lab", "synthetic"]
 
 # Feature set per source: every canonical feature unless the dataset has no
 # analogue for some of them (then they are left out, not fabricated).
@@ -30,7 +30,7 @@ SOURCE_FEATURES: dict[str, tuple[str, ...]] = {
     **{s: schema.NETFLOW_V2_FEATURES for s in netflow_v2.DATASETS},
 }
 # every --dataset / --source value the experiment scripts accept
-ALL_SOURCES: tuple[str, ...] = ("cicids", "cicids-fixed", "unsw-nb15", *netflow_v2.DATASETS, "synthetic")
+ALL_SOURCES: tuple[str, ...] = ("cicids", "cicids-fixed", "unsw-nb15", *netflow_v2.DATASETS, "lab", "synthetic")
 
 
 def features_for(source: str) -> tuple[str, ...]:
