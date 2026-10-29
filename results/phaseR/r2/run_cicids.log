@@ -21,3 +21,14 @@
 {"done": 90, "of": 180, "minutes": 217.7, "event": "progress", "level": "info", "timestamp": "2026-10-29T18:27:35.374115Z"}
 {"done": 100, "of": 180, "minutes": 220.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T18:30:26.681299Z"}
 {"done": 110, "of": 180, "minutes": 223.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T18:33:13.627503Z"}
+{"done": 120, "of": 180, "minutes": 226.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T18:36:11.904758Z"}
+{"done": 130, "of": 180, "minutes": 231.4, "event": "progress", "level": "info", "timestamp": "2026-10-29T18:41:19.517933Z"}
+{"done": 140, "of": 180, "minutes": 235.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T18:45:10.013198Z"}
+{"done": 150, "of": 180, "minutes": 238.9, "event": "progress", "level": "info", "timestamp": "2026-10-29T18:48:44.605465Z"}
+{"done": 160, "of": 180, "minutes": 242.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T18:52:20.089118Z"}
+{"done": 170, "of": 180, "minutes": 246.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T18:56:02.084424Z"}
+{"done": 180, "of": 180, "minutes": 250.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T19:00:02.871244Z"}
+>>> phase0_loop --seeds 15 --scenarios s0 --models rf xgboost logreg mlp --ratios 0.2 --defense none
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T19:00:08.326870Z"}
+{"total": 60, "todo": 60, "workers": 3, "config_hash": "8d448f4e14a96f29", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T19:00:08.331063Z"}
+{"done": 10, "of": 60, "minutes": 2.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T19:02:28.934777Z"}
