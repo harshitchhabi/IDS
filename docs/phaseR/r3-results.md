@@ -474,8 +474,8 @@ S0 gain with no defense ($\overline g_{\rm none}$, fixed-threshold TPR gain at r
 NF-UNSW-NB15-v2/XGBoost ($R_{0.01}$ = 0.976) and both NF-CSE-CIC-IDS2018-v2 pairs (0.999, 0.997).
 It **does not hold** on NF-UNSW-NB15-v2/RF (0.835) or on either NF-ToN-IoT-v2 pair (0.554, 0.501).
 In every case $R$ rises as the cap drops. Every cap at every pair lowers FPR significantly (all
-24 stage-b cells clear Holm). On NF-ToN-IoT-v2 even $c=0.005$, ten times below the measured
-onset, leaves about half of the damage.
+24 stage-b cells clear Holm). On NF-ToN-IoT-v2 even $c=0.005$, half the measured onset
+(0.01), leaves about half of the damage.
 
 **What it costs in S0 gain.** At $c^*$, the S0 gain kept is at or below uniform $w=0.05$'s on
 5 of 6 pairs. NF-CSE-CIC-IDS2018-v2/RF is the exception (0.094 vs. 0.088; CI of the difference
