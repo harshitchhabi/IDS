@@ -252,6 +252,78 @@ def test_netflow_frames_partition_and_run_a_loop_arm(tmp_path):
     assert rows[-1]["n_honeypot"] > 0
 
 
+def test_netflow_loader_reads_row_range_parts_like_the_whole_file(tmp_path):
+    df = _nf_frame()
+    whole, parts = tmp_path / "whole", tmp_path / "parts"
+    whole.mkdir(), parts.mkdir()
+    df.to_csv(whole / "NF-UNSW-NB15-v2.csv", index=False)
+    for i, (a, b) in enumerate([(0, 300), (300, 600), (600, len(df))], start=1):
+        df.iloc[a:b].to_csv(parts / f"NF-UNSW-NB15-v2.part{i:02d}.csv", index=False)
+    assert [p.name for p in netflow_v2.files_for("nf-unsw-nb15-v2", parts)] == [
+        "NF-UNSW-NB15-v2.part01.csv", "NF-UNSW-NB15-v2.part02.csv", "NF-UNSW-NB15-v2.part03.csv"]
+    a = netflow_v2.load_raw_by_day("nf-unsw-nb15-v2", whole)[netflow_v2.DAY]
+    b = netflow_v2.load_raw_by_day("nf-unsw-nb15-v2", parts)[netflow_v2.DAY]
+    pd.testing.assert_frame_equal(a, b)
+    df.iloc[:10].drop(columns=["DNS_TTL_ANSWER"]).to_csv(parts / "NF-UNSW-NB15-v2.part04.csv", index=False)
+    with pytest.raises(ValueError, match="header differs"):
+        netflow_v2.load_raw_by_day("nf-unsw-nb15-v2", parts)
+
+
+def test_netflow_package_splits_by_row_range_and_round_trips(tmp_path):
+    import zipfile
+    from experiments.phaseR_netflow_package import package
+
+    df = _nf_frame(n_benign=3000, n_attack=1000)
+    df["row_id"] = np.arange(len(df))
+    src = tmp_path / "NF-ToN-IoT-v2.csv"
+    df.to_csv(src, index=False)
+    small = package(src, tmp_path / "one", max_mb=50)               # fits whole
+    assert not small["split"] and list(small["zips"]) == ["NF-ToN-IoT-v2.zip"]
+    limit_mb = 0.6 * small["zips"]["NF-ToN-IoT-v2.zip"] / 2**20       # forces a split
+    rec = package(src, tmp_path / "split", max_mb=limit_mb, chunksize=777)
+    assert rec["split"] and len(rec["zips"]) >= 2
+    assert max(rec["zips"].values()) <= limit_mb * 2**20
+    back = []
+    for name in sorted(rec["zips"]):
+        with zipfile.ZipFile(tmp_path / "split" / name) as z:
+            z.extractall(tmp_path / "x")
+            back.append(pd.read_csv(tmp_path / "x" / z.namelist()[0]))
+    joined = pd.concat(back, ignore_index=True)
+    assert joined.row_id.tolist() == df.row_id.tolist()               # every row, in order
+    assert sum(rec["rows_per_part"].values()) == len(df)
+
+
+def test_one_burst_family_leaves_a_partition_empty_with_a_specific_error(tmp_path):
+    """NetFlow v2 has no timestamps, so cleaning synthesizes one per row in file order.
+    A family whose rows are contiguous is then one burst, and whole-burst assignment
+    puts all of it in one partition: the others get nothing (first seen on real
+    NF-UNSW-NB15-v2 in the grid sweep)."""
+    from dloop.sim.partition import EmptyPartitionError
+
+    df = _nf_frame(n_benign=600, n_attack=200)
+    df = pd.concat([df[df.Label == 0], df[df.Label == 1]], ignore_index=True)   # benign contiguous
+    df.to_csv(tmp_path / "NF-ToN-IoT-v2.csv", index=False)
+    raw = netflow_v2.load_raw_by_day("nf-ton-iot-v2", tmp_path)
+    with pytest.raises(EmptyPartitionError, match="received no rows"):
+        build_partitions(raw, config=PartitionConfig(strategy="within_day_temporal"),
+                         features=schema.NETFLOW_V2_FEATURES)
+    assert issubclass(EmptyPartitionError, ValueError)          # existing callers unaffected
+
+
+def test_grid_sweep_records_an_empty_partition_as_an_invalid_grid_point(tmp_path, monkeypatch):
+    import experiments.phase0_grid_sweep as gs
+    from dloop.sim.partition import EmptyPartitionError
+
+    def boom(**kw):
+        raise EmptyPartitionError("partition 'prod_benign' received no rows (strategy=within_day_temporal)")
+
+    monkeypatch.setattr(gs, "load_partitions", boom)
+    assert gs.main(["--source", "synthetic", "--out", str(tmp_path)]) == 0
+    out = pd.read_csv(tmp_path / "grid_sweep.csv")
+    assert len(out) == len(gs.GRIDS) and not out.partition_valid.any()
+    assert out.note.str.contains("received no rows").all()
+
+
 def test_netflow_subsample_is_stratified_capped_and_keeps_file_order(tmp_path):
     from experiments.phaseR_netflow_subsample import subsample
 

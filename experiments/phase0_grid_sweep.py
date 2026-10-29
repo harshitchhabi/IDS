@@ -29,6 +29,7 @@ from dloop.models import ModelConfig, make_model
 from dloop.models.metrics import binary_metrics
 from dloop.sim import synthetic
 from dloop.sim.dataset import load_partitions
+from dloop.sim.partition import EmptyPartitionError
 
 log = get_logger("experiments.phase0_grid_sweep")
 
@@ -61,8 +62,9 @@ def main(argv: list[str] | None = None) -> int:
                 data = load_partitions(source=args.source,
                                        synthetic_config=synthetic.SyntheticConfig(),
                                        partition_config=cfg)
-        except AssertionError as e:
-            # e.g. guard (a) off -> the partition has genuine row-content overlap
+        except (AssertionError, EmptyPartitionError) as e:
+            # e.g. guard (a) off -> the partition has genuine row-content overlap; or a
+            # partition left empty by whole-burst assignment (EmptyPartitionError)
             log.warning("grid point produced an invalid partition", grid=grid, error=str(e))
             rows.append({"grid": grid, "partition_valid": False, "note": str(e)})
             continue

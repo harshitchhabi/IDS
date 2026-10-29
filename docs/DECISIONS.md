@@ -3072,3 +3072,57 @@ checked array by array. Runner flags: `--crowd-filler stale --crowd-family DDoS`
 `--crowd-filler benign`, keeps the earlier job keys). Unit tests are in `tests/test_phaseR.py`.
 The updated `experiments/run_phaseR_r2.sh cicids` was smoke-tested end to end at 1 seed / 2
 rounds before this commit. R2.4 grows from 180 to 360 jobs.
+
+### 31.7 Addendum, dated 2026-10-29, before any Phase R run: R3 data received, and how it is packaged
+
+The three UQ NetFlow v2 files were downloaded by hand (§31.4) as UQ RDM BagIt packages and
+checked, streaming, before anything else read them. All three are the v2 releases:
+
+| file | sha1 vs. UQ manifest | rows (published) | benign share (published) | header |
+|---|---|---:|---:|---|
+| NF-UNSW-NB15-v2 | match | 2,390,275 (2,390,275) | 96.02% (96.02%) | 43 fields + Label + Attack, as mapped in §31.3 |
+| NF-CSE-CIC-IDS2018-v2 | match | 18,893,708 (18,893,708) | 88.05% (88.05%) | same |
+| NF-ToN-IoT-v2 | match | 16,940,496 (16,940,496) | 36.01% (36.01%) | same |
+
+No row in any file has a Label/Attack disagreement. UQ's own field dictionary, shipped in each
+package, documents `RETRANSMITTED_IN_*` as src->dst. That confirms §31.3's
+IN = forward mapping; the mapping is unchanged.
+
+**Packaging change (supersedes one sentence of §31.3).** §31.3 says that where a zipped subsample
+would exceed 95 MB, "the benign cap (only) is lowered in steps of 100,000 until it fits". That
+fallback is **not used**. Instead, a subsample that does not fit in one zip is split into
+contiguous row ranges (`<stem>.part01.csv`, `part02`, ..., each with the header, rows in
+original order), each zipped separately under 95 MB (`experiments/phaseR_netflow_package.py`).
+The loader reads the parts back in order (`dloop.sim.netflow_v2.files_for`; unit-tested to give
+a frame identical to the unsplit file). This changes packaging only. Both caps stay exactly as
+pre-registered (200,000 per attack family, 1,000,000 benign), so the R3 sample is the one §31.3
+specified. **In the event, no split was needed:** all three subsamples fit in a single zip
+(NF-UNSW-NB15-v2 1,095,053 rows, 16.2 MiB; NF-CSE-CIC-IDS2018-v2 2,037,335 rows, 58.2 MiB;
+NF-ToN-IoT-v2 2,227,957 rows, 24.5 MiB). Each zip's CSV is byte-identical (sha256) to the
+subsampler's output. Per-family counts before and after sampling are in
+`harshitchhabi/IDS-data/netflow-v2/README.md` and in each `<stem>.sampling.json`.
+
+The raw downloads stay on the author's laptop (`newdata/`, gitignored in this repo); only the
+subsamples go to the private IDS-data repo, under UQ's terms (academic use with citation, no
+redistribution beyond it).
+
+**Real-data smoke test, NF-UNSW-NB15-v2 (1 seed, 2 rounds, both stages of
+`run_phaseR_r3.sh`; scratch output, deleted; no R3 number is read from it).** Two things
+surfaced, neither of which changes a cell, a bar or the pipeline's behaviour:
+
+1. *A data property, reported here because it bears on R3's feasibility.* On the 29 mapped
+   features, most NetFlow v2 flows are exact duplicates. The project's standard cleaning step
+   (exact duplicates over features + label, s1) takes NF-UNSW-NB15-v2's subsample from 1,095,053
+   rows to 73,284 (benign 1,000,000 -> 37,461), before the near-duplicate guard removes 9,902 more.
+   The loop then has about 22,000 seed_train rows, not its usual 30,000 cap. Nothing is changed in
+   response: the cleaning rule is the one every dataset in this project uses, and the R3 write-up
+   reports these counts per dataset alongside R3.0.
+2. *A crash, fixed in this commit with a regression test.* NetFlow v2 has no timestamps, so
+   cleaning synthesizes one per row in file order (as §31.3 states). With guard (a) off (grid
+   0.0), the partition's whole-burst assignment left `prod_benign` empty. One run of interleaved
+   rows formed a burst spanning a whole segment, and that raised a plain `ValueError` the grid
+   sweep did not catch. It now raises `EmptyPartitionError` (a `ValueError` subclass, so every
+   other caller is unaffected), which `phase0_grid_sweep.py` records as an invalid grid point
+   exactly as it already did for guard (a)'s `AssertionError`. On NF-UNSW-NB15-v2, grid 0.0 is
+   invalid and 0.005-0.05 are valid. §31.3's rule (gentlest valid grid) therefore still gives
+   0.005, and `NETFLOW_GRID` is unchanged.
