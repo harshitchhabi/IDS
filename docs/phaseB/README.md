@@ -77,14 +77,13 @@ reports NN distance, twin fraction and cost.
 raw-pcap slice against the matching rows of Engelen's published reprocessed CSV
 (`IDS-data/cicids2017-fixed/monday.csv`), per feature.
 
-**Done, with a caveat — see [extractor-validation.md](extractor-validation.md).**
-The raw pcap (manual download from the UNB CIC IDS-2017 page, registration-gated)
-is in `newdata/` (gitignored). The first 30 min was sliced and extracted: the
-emitted flows match Engelen's published release at **0 s offset, 99.7 % matched,
-per-feature exact ≥ 98.7 %** — the extractor build is correct. The extraction was
-**incomplete** (Java-heap OOM on a 2.6 GiB slice in the 1.86 GiB Docker VM, ~12 %
-of the window's flows emitted before it died), so flow count is not validated. Not
-tuned around.
+**Done — see [extractor-validation.md](extractor-validation.md).** The raw pcap
+(manual download from the UNB CIC IDS-2017 page, registration-gated) is in
+`newdata/` (gitignored). The first 30 min was sliced; a full-slice extraction OOM'd
+(Java heap in the 1.86 GiB VM), so the slice was **split by host-pair** (every
+5-tuple kept whole) and each piece extracted in a fresh JVM — never raising memory.
+The reassembled 18,248 flows match Engelen's release at **0 s offset, 99.8 %
+matched, per-feature exact ≥ 97 %**. The extractor build is confirmed correct.
 
 ## Resource use (measured)
 

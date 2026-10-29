@@ -69,9 +69,8 @@ connections total).
 
 ## Extractor validation (step 3)
 
-Done, with a caveat — [extractor-validation.md](extractor-validation.md). The
-lab's pinned fixed CICFlowMeter reproduces Engelen's published reprocessed
-CICIDS2017 on the flows it emits (0 s offset, 99.7 % matched, per-feature exact
-≥ 98.7 %), so the extractor build is correct and the pilot's flows share the
-paper's feature space. The extraction itself was incomplete (Java-heap OOM on the
-2.6 GiB slice), so flow count is not yet validated.
+Done — [extractor-validation.md](extractor-validation.md). The lab's pinned fixed
+CICFlowMeter reproduces Engelen's published reprocessed CICIDS2017 across the full
+30-min window (0 s offset, 18,207 / 18,248 flows matched = 99.8 %, per-feature exact
+≥ 97 %), after splitting the slice by host-pair to fit the memory ceiling. The
+extractor build is correct and the pilot's flows share the paper's feature space.

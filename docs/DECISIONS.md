@@ -3172,3 +3172,147 @@ fix. RF reproduces bit-for-bit cross-machine and needs no such caveat.
 
 (The user's step named this "§31.2"; §31.2 is already R2 ShareCap generality, so it is recorded
 here as §31.8, cross-referenced from R1.b.)
+
+### 32 Phase B pre-registration, dated 2026-10-29, before any confirmatory run
+
+Phase B answers the IJERESM rejection's central objection: Phase 0/A poison was
+synthesised in feature space, never carried as real traffic through a live honeypot
+and a flow extractor. Here the A1 adversary sends real sessions to a real honeypot
+(`lab/`), `tcpdump` captures them, the pinned fixed CICFlowMeter
+(`dloop-cicflowmeter:4dd5319`, validated in `docs/phaseB/extractor-validation.md`)
+turns packets into flows, and the paper's own loop, normaliser and distance code
+score them. The pilot (`docs/phaseB/pilot-results.md`) is **exploratory and is not
+reused as data**; everything below is run fresh.
+
+**Memory rule for the whole of Phase B:** the Docker VM stays at ~1.86 GB and
+`.wslconfig` is not touched. Every job is made to fit by splitting its input (pcaps
+by host-pair / rotation, loop sweeps by the existing 4-worker cap), never by raising
+a limit. If a piece OOMs it is split finer and that is recorded.
+
+**Seeds:** 1-15 throughout (the same 15 the paper uses). Fixed numpy/sklearn/torch
+seeding as everywhere else. Every figure/table traces to a config hash.
+
+#### 32.0 Defender data -- the lab dataset
+
+A single lab-only dataset, built once, then frozen:
+
+- **Dense benign capture.** Enough concurrent benign clients (web + SSH, the
+  `benign-client` generator scaled up) to yield **at least 50,000 benign flows**
+  after cleaning, captured and extracted with the pinned CICFlowMeter.
+- **Real attacks** from the `attacker` container against prod (port scan, slow SSH
+  guessing, SQLi/XSS probes) -- genuine malicious traffic.
+- **Honeypot-bound traffic**: the three mimic strategies below, plus the attacker's
+  attacks aimed at the honeypots.
+
+Features: the 24 canonical features via the fixed-CICIDS mapping (same extractor as
+the reprocessed release, so the lab dataset shares that feature space). Partitions
+follow the paper's scheme with the same leakage guards (`dloop.sim.partition`):
+
+| partition | contents |
+|---|---|
+| `seed_train` | a benign share + the real attack flows (the initial detector) |
+| `prod_benign` | benign flows representing production (FPR is measured here) |
+| `honeypot_pool` | the honeypot-bound **mimic** flows -- the A1 poison source |
+| `trusted_eval` | held-out benign + held-out real attacks, never touched by the loop |
+
+Guard (a) near-duplicate removal runs globally before the split; guard (c) the NN
+leakage check runs after, and an S0-style sanity arm must not be a memorisation leak
+(`leak_warning` false) or the dataset is rebuilt. `assert_disjoint` between
+`trusted_eval` and training data is asserted in code. New loader `dloop.sim.lab` +
+source `"lab"` in `ALL_SOURCES`, with a unit test on partition disjointness and the
+24-feature schema. The loop cache `data/loop/lab.npz` is gitignored; only code and
+the result CSVs are committed.
+
+#### 32.1 B.1 -- achievable fidelity (descriptive, no hypothesis test)
+
+Three mimic strategies, each sending real sessions to the HTTP honeypot:
+
+1. **profile-based** -- as in the pilot; the profile is learned from the attacker's
+   **own separate** benign capture (not the defender's data).
+2. **replay-style** -- the attacker records its own benign sessions and re-issues the
+   same request/command sequences toward the honeypots.
+3. **oracle** -- the profile is learned from the **defender's own** benign data; the
+   upper bound on what mimicry can achieve.
+
+For each strategy, in the loop's own normalised space (log1p then IQR, the
+`Normalizer`), over the honeypot-bound mimic flows:
+
+- median NN RMS distance and twin fraction (delta = 0.0015) to the defender's benign
+  reference (`FidelityMeter`, guard (c)'s metric);
+- the **benign-to-benign floor**: the same statistics for genuine benign flows
+  against a benign reference **of the same size** (subsampled), so reference density
+  matches;
+- each distance reported **as a ratio to that floor** (the pilot showed the raw
+  number is dominated by reference size).
+
+Table: strategy x {median NN, twin fraction, benign floor, ratio}. Descriptive only;
+the question is which strategy gets closest to copy fidelity.
+
+#### 32.2 B.2 -- end-to-end damage
+
+Run the paper's loop on the lab dataset with the **real extracted mimic flows** as A1
+poison (new `dloop.adversary.lab_replay.LabReplayAdversary`: emits `honeypot_pool`
+rows unchanged as the per-round batch, stamped malicious -- no feature-space jitter;
+unit test on batch shape/labels/provenance). Arms, mirroring s28:
+
+- **a1** -- mimic flows labelled malicious (the poison);
+- **a1truth** -- the *same* mimic flows labelled benign (null: no label conflict);
+- **junk** -- the junk adversary (null: volume without fidelity);
+- all against **control** (no honeypot rows).
+
+Settings: ratios **0.2 and 0.5**, 15 seeds, **RF and XGBoost**, **fixed and
+recalibrated** thresholds. Primary mimic strategy for B.2 (fixed now): the strategy
+with the **smallest B.1 NN-distance-to-floor ratio** (the most realistic); the other
+two are reported descriptively. **ShareCap c = 0.05** is also run on the a1 arm.
+
+- **Family / test:** per (model, threshold mode), 4 tests (a1, a1truth, junk vs
+  control), **Bonferroni** correction, paired *t* primary with a permutation test
+  alongside -- the s23/s26.1/s28 structure.
+- **Bar (fixed now):** *realistic A1 replicates* iff **recalibrated Delta-TPR for RF
+  at ratio 0.2 clears Bonferroni (alpha/4 = 0.0125) by paired t**, **and** the s28
+  null-arm rule holds (each of a1truth and junk has its 95% CI including 0). *Does not
+  replicate* iff a1 does not clear. *Mixed* iff a1 clears but a null arm does not.
+- **Also reported:** whether the a1 effect size falls **inside the 95% CI of the
+  feature-space A1 result at the nearest realized distance** (s26.6's RF recalibrated
+  Delta-TPR table), i.e. whether real-traffic A1 lands where the feature-space curve
+  predicts for its measured realized distance.
+
+#### 32.3 B.3 -- cost
+
+Per poison flow **accepted into training** (per honeypot_pool row admitted at the
+chosen ratio): packets, bytes, connections and wall-clock, from the ground-truth logs
+joined to the admitted flows. And the **time to reach a 20% honeypot share of the
+training set at one retrain every N = 10 minutes** -- given the measured mimic
+flow-rate (flows/min from the capture), how many retrain rounds and how much
+wall-clock to push the honeypot share from 0 to 0.20. N = 10 min stated now.
+
+#### 32.4 Commands (fixed now)
+
+```
+# build the lab loop cache from the captured+labelled+extracted flows
+python -m experiments.phaseB_build_lab --out data/loop/lab.npz
+
+# B.1 fidelity (per strategy)
+python -m experiments.phaseB_fidelity --dataset lab --strategies profile replay oracle \
+    --out results/phaseB/b1_fidelity.csv
+
+# B.2 damage: a1 / a1truth / junk vs control, RF+XGB, ratios 0.2/0.5, 15 seeds
+python -m experiments.phase0_loop --dataset lab --val-nn-tau 0.1 \
+    --scenarios a1 a1truth --models rf xgboost --ratios 0.2 0.5 --seeds 15 \
+    --out results/phaseB/loop/lab
+python -m experiments.phase0_loop --dataset lab --val-nn-tau 0.1 \
+    --scenarios junk --jitters 0.0 --ratios 0.2 0.5 --models rf xgboost --seeds 15 \
+    --out results/phaseB/loop/lab
+# ShareCap on a1
+python -m experiments.phase0_loop --dataset lab --val-nn-tau 0.1 \
+    --scenarios a1 --defense sharecap --share-cap 0.05 --models rf xgboost \
+    --ratios 0.2 0.5 --seeds 15 --out results/phaseB/loop/lab_sharecap
+
+# B.2 statistics + B.3 cost
+python -m experiments.phaseB_stats --out results/phaseB/b2_stats.csv
+python -m experiments.phaseB_cost  --out results/phaseB/b3_cost.csv
+```
+
+Holm is not used in Phase B; the only multiplicity is the 4-test Bonferroni family
+per (model, threshold mode), and the single primary cell is RF / recalibrated /
+ratio 0.2. All of §32 is fixed before `phaseB_build_lab` is run.
