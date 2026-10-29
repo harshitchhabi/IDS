@@ -109,3 +109,4 @@
 {"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T05:52:16.110927Z"}
 {"total": 180, "todo": 158, "workers": 3, "config_hash": "5a00ece209d6a688", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T05:52:16.118987Z"}
 {"done": 10, "of": 158, "minutes": 35.7, "event": "progress", "level": "info", "timestamp": "2026-10-29T06:28:00.459768Z"}
+{"done": 20, "of": 158, "minutes": 68.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T07:00:28.948483Z"}
