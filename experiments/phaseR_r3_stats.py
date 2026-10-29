@@ -54,8 +54,11 @@ def defended_deltas(df: pd.DataFrame, model: str, ratio: float, tau: float,
     a1 = base[(base.scenario == "a1") & np.isclose(base.target_poison_ratio, ratio)
               & np.isclose(base.jitter.fillna(0.0), 0.0) & (base.cost_padding.fillna(1.0) == 1.0)]
     none = _final(a1[a1.defense.fillna("none") == "none"])
-    dfd = _final(a1[(a1.defense == "sharecap") & np.isclose(a1.share_cap, cap)])
+    # job rows record the defense with its cap folded in (phase0_loop's tag, e.g. "sharecap_c0.05")
+    dfd = _final(a1[a1.defense == f"sharecap_c{cap:g}"])
     seeds = sorted(set(ctrl.index) & set(none.index) & set(dfd.index))
+    if len(seeds) != len(SEEDS):
+        raise ValueError(f"R3.3 {model} ratio {ratio}: {len(seeds)} paired seeds, expected {len(SEEDS)}")
     d_none = np.array([none.loc[s, "fpr"] - ctrl.loc[s, "fpr"] for s in seeds])
     d_def = np.array([dfd.loc[s, "fpr"] - ctrl.loc[s, "fpr"] for s in seeds])
     return d_def, d_none
