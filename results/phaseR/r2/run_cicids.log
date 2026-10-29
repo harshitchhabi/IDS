@@ -1,0 +1,3 @@
+>>> phase0_loop --seeds 15 --scenarios control --models rf xgboost logreg mlp
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:31:50.896580Z"}
+{"total": 60, "todo": 60, "workers": 3, "config_hash": "33e75c788240d44e", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:31:50.900494Z"}
