@@ -95,3 +95,32 @@ def test_match_intent_unknown_without_ground_truth():
     empty = label.parse_ground_truth([])
     flow = pd.Series({"Src IP": BENIGN, "Dst IP": PROD, "Dst Port": 80, "_ts_s": 1000.0})
     assert label.match_intent(flow, empty) == "unknown"
+
+
+def test_validate_extractor_matches_on_flowid_and_offset_start_time():
+    # Same flows on both sides but the published side is shifted +3h (a timezone
+    # representation difference). The matcher must detect the offset and still match,
+    # 5-tuple + offset-corrected start time. (Phase B extractor validation.)
+    import importlib
+    ve = importlib.import_module("validate_extractor")
+
+    def row(fid, ts, dur, fwd):
+        return {"Flow ID": fid, "Timestamp": ts, "Flow Duration": dur, "Total Fwd Packet": fwd}
+
+    lab = pd.DataFrame([
+        row("a-b-1-2-6", "2017-07-03 13:15:58", 100, 5),
+        row("c-d-3-4-6", "2017-07-03 13:16:10", 200, 9),
+    ])
+    pub = pd.DataFrame([
+        row("a-b-1-2-6", "2017-07-03 10:15:58", 100, 5),   # +(-3h), identical features
+        row("c-d-3-4-6", "2017-07-03 10:16:10", 200, 7),   # same flow, fwd differs
+        row("z-z-9-9-6", "2017-07-03 09:00:00", 1, 1),      # unrelated day flow
+    ])
+    merged, diag = ve.match(lab, pub, offset=None, tolerance=2.0)
+    assert diag["offset_s"] == -10800.0           # -3h auto-detected
+    assert diag["n_matched"] == 2                 # both lab flows matched
+    agree = ve.feature_agreement(merged, features=("flow_duration", "fwd_packets"))
+    dur = agree.set_index("feature").loc["flow_duration"]
+    fwd = agree.set_index("feature").loc["fwd_packets"]
+    assert dur["exact_match_rate"] == 1.0         # duration identical on both
+    assert fwd["exact_match_rate"] == 0.5         # one of two fwd_packets differs

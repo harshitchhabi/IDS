@@ -67,10 +67,11 @@ connections total).
 - A handful of packets were discarded per pcap (TCP reassembly edge cases at
   rotation boundaries); counted in the tool's own `Packet stats`, not corrected.
 
-## Caveat that blocked step 3
+## Extractor validation (step 3)
 
-Extractor validation against Engelen's published reprocessed CSV is **not done**:
-the CICIDS2017 raw PCAPs are gated behind the UNB registration form (see README).
-Until that slice is extracted and compared, the pilot's absolute distances cannot
-be tied to the paper's reprocessed-CICIDS2017 feature space — only the lab's
-internal benign-vs-mimic comparison above stands.
+Done, with a caveat — [extractor-validation.md](extractor-validation.md). The
+lab's pinned fixed CICFlowMeter reproduces Engelen's published reprocessed
+CICIDS2017 on the flows it emits (0 s offset, 99.7 % matched, per-feature exact
+≥ 98.7 %), so the extractor build is correct and the pilot's flows share the
+paper's feature space. The extraction itself was incomplete (Java-heap OOM on the
+2.6 GiB slice), so flow count is not yet validated.

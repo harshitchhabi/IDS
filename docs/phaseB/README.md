@@ -77,14 +77,14 @@ reports NN distance, twin fraction and cost.
 raw-pcap slice against the matching rows of Engelen's published reprocessed CSV
 (`IDS-data/cicids2017-fixed/monday.csv`), per feature.
 
-**Blocked on a manual download.** The CICIDS2017 raw PCAPs are not directly
-fetchable: `cicresearch.ca` / `205.174.165.80` both 302-redirect the PCAP URL to
-`https://www.unb.ca/cic/datasets/index.html`. To get `Monday-WorkingHours.pcap`
-you must go to the UNB CIC IDS-2017 page, open **"Download this dataset"**, fill
-the registration form (name / email / organisation), and download from the link
-they email / show — then slice the first ~30 min with
-`editcap -A <start> -B <end> Monday-WorkingHours.pcap monday_30min.pcap` and run
-the extractor + `validate_extractor.py`. See the Blockers section of the handover.
+**Done, with a caveat — see [extractor-validation.md](extractor-validation.md).**
+The raw pcap (manual download from the UNB CIC IDS-2017 page, registration-gated)
+is in `newdata/` (gitignored). The first 30 min was sliced and extracted: the
+emitted flows match Engelen's published release at **0 s offset, 99.7 % matched,
+per-feature exact ≥ 98.7 %** — the extractor build is correct. The extraction was
+**incomplete** (Java-heap OOM on a 2.6 GiB slice in the 1.86 GiB Docker VM, ~12 %
+of the window's flows emitted before it died), so flow count is not validated. Not
+tuned around.
 
 ## Resource use (measured)
 
