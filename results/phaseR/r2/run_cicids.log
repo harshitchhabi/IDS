@@ -32,3 +32,11 @@
 {"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T19:00:08.326870Z"}
 {"total": 60, "todo": 60, "workers": 3, "config_hash": "8d448f4e14a96f29", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T19:00:08.331063Z"}
 {"done": 10, "of": 60, "minutes": 2.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T19:02:28.934777Z"}
+{"done": 20, "of": 60, "minutes": 4.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T19:04:43.768075Z"}
+{"done": 30, "of": 60, "minutes": 7.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T19:07:07.657534Z"}
+{"done": 40, "of": 60, "minutes": 9.7, "event": "progress", "level": "info", "timestamp": "2026-10-29T19:09:52.557871Z"}
+{"done": 50, "of": 60, "minutes": 12.3, "event": "progress", "level": "info", "timestamp": "2026-10-29T19:12:28.613242Z"}
+{"done": 60, "of": 60, "minutes": 15.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T19:15:13.394686Z"}
+>>> phase0_loop --seeds 15 --scenarios a1 --models rf xgboost logreg mlp --jitters 0 --ratios 0.2 0.5 0.9 --defense sharecap --share-cap 0.02
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T19:15:18.883082Z"}
+{"total": 180, "todo": 180, "workers": 3, "config_hash": "7ca63636dc668613", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T19:15:18.893621Z"}
