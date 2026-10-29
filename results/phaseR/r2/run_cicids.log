@@ -74,3 +74,16 @@
 {"done": 150, "of": 180, "minutes": 228.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:03:07.193944Z"}
 {"done": 160, "of": 180, "minutes": 232.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:07:04.371970Z"}
 {"done": 170, "of": 180, "minutes": 236.7, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:11:16.278173Z"}
+{"done": 180, "of": 180, "minutes": 240.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:15:13.222119Z"}
+>>> phase0_loop --seeds 15 --scenarios s0 --models rf xgboost logreg mlp --ratios 0.2 --defense sharecap --share-cap 0.02
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T04:15:19.603712Z"}
+{"total": 60, "todo": 60, "workers": 3, "config_hash": "25a1945ec6495977", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T04:15:19.608784Z"}
+{"done": 10, "of": 60, "minutes": 2.7, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:18:01.788053Z"}
+{"done": 20, "of": 60, "minutes": 5.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:20:28.472356Z"}
+{"done": 30, "of": 60, "minutes": 8.2, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:23:33.061478Z"}
+{"done": 40, "of": 60, "minutes": 11.5, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:26:48.983920Z"}
+{"done": 50, "of": 60, "minutes": 14.8, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:30:05.122865Z"}
+{"done": 60, "of": 60, "minutes": 18.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T04:33:23.838439Z"}
+>>> phase0_loop --seeds 15 --scenarios a1 --models rf xgboost logreg mlp --jitters 0 --ratios 0.2 0.5 0.9 --defense sharecap --share-cap 0.05
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T04:33:30.249954Z"}
+{"total": 180, "todo": 180, "workers": 3, "config_hash": "5a00ece209d6a688", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T04:33:30.261335Z"}
