@@ -1,0 +1,375 @@
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:13:24.949752Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:13:29.644844Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:13:29.744598Z"}
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:13:29.888645Z"}
+{"total": 146203, "by_day": {"all": 146203}, "grid": 0.005, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T14:13:30.403705Z"}
+{"stream": "all/BENIGN", "rows": 215, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.515826Z"}
+{"stream": "all/Bot", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.521566Z"}
+{"stream": "all/Brute Force -Web", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.522687Z"}
+{"stream": "all/Brute Force -XSS", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.523650Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 14, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.527589Z"}
+{"stream": "all/DDOS attack-LOIC-UDP", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.529621Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 12, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.532223Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 48, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.538805Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 133, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.557567Z"}
+{"stream": "all/Infilteration", "rows": 16, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.573966Z"}
+{"stream": "all/SQL Injection", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.575850Z"}
+{"stream": "all/SSH-Bruteforce", "rows": 22, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:13:30.580058Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:13:30.707065Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0008, "benign_p5": 0.0023, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:13:38.980341Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 101299, "prod_benign": 23731, "honeypot_pool": 101186, "trusted_eval": 56555}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:13:38.993202Z"}
+{"name": "nf-cse-cic-ids2018-v2", "config": {"seed_train_rows": 30000, "eval_benign_rows": 40000, "eval_attack_cap_per_family": 4000, "seed": 20250903}, "seed_rows": 30000, "pool_benign": 35643, "pool_attack": 65543, "eval_rows": 41494, "arm_counts": {"seen_both": 17721, "seed_only": 0, "honeypot_only": 0}, "event": "loop data built", "level": "info", "timestamp": "2026-10-29T14:13:39.185940Z"}
+{
+  "path": "data/loop/nf-cse-cic-ids2018-v2.npz",
+  "seed_rows": 30000,
+  "pool_benign": 35643,
+  "pool_attack": 65543,
+  "eval_rows": 41494,
+  "arm_counts": {
+    "seen_both": 17721,
+    "seed_only": 0,
+    "honeypot_only": 0
+  },
+  "near_dup_grid": 0.005,
+  "leak_warning": true
+}
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:14:00.972688Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:14:05.433399Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:14:05.546362Z"}
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:14:05.688028Z"}
+{"stream": "all/BENIGN", "rows": 337, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.033958Z"}
+{"stream": "all/Brute Force -Web", "rows": 6, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.043301Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 38, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.051260Z"}
+{"stream": "all/DDOS attack-LOIC-UDP", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.054675Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 16, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.058213Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 41, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.065548Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 221, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.090890Z"}
+{"stream": "all/FTP-BruteForce", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.105017Z"}
+{"stream": "all/Infilteration", "rows": 36, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.111606Z"}
+{"stream": "all/SSH-Bruteforce", "rows": 21, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:06.120886Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:14:06.326193Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0001, "benign_p5": 0.0, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:14:22.098592Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 154898, "prod_benign": 33357, "honeypot_pool": 154731, "trusted_eval": 85743}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:14:22.110235Z"}
+{"kind": "rf", "config_hash": "53eb4a8e9910c2c7", "threshold": 0.547299, "val_fpr": 0.01, "val_tpr": 0.9342, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:14:27.559036Z"}
+{"kind": "xgboost", "config_hash": "30632d9bb7b7622d", "threshold": 0.350902, "val_fpr": 0.0035, "val_tpr": 0.9323, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:14:28.447744Z"}
+{"grid": 0.0, "partition_valid": true, "near_dup_benign": 0, "near_dup_attack": 0, "seed_train": 154898, "honeypot_pool": 154731, "trusted_eval": 85743, "leak_warning": true, "nn_attack_p5": 0.0001, "nn_benign_p5": 0.0, "rf_eval_fpr": 0.006, "rf_eval_tpr": 0.9332, "rf_auroc": 0.9829, "xgboost_eval_fpr": 0.0066, "xgboost_eval_tpr": 0.9322, "xgboost_auroc": 0.9853, "event": "grid point done", "level": "info", "timestamp": "2026-10-29T14:14:28.504342Z"}
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:14:40.546240Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:14:43.542833Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:14:43.642237Z"}
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:14:43.777609Z"}
+{"total": 146203, "by_day": {"all": 146203}, "grid": 0.005, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T14:14:44.267958Z"}
+{"stream": "all/BENIGN", "rows": 215, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.383333Z"}
+{"stream": "all/Bot", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.389456Z"}
+{"stream": "all/Brute Force -Web", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.390578Z"}
+{"stream": "all/Brute Force -XSS", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.391518Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 14, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.395459Z"}
+{"stream": "all/DDOS attack-LOIC-UDP", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.397607Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 12, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.400145Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 48, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.407289Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 133, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.427843Z"}
+{"stream": "all/Infilteration", "rows": 16, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.440497Z"}
+{"stream": "all/SQL Injection", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.442108Z"}
+{"stream": "all/SSH-Bruteforce", "rows": 22, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:14:44.447737Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:14:44.598681Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0008, "benign_p5": 0.0023, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:14:53.030584Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 101299, "prod_benign": 23731, "honeypot_pool": 101186, "trusted_eval": 56555}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:14:53.044017Z"}
+{"kind": "rf", "config_hash": "53eb4a8e9910c2c7", "threshold": 0.651264, "val_fpr": 0.0099, "val_tpr": 0.9383, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:14:56.206570Z"}
+{"kind": "xgboost", "config_hash": "30632d9bb7b7622d", "threshold": 0.334787, "val_fpr": 0.0092, "val_tpr": 0.9392, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:14:56.863982Z"}
+{"grid": 0.005, "partition_valid": true, "near_dup_benign": 48363, "near_dup_attack": 97840, "seed_train": 101299, "honeypot_pool": 101186, "trusted_eval": 56555, "leak_warning": true, "nn_attack_p5": 0.0008, "nn_benign_p5": 0.0023, "rf_eval_fpr": 0.0022, "rf_eval_tpr": 0.9358, "rf_auroc": 0.9802, "xgboost_eval_fpr": 0.0085, "xgboost_eval_tpr": 0.9381, "xgboost_auroc": 0.9829, "event": "grid point done", "level": "info", "timestamp": "2026-10-29T14:14:56.903399Z"}
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:15:10.652122Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:15:13.735409Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:15:13.837406Z"}
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:15:13.977838Z"}
+{"total": 186826, "by_day": {"all": 186826}, "grid": 0.01, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T14:15:14.474939Z"}
+{"stream": "all/BENIGN", "rows": 251, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:14.569834Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 15, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:14.586216Z"}
+{"stream": "all/DDOS attack-LOIC-UDP", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:14.588392Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 10, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:14.591992Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 34, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:14.601806Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 89, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:14.624997Z"}
+{"stream": "all/Infilteration", "rows": 22, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:14.635997Z"}
+{"stream": "all/SSH-Bruteforce", "rows": 10, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:14.639303Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:15:14.739534Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0015, "benign_p5": 0.0036, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:15:20.525927Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 85601, "prod_benign": 22650, "honeypot_pool": 85501, "trusted_eval": 48436}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:15:20.538341Z"}
+{"kind": "rf", "config_hash": "53eb4a8e9910c2c7", "threshold": 0.639742, "val_fpr": 0.01, "val_tpr": 0.9162, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:15:23.231503Z"}
+{"kind": "xgboost", "config_hash": "30632d9bb7b7622d", "threshold": 0.343051, "val_fpr": 0.01, "val_tpr": 0.9186, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:15:23.834261Z"}
+{"grid": 0.01, "partition_valid": true, "near_dup_benign": 53734, "near_dup_attack": 133092, "seed_train": 85601, "honeypot_pool": 85501, "trusted_eval": 48436, "leak_warning": true, "nn_attack_p5": 0.0015, "nn_benign_p5": 0.0036, "rf_eval_fpr": 0.0026, "rf_eval_tpr": 0.9185, "rf_auroc": 0.9747, "xgboost_eval_fpr": 0.0088, "xgboost_eval_tpr": 0.9214, "xgboost_auroc": 0.9783, "event": "grid point done", "level": "info", "timestamp": "2026-10-29T14:15:23.870154Z"}
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:15:35.924377Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:15:39.124819Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:15:39.229666Z"}
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:15:39.370053Z"}
+{"total": 227135, "by_day": {"all": 227135}, "grid": 0.02, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T14:15:39.932369Z"}
+{"stream": "all/BENIGN", "rows": 209, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.021057Z"}
+{"stream": "all/Bot", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.027553Z"}
+{"stream": "all/Brute Force -XSS", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.029534Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 12, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.032371Z"}
+{"stream": "all/DDOS attack-LOIC-UDP", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.034010Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.036100Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 32, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.042174Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 60, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.055933Z"}
+{"stream": "all/FTP-BruteForce", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.062528Z"}
+{"stream": "all/Infilteration", "rows": 19, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.067723Z"}
+{"stream": "all/SSH-Bruteforce", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:15:40.070247Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:15:40.158544Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0027, "benign_p5": 0.0057, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:15:44.040287Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 70630, "prod_benign": 20364, "honeypot_pool": 70570, "trusted_eval": 40399}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:15:44.058672Z"}
+{"kind": "rf", "config_hash": "53eb4a8e9910c2c7", "threshold": 0.648831, "val_fpr": 0.01, "val_tpr": 0.8984, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:15:46.378840Z"}
+{"kind": "xgboost", "config_hash": "30632d9bb7b7622d", "threshold": 0.343597, "val_fpr": 0.0098, "val_tpr": 0.9008, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:15:46.885445Z"}
+{"grid": 0.02, "partition_valid": true, "near_dup_benign": 65195, "near_dup_attack": 161940, "seed_train": 70630, "honeypot_pool": 70570, "trusted_eval": 40399, "leak_warning": true, "nn_attack_p5": 0.0027, "nn_benign_p5": 0.0057, "rf_eval_fpr": 0.0026, "rf_eval_tpr": 0.8963, "rf_auroc": 0.9669, "xgboost_eval_fpr": 0.0089, "xgboost_eval_tpr": 0.8995, "xgboost_auroc": 0.9711, "event": "grid point done", "level": "info", "timestamp": "2026-10-29T14:15:46.925690Z"}
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:15:59.261474Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:16:02.230578Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:16:02.328193Z"}
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:16:02.467505Z"}
+{"total": 287881, "by_day": {"all": 287881}, "grid": 0.05, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T14:16:02.945049Z"}
+{"stream": "all/BENIGN", "rows": 190, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:03.027228Z"}
+{"stream": "all/Bot", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:03.032494Z"}
+{"stream": "all/Brute Force -XSS", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:03.034105Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 8, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:03.035787Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:03.038199Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 20, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:03.042645Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 25, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:03.049226Z"}
+{"stream": "all/DoS attacks-SlowHTTPTest", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:03.051328Z"}
+{"stream": "all/Infilteration", "rows": 12, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:03.055813Z"}
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:16:03.123399Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0062, "benign_p5": 0.0101, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:16:05.017175Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 47833, "prod_benign": 17456, "honeypot_pool": 47761, "trusted_eval": 28253}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:16:05.028214Z"}
+{"kind": "rf", "config_hash": "53eb4a8e9910c2c7", "threshold": 0.656786, "val_fpr": 0.0099, "val_tpr": 0.8184, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:16:06.868031Z"}
+{"kind": "xgboost", "config_hash": "30632d9bb7b7622d", "threshold": 0.34044, "val_fpr": 0.0093, "val_tpr": 0.8251, "event": "model fitted", "level": "info", "timestamp": "2026-10-29T14:16:07.252073Z"}
+{"grid": 0.05, "partition_valid": true, "near_dup_benign": 79829, "near_dup_attack": 208052, "seed_train": 47833, "honeypot_pool": 47761, "trusted_eval": 28253, "leak_warning": true, "nn_attack_p5": 0.0062, "nn_benign_p5": 0.0101, "rf_eval_fpr": 0.0021, "rf_eval_tpr": 0.809, "rf_auroc": 0.9372, "xgboost_eval_fpr": 0.0092, "xgboost_eval_tpr": 0.8189, "xgboost_auroc": 0.947, "event": "grid point done", "level": "info", "timestamp": "2026-10-29T14:16:07.271219Z"}
+
+=== guard (a) grid sweep (nf-cse-cic-ids2018-v2 / within_day_temporal) ===
+
+ grid  partition_valid  near_dup_benign  near_dup_attack  seed_train  honeypot_pool  trusted_eval  leak_warning  nn_attack_p5  nn_benign_p5  rf_eval_fpr  rf_eval_tpr  rf_auroc  xgboost_eval_fpr  xgboost_eval_tpr  xgboost_auroc
+0.000             True                0                0      154898         154731         85743          True        0.0001        0.0000       0.0060       0.9332    0.9829            0.0066            0.9322         0.9853
+0.005             True            48363            97840      101299         101186         56555          True        0.0008        0.0023       0.0022       0.9358    0.9802            0.0085            0.9381         0.9829
+0.010             True            53734           133092       85601          85501         48436          True        0.0015        0.0036       0.0026       0.9185    0.9747            0.0088            0.9214         0.9783
+0.020             True            65195           161940       70630          70570         40399          True        0.0027        0.0057       0.0026       0.8963    0.9669            0.0089            0.8995         0.9711
+0.050             True            79829           208052       47833          47761         28253          True        0.0062        0.0101       0.0021       0.8090    0.9372            0.0092            0.8189         0.9470
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:16:25.562304Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:16:30.134235Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:16:30.234066Z"}
+/home/user/IDS/.venv/lib/python3.12/site-packages/pandas/core/dtypes/astype.py:133: RuntimeWarning: overflow encountered in cast
+  return arr.astype(dtype, copy=True)
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:16:30.370632Z"}
+{"total": 146203, "by_day": {"all": 146203}, "grid": 0.005, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T14:16:30.857241Z"}
+{"stream": "all/BENIGN", "rows": 215, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:30.965859Z"}
+{"stream": "all/Bot", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:30.971927Z"}
+{"stream": "all/Brute Force -Web", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:30.972993Z"}
+{"stream": "all/Brute Force -XSS", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:30.973919Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 14, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:30.977785Z"}
+{"stream": "all/DDOS attack-LOIC-UDP", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:30.979998Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 12, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:30.982604Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 48, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:30.989159Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 133, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:31.006838Z"}
+{"stream": "all/Infilteration", "rows": 16, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:31.017501Z"}
+{"stream": "all/SQL Injection", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:31.018864Z"}
+{"stream": "all/SSH-Bruteforce", "rows": 22, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:31.022098Z"}
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:16:31.142603Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0008, "benign_p5": 0.0023, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:16:40.080130Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 101299, "prod_benign": 23731, "honeypot_pool": 101186, "trusted_eval": 56555}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:16:40.093571Z"}
+{"grid": 0.005, "attack_p5": 0.0007701640000911645, "benign_p5": 0.0023111343476376126, "event": "degeneracy grid done", "level": "info", "timestamp": "2026-10-29T14:16:40.345748Z"}
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:16:54.262276Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:16:57.537340Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:16:57.637917Z"}
+/home/user/IDS/.venv/lib/python3.12/site-packages/pandas/core/dtypes/astype.py:133: RuntimeWarning: overflow encountered in cast
+  return arr.astype(dtype, copy=True)
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:16:57.773922Z"}
+{"total": 186826, "by_day": {"all": 186826}, "grid": 0.01, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T14:16:58.286359Z"}
+{"stream": "all/BENIGN", "rows": 251, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:58.392511Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 15, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:58.403102Z"}
+{"stream": "all/DDOS attack-LOIC-UDP", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:58.405071Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 10, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:58.407417Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 34, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:58.415488Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 89, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:58.431308Z"}
+{"stream": "all/Infilteration", "rows": 22, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:58.441512Z"}
+{"stream": "all/SSH-Bruteforce", "rows": 10, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:16:58.444633Z"}
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:16:58.566182Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0015, "benign_p5": 0.0036, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:17:04.429958Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 85601, "prod_benign": 22650, "honeypot_pool": 85501, "trusted_eval": 48436}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:17:04.443635Z"}
+{"grid": 0.01, "attack_p5": 0.0014900026276368332, "benign_p5": 0.003551456444807394, "event": "degeneracy grid done", "level": "info", "timestamp": "2026-10-29T14:17:04.666560Z"}
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:17:16.908012Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:17:19.957660Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:17:20.057575Z"}
+/home/user/IDS/.venv/lib/python3.12/site-packages/pandas/core/dtypes/astype.py:133: RuntimeWarning: overflow encountered in cast
+  return arr.astype(dtype, copy=True)
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:17:20.200771Z"}
+{"total": 227135, "by_day": {"all": 227135}, "grid": 0.02, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T14:17:20.702057Z"}
+{"stream": "all/BENIGN", "rows": 209, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.793381Z"}
+{"stream": "all/Bot", "rows": 3, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.798639Z"}
+{"stream": "all/Brute Force -XSS", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.800330Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 12, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.803002Z"}
+{"stream": "all/DDOS attack-LOIC-UDP", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.804599Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 7, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.806615Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 32, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.812474Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 60, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.825617Z"}
+{"stream": "all/FTP-BruteForce", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.830639Z"}
+{"stream": "all/Infilteration", "rows": 19, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.834691Z"}
+{"stream": "all/SSH-Bruteforce", "rows": 4, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:20.840075Z"}
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:17:20.966934Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0027, "benign_p5": 0.0057, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:17:24.753339Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 70630, "prod_benign": 20364, "honeypot_pool": 70570, "trusted_eval": 40399}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:17:24.765649Z"}
+{"grid": 0.02, "attack_p5": 0.002719834094530451, "benign_p5": 0.005654628312965638, "event": "degeneracy grid done", "level": "info", "timestamp": "2026-10-29T14:17:24.942072Z"}
+{"source": "nf-cse-cic-ids2018-v2", "rows": 2037335, "label_and_attack_disagree": 0, "families": {"BENIGN": 1000000, "DDOS attack-HOIC": 200000, "DDoS attacks-LOIC-HTTP": 200000, "DoS attacks-Hulk": 200000, "Bot": 143097, "Infilteration": 116361, "SSH-Bruteforce": 94979, "DoS attacks-GoldenEye": 27723, "FTP-BruteForce": 25933, "DoS attacks-SlowHTTPTest": 14116, "DoS attacks-Slowloris": 9512, "Brute Force -Web": 2143, "DDOS attack-LOIC-UDP": 2112, "Brute Force -XSS": 927, "SQL Injection": 432}, "event": "NetFlow v2 load complete", "level": "info", "timestamp": "2026-10-29T14:17:37.455858Z"}
+{"rows": 1607885, "by_class": {"BENIGN": 832593, "DDoS attacks-LOIC-HTTP": 188879, "DDOS attack-HOIC": 172381, "Bot": 142627, "Infilteration": 96194, "SSH-Bruteforce": 80280, "DoS attacks-Hulk": 44006, "FTP-BruteForce": 25914, "DoS attacks-SlowHTTPTest": 14101, "DoS attacks-Slowloris": 9327, "DoS attacks-GoldenEye": 705, "Brute Force -Web": 647, "Brute Force -XSS": 134, "SQL Injection": 92, "DDOS attack-LOIC-UDP": 5}, "source": "all", "event": "dropping exact-duplicate rows", "level": "info", "timestamp": "2026-10-29T14:17:40.611396Z"}
+{"source": "all", "event": "no timestamp column; synthesizing monotonic order", "level": "warning", "timestamp": "2026-10-29T14:17:40.716306Z"}
+/home/user/IDS/.venv/lib/python3.12/site-packages/pandas/core/dtypes/astype.py:133: RuntimeWarning: overflow encountered in cast
+  return arr.astype(dtype, copy=True)
+{"source": "all", "rows_in": 2037335, "rows_out": 429450, "dropped_total": 1607885, "imbalance_ratio_out": 1.56530491556506, "event": "cleaning complete", "level": "info", "timestamp": "2026-10-29T14:17:40.864516Z"}
+{"total": 287881, "by_day": {"all": 287881}, "grid": 0.05, "event": "near-duplicate rows removed (global)", "level": "info", "timestamp": "2026-10-29T14:17:41.361421Z"}
+{"stream": "all/BENIGN", "rows": 190, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:41.470667Z"}
+{"stream": "all/Bot", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:41.476037Z"}
+{"stream": "all/Brute Force -XSS", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:41.477516Z"}
+{"stream": "all/DDOS attack-HOIC", "rows": 8, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:41.479235Z"}
+{"stream": "all/DDoS attacks-LOIC-HTTP", "rows": 5, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:41.481848Z"}
+{"stream": "all/DoS attacks-GoldenEye", "rows": 20, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:41.486551Z"}
+{"stream": "all/DoS attacks-Hulk", "rows": 25, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:41.493396Z"}
+{"stream": "all/DoS attacks-SlowHTTPTest", "rows": 2, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:41.496192Z"}
+{"stream": "all/Infilteration", "rows": 12, "band_seconds": 300.0, "event": "boundary guard band dropped rows (secondary check)", "level": "info", "timestamp": "2026-10-29T14:17:41.500576Z"}
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+/home/user/IDS/src/dloop/sim/partition.py:319: RuntimeWarning: invalid value encountered in cast
+  q = np.rint(df[feat].to_numpy("float64") * 1e6).astype(np.int64) + (1 << 44)
+{"strategy": "within_day_temporal", "pair_overlaps": {"seed_train|trusted_eval": 0, "prod_benign|seed_train": 0, "prod_benign|trusted_eval": 0, "honeypot_pool|seed_train": 0, "honeypot_pool|prod_benign": 0, "honeypot_pool|trusted_eval": 0}, "event": "partition disjointness verified", "level": "info", "timestamp": "2026-10-29T14:17:41.561364Z"}
+{"strategy": "within_day_temporal", "leak_warning": true, "attack_p5": 0.0062, "benign_p5": 0.0101, "event": "NN leakage check", "level": "warning", "timestamp": "2026-10-29T14:17:43.505792Z"}
+{"source": "nf-cse-cic-ids2018-v2", "strategy": "within_day_temporal", "rows": {"seed_train": 47833, "prod_benign": 17456, "honeypot_pool": 47761, "trusted_eval": 28253}, "leak_warning": true, "event": "partitions built", "level": "info", "timestamp": "2026-10-29T14:17:43.520399Z"}
+{"grid": 0.05, "attack_p5": 0.006248570827936746, "benign_p5": 0.010055312880388613, "event": "degeneracy grid done", "level": "info", "timestamp": "2026-10-29T14:17:43.649925Z"}
+ grid  class                   family  n_trusted_eval  min_rms  median_rms       tier   p5_rms
+0.005 attack                      Bot              78 0.000821    0.011996 degenerate      NaN
+0.005 attack         Brute Force -Web             206 0.000000    0.001266 degenerate      NaN
+0.005 attack         Brute Force -XSS             114 0.000000    0.001049 degenerate      NaN
+0.005 attack         DDOS attack-HOIC            2783 0.000000    0.003736 degenerate      NaN
+0.005 attack     DDOS attack-LOIC-UDP             290 0.000229    0.001466 degenerate      NaN
+0.005 attack   DDoS attacks-LOIC-HTTP            1473 0.000153    0.004719 degenerate      NaN
+0.005 attack    DoS attacks-GoldenEye            4899 0.000127    0.008346 degenerate      NaN
+0.005 attack         DoS attacks-Hulk           18162 0.000134    0.003342 degenerate      NaN
+0.005 attack DoS attacks-SlowHTTPTest               3 0.002942    0.006644 structured      NaN
+0.005 attack    DoS attacks-Slowloris              37 0.001044    0.024792 structured      NaN
+0.005 attack           FTP-BruteForce               3 0.002901    0.003533 structured      NaN
+0.005 attack            Infilteration            2490 0.000167    0.056767 degenerate      NaN
+0.005 attack            SQL Injection              57 0.000000    0.000980 degenerate      NaN
+0.005 attack           SSH-Bruteforce            2187 0.000251    0.001285 degenerate      NaN
+0.005 benign                   BENIGN           23773 0.000078    0.030979 degenerate 0.002311
+0.005 attack               ALL_ATTACK           32782 0.000000    0.003972 degenerate 0.000770
+0.010 attack                      Bot              77 0.000821    0.014127 degenerate      NaN
+0.010 attack         Brute Force -Web             160 0.000000    0.002543 degenerate      NaN
+0.010 attack         Brute Force -XSS              95 0.000000    0.002525 degenerate      NaN
+0.010 attack         DDOS attack-HOIC            1962 0.000000    0.005286 degenerate      NaN
+0.010 attack     DDOS attack-LOIC-UDP             168 0.000229    0.002601 degenerate      NaN
+0.010 attack   DDoS attacks-LOIC-HTTP            1242 0.000375    0.005856 degenerate      NaN
+0.010 attack    DoS attacks-GoldenEye            4584 0.000353    0.009387 degenerate      NaN
+0.010 attack         DoS attacks-Hulk           13912 0.000171    0.004837 degenerate      NaN
+0.010 attack DoS attacks-SlowHTTPTest               3 0.002942    0.006644 structured      NaN
+0.010 attack    DoS attacks-Slowloris              36 0.001129    0.027225 structured      NaN
+0.010 attack           FTP-BruteForce               3 0.002901    0.003533 structured      NaN
+0.010 attack            Infilteration            2450 0.000524    0.059561 degenerate      NaN
+0.010 attack            SQL Injection              54 0.000000    0.002577 degenerate      NaN
+0.010 attack           SSH-Bruteforce            1000 0.000374    0.001967 degenerate      NaN
+0.010 benign                   BENIGN           22690 0.000118    0.034747 degenerate 0.003551
+0.010 attack               ALL_ATTACK           25746 0.000000    0.005800 degenerate 0.001490
+0.020 attack                      Bot              70 0.003236    0.017802 structured      NaN
+0.020 attack         Brute Force -Web             141 0.000000    0.003270 degenerate      NaN
+0.020 attack         Brute Force -XSS              88 0.000000    0.002675 degenerate      NaN
+0.020 attack         DDOS attack-HOIC            1456 0.000000    0.007428 degenerate      NaN
+0.020 attack     DDOS attack-LOIC-UDP              84 0.001384    0.006189 structured      NaN
+0.020 attack   DDoS attacks-LOIC-HTTP             982 0.001078    0.007019 structured      NaN
+0.020 attack    DoS attacks-GoldenEye            4036 0.000708    0.011557 degenerate      NaN
+0.020 attack         DoS attacks-Hulk           10304 0.000417    0.006503 degenerate      NaN
+0.020 attack DoS attacks-SlowHTTPTest               2 0.006644    0.014491 structured      NaN
+0.020 attack    DoS attacks-Slowloris              35 0.001129    0.029658 structured      NaN
+0.020 attack           FTP-BruteForce               1 0.014374    0.014374 structured      NaN
+0.020 attack            Infilteration            2398 0.001477    0.062478 structured      NaN
+0.020 attack            SQL Injection              51 0.000000    0.002669 degenerate      NaN
+0.020 attack           SSH-Bruteforce             337 0.000865    0.003868 degenerate      NaN
+0.020 benign                   BENIGN           20414 0.000306    0.042789 degenerate 0.005655
+0.020 attack               ALL_ATTACK           19985 0.000000    0.007716 degenerate 0.002720
+0.050 attack                      Bot              50 0.003236    0.067738 structured      NaN
+0.050 attack         Brute Force -Web              63 0.000000    0.010404 degenerate      NaN
+0.050 attack         Brute Force -XSS              43 0.000000    0.005550 degenerate      NaN
+0.050 attack         DDOS attack-HOIC             725 0.000000    0.013367 degenerate      NaN
+0.050 attack     DDOS attack-LOIC-UDP              34 0.004332    0.016663 structured      NaN
+0.050 attack   DDoS attacks-LOIC-HTTP             540 0.002750    0.011114 structured      NaN
+0.050 attack    DoS attacks-GoldenEye            2884 0.001592    0.020105 structured      NaN
+0.050 attack         DoS attacks-Hulk            4104 0.001468    0.011526 structured      NaN
+0.050 attack DoS attacks-SlowHTTPTest               1 0.022338    0.022338 structured      NaN
+0.050 attack    DoS attacks-Slowloris              31 0.006921    0.031605 structured      NaN
+0.050 attack           FTP-BruteForce               1 0.015358    0.015358 structured      NaN
+0.050 attack            Infilteration            2186 0.001000    0.070840 degenerate      NaN
+0.050 attack            SQL Injection              33 0.000000    0.006864 degenerate      NaN
+0.050 attack           SSH-Bruteforce              78 0.003251    0.019419 structured      NaN
+0.050 benign                   BENIGN           17480 0.000310    0.055029 degenerate 0.010055
+0.050 attack               ALL_ATTACK           10773 0.000000    0.015744 degenerate 0.006249
+>>> phase0_loop --seeds 5 --val-nn-tau 0 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-cse-cic-ids2018-v2/tau_sweep
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:17:46.229962Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "370235db9d8bfc32", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:17:46.231930Z"}
+{"done": 10, "of": 10, "minutes": 0.8, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:18:34.333971Z"}
+>>> phase0_loop --seeds 5 --val-nn-tau 0.005 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-cse-cic-ids2018-v2/tau_sweep
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:18:37.103369Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "c31954524c26f15d", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:18:37.105466Z"}
+{"done": 10, "of": 10, "minutes": 1.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:19:44.031124Z"}
+>>> phase0_loop --seeds 5 --val-nn-tau 0.01 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-cse-cic-ids2018-v2/tau_sweep
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:19:46.611442Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "015a33035e65dae5", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:19:46.613285Z"}
+{"done": 10, "of": 10, "minutes": 1.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:20:53.232020Z"}
+>>> phase0_loop --seeds 5 --val-nn-tau 0.02 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-cse-cic-ids2018-v2/tau_sweep
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:20:55.919640Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "614d860090d53999", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:20:55.921448Z"}
+{"done": 10, "of": 10, "minutes": 1.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:22:00.865902Z"}
+>>> phase0_loop --seeds 5 --val-nn-tau 0.05 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-cse-cic-ids2018-v2/tau_sweep
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:22:03.327980Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "abac83728c42003a", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:22:03.330318Z"}
+{"done": 10, "of": 10, "minutes": 1.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:23:09.354757Z"}
+>>> phase0_loop --seeds 5 --val-nn-tau 0.1 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-cse-cic-ids2018-v2/tau_sweep
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:23:12.171097Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "ecb8b123c52c265a", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:23:12.173331Z"}
+{"done": 10, "of": 10, "minutes": 1.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:24:18.693379Z"}
+>>> phase0_loop --seeds 5 --val-nn-tau 0.2 --scenarios control --models rf xgboost --out results/phaseR/r3/nf-cse-cic-ids2018-v2/tau_sweep
+{"detail": "48 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T14:24:21.316995Z"}
+{"total": 10, "todo": 10, "workers": 3, "config_hash": "5010735a6f61175b", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T14:24:21.318874Z"}
+{"done": 10, "of": 10, "minutes": 1.1, "event": "progress", "level": "info", "timestamp": "2026-10-29T14:25:27.899574Z"}
+  tau   model  fpr_mean  fpr_sd_across_seeds  tpr_mean  auroc_mean  n_seeds  val_benign_dropped_frac  meets_bar_both_models
+0.000      rf  0.006562             0.002079  0.881502    0.963544        5                 0.000000                   True
+0.000 xgboost  0.012685             0.000505  0.884716    0.966444        5                 0.000000                   True
+0.005      rf  0.005706             0.001685  0.880746    0.963544        5                 0.151276                   True
+0.005 xgboost  0.011284             0.000704  0.883991    0.966444        5                 0.151276                   True
+0.010      rf  0.004973             0.001100  0.880046    0.963544        5                 0.227725                   True
+0.010 xgboost  0.010901             0.000909  0.883792    0.966444        5                 0.227725                   True
+0.020      rf  0.004723             0.001184  0.879744    0.963544        5                 0.362581                   True
+0.020 xgboost  0.009357             0.001343  0.882947    0.966444        5                 0.362581                   True
+0.050      rf  0.004657             0.001256  0.879659    0.963544        5                 0.561771                   True
+0.050 xgboost  0.007942             0.001873  0.882035    0.966444        5                 0.561771                   True
+0.100      rf  0.002715             0.002022  0.876220    0.963544        5                 0.723580                   True
+0.100 xgboost  0.005547             0.003293  0.878151    0.966444        5                 0.723580                   True
+0.200      rf  0.001929             0.002420  0.873130    0.963544        5                 0.885671                   True
+0.200 xgboost  0.002349             0.002617  0.868933    0.966444        5                 0.885671                   True
+
+chosen tau (smallest with fixed FPR <= 0.015 for both models): 0.0
+R3 prep complete for nf-cse-cic-ids2018-v2

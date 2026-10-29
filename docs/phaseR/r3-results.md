@@ -47,3 +47,20 @@ rows remain, so `BaseDetector._val_rows_without_twins` falls back to calibrating
 (table rows match exactly; 0 dropped). The pre-registered fallback, applied as written, runs
 stage 2 with *no* twin filter and the highest control FPR in the sweep, not the strictest
 filter. Reported here instead of substituting tau 0.1.
+
+### NF-CSE-CIC-IDS2018-v2
+
+**Grid:** 0.005 (passes `assert_disjoint`; here 0.0 is valid too, `near_dup_benign` 0, but
+§31.3's rule and the committed `NETFLOW_GRID` keep 0.005). Unchanged.
+
+**Tau: 0.** Every tau meets the bar; the rule takes the smallest. `phaseA_tau_floor.py` printed 0.0.
+
+| tau | RF FPR | XGB FPR | val benign dropped |
+|---|---:|---:|---:|
+| 0 | 0.0066 | 0.0127 | 0.000 |
+| 0.005 | 0.0057 | 0.0113 | 0.151 |
+| 0.01 | 0.0050 | 0.0109 | 0.228 |
+| 0.02 | 0.0047 | 0.0094 | 0.363 |
+| 0.05 | 0.0047 | 0.0079 | 0.562 |
+| 0.1 | 0.0027 | 0.0055 | 0.724 |
+| 0.2 | 0.0019 | 0.0023 | 0.886 |
