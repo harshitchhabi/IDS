@@ -11,7 +11,7 @@ import pytest
 
 from dloop.adversary.base import TRUE_LABEL, features_of
 from dloop.adversary.clean import CleanAdversary
-from dloop.adversary.crowd import CrowdOutAdversary
+from dloop.adversary.crowd import CrowdOutAdversary, StaleReplayAdversary
 from dloop.adversary.mimicry import MimicryAdversary
 from dloop.defense.base import NoOpDefense
 from dloop.defense.generic import ShareCap, SourcePartition
@@ -148,6 +148,39 @@ def test_crowd_out_factor_zero_is_s0(loop_data):
         _crowd(loop_data, -1.0)
 
 
+def _largest_seed_attack_family(ld):
+    fams, counts = np.unique(ld.seed_family[ld.seed_y == 1], return_counts=True)
+    return str(fams[np.argmax(counts)])
+
+
+def test_stale_filler_replays_correctly_labelled_seed_rows_of_one_family(loop_data):
+    fam = _largest_seed_attack_family(loop_data)
+    rows = loop_data.seed_family_rows(fam)
+    assert len(rows) == int(((loop_data.seed_family == fam) & (loop_data.seed_y == 1)).sum())
+    adv = CrowdOutAdversary(CleanAdversary(loop_data.pool_attack_x, 1), StaleReplayAdversary(rows, 1), 4.0)
+    batch, cost = adv.generate_batch(1, 40)
+    filler = features_of(batch)[~CrowdOutAdversary.genuine_mask(batch)]
+    assert len(filler) == 160 and cost.flows == 200
+    assert (batch[TRUE_LABEL] == 1).all()                      # no label conflict anywhere
+    seed_keys = {r.tobytes() for r in rows.astype("float64")}
+    assert all(r.tobytes() in seed_keys for r in filler)       # every filler row is already trained on
+
+
+def test_stale_filler_reuses_rows_once_the_family_runs_out(loop_data):
+    rows = loop_data.seed_family_rows(_largest_seed_attack_family(loop_data))
+    batch, _ = StaleReplayAdversary(rows, 1).generate_batch(1, 3 * len(rows))
+    assert len(batch) == 3 * len(rows) and batch.attrs["resampled"]
+
+
+def test_stale_filler_refuses_a_family_absent_from_seed_train(loop_data):
+    # DoS Hulk is withheld from seed_train in this fixture (and on CICIDS2017)
+    with pytest.raises(ValueError, match="no seed_train attack rows"):
+        loop_data.seed_family_rows("DoS Hulk")
+    old = LoopData(**{k: v for k, v in vars(loop_data).items() if k != "seed_family"})
+    with pytest.raises(ValueError, match="predates"):
+        old.seed_family_rows("DDoS")
+
+
 def test_crowd_out_dilutes_genuine_rows_under_share_cap(loop_data):
     """Under ShareCap the honeypot's effective share is fixed, so every filler row
     takes weight from the genuine attack rows: genuine effective weight falls ~1/(1+m)."""
@@ -217,6 +250,78 @@ def test_netflow_frames_partition_and_run_a_loop_arm(tmp_path):
                    config=LoopConfig(rounds=1, poison_ratio=0.2),
                    hyperparams={"n_estimators": 5, "max_depth": 4}).rows
     assert rows[-1]["n_honeypot"] > 0
+
+
+def test_netflow_loader_reads_row_range_parts_like_the_whole_file(tmp_path):
+    df = _nf_frame()
+    whole, parts = tmp_path / "whole", tmp_path / "parts"
+    whole.mkdir(), parts.mkdir()
+    df.to_csv(whole / "NF-UNSW-NB15-v2.csv", index=False)
+    for i, (a, b) in enumerate([(0, 300), (300, 600), (600, len(df))], start=1):
+        df.iloc[a:b].to_csv(parts / f"NF-UNSW-NB15-v2.part{i:02d}.csv", index=False)
+    assert [p.name for p in netflow_v2.files_for("nf-unsw-nb15-v2", parts)] == [
+        "NF-UNSW-NB15-v2.part01.csv", "NF-UNSW-NB15-v2.part02.csv", "NF-UNSW-NB15-v2.part03.csv"]
+    a = netflow_v2.load_raw_by_day("nf-unsw-nb15-v2", whole)[netflow_v2.DAY]
+    b = netflow_v2.load_raw_by_day("nf-unsw-nb15-v2", parts)[netflow_v2.DAY]
+    pd.testing.assert_frame_equal(a, b)
+    df.iloc[:10].drop(columns=["DNS_TTL_ANSWER"]).to_csv(parts / "NF-UNSW-NB15-v2.part04.csv", index=False)
+    with pytest.raises(ValueError, match="header differs"):
+        netflow_v2.load_raw_by_day("nf-unsw-nb15-v2", parts)
+
+
+def test_netflow_package_splits_by_row_range_and_round_trips(tmp_path):
+    import zipfile
+    from experiments.phaseR_netflow_package import package
+
+    df = _nf_frame(n_benign=3000, n_attack=1000)
+    df["row_id"] = np.arange(len(df))
+    src = tmp_path / "NF-ToN-IoT-v2.csv"
+    df.to_csv(src, index=False)
+    small = package(src, tmp_path / "one", max_mb=50)               # fits whole
+    assert not small["split"] and list(small["zips"]) == ["NF-ToN-IoT-v2.zip"]
+    limit_mb = 0.6 * small["zips"]["NF-ToN-IoT-v2.zip"] / 2**20       # forces a split
+    rec = package(src, tmp_path / "split", max_mb=limit_mb, chunksize=777)
+    assert rec["split"] and len(rec["zips"]) >= 2
+    assert max(rec["zips"].values()) <= limit_mb * 2**20
+    back = []
+    for name in sorted(rec["zips"]):
+        with zipfile.ZipFile(tmp_path / "split" / name) as z:
+            z.extractall(tmp_path / "x")
+            back.append(pd.read_csv(tmp_path / "x" / z.namelist()[0]))
+    joined = pd.concat(back, ignore_index=True)
+    assert joined.row_id.tolist() == df.row_id.tolist()               # every row, in order
+    assert sum(rec["rows_per_part"].values()) == len(df)
+
+
+def test_one_burst_family_leaves_a_partition_empty_with_a_specific_error(tmp_path):
+    """NetFlow v2 has no timestamps, so cleaning synthesizes one per row in file order.
+    A family whose rows are contiguous is then one burst, and whole-burst assignment
+    puts all of it in one partition: the others get nothing (first seen on real
+    NF-UNSW-NB15-v2 in the grid sweep)."""
+    from dloop.sim.partition import EmptyPartitionError
+
+    df = _nf_frame(n_benign=600, n_attack=200)
+    df = pd.concat([df[df.Label == 0], df[df.Label == 1]], ignore_index=True)   # benign contiguous
+    df.to_csv(tmp_path / "NF-ToN-IoT-v2.csv", index=False)
+    raw = netflow_v2.load_raw_by_day("nf-ton-iot-v2", tmp_path)
+    with pytest.raises(EmptyPartitionError, match="received no rows"):
+        build_partitions(raw, config=PartitionConfig(strategy="within_day_temporal"),
+                         features=schema.NETFLOW_V2_FEATURES)
+    assert issubclass(EmptyPartitionError, ValueError)          # existing callers unaffected
+
+
+def test_grid_sweep_records_an_empty_partition_as_an_invalid_grid_point(tmp_path, monkeypatch):
+    import experiments.phase0_grid_sweep as gs
+    from dloop.sim.partition import EmptyPartitionError
+
+    def boom(**kw):
+        raise EmptyPartitionError("partition 'prod_benign' received no rows (strategy=within_day_temporal)")
+
+    monkeypatch.setattr(gs, "load_partitions", boom)
+    assert gs.main(["--source", "synthetic", "--out", str(tmp_path)]) == 0
+    out = pd.read_csv(tmp_path / "grid_sweep.csv")
+    assert len(out) == len(gs.GRIDS) and not out.partition_valid.any()
+    assert out.note.str.contains("received no rows").all()
 
 
 def test_netflow_subsample_is_stratified_capped_and_keeps_file_order(tmp_path):

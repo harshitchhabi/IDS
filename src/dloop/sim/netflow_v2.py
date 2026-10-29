@@ -43,25 +43,41 @@ def path_for(source: str, root: Path | str = DEFAULT_ROOT) -> Path:
     return Path(root) / f"{DATASETS[source]}.csv"
 
 
+def files_for(source: str, root: Path | str = DEFAULT_ROOT) -> list[Path]:
+    """The CSV(s) holding a dataset, in row order: ``<stem>.csv``, or, when the
+    subsample was split by row range to fit a zip limit, ``<stem>.part01.csv``,
+    ``<stem>.part02.csv``, ... (zero-padded, so name order is row order). Empty if absent."""
+    whole = path_for(source, root)
+    if whole.exists():
+        return [whole]
+    return sorted(Path(root).glob(f"{DATASETS[source]}.part[0-9][0-9].csv"))
+
+
 def is_available(source: str, root: Path | str = DEFAULT_ROOT) -> bool:
-    return path_for(source, root).exists()
+    return bool(files_for(source, root))
 
 
 def load_raw_by_day(source: str, root: Path | str = DEFAULT_ROOT) -> dict[str, pd.DataFrame]:
     """``{DAY: frame}`` with :data:`schema.NETFLOW_V2_FEATURES` and ``label``, in file order."""
-    path = path_for(source, root)
-    if not path.exists():
-        raise FileNotFoundError(f"{path} missing (see harshitchhabi/IDS-data netflow-v2/README.md)")
-    header = pd.read_csv(path, nrows=0).columns
-    header = [str(c).strip() for c in header]
+    paths = files_for(source, root)
+    if not paths:
+        raise FileNotFoundError(f"{path_for(source, root)} (or its .partNN.csv pieces) missing "
+                                "(see harshitchhabi/IDS-data netflow-v2/README.md)")
     needed = [*schema.NETFLOW_V2_COLUMN_MAP, schema.NETFLOW_V2_LABEL_COLUMN,
               schema.NETFLOW_V2_ATTACK_COLUMN]
-    missing = [c for c in needed if c not in header]
-    if missing:
-        # the mapping is pre-registered; a mismatch is reported, never patched silently
-        raise ValueError(f"{path.name} lacks pre-registered NetFlow v2 columns {missing}; header={header}")
+    header = None
+    for path in paths:
+        h = [str(c).strip() for c in pd.read_csv(path, nrows=0).columns]
+        if header is not None and h != header:
+            raise ValueError(f"{path.name}'s header differs from {paths[0].name}'s; parts must share one header")
+        header = h
+        missing = [c for c in needed if c not in h]
+        if missing:
+            # the mapping is pre-registered; a mismatch is reported, never patched silently
+            raise ValueError(f"{path.name} lacks pre-registered NetFlow v2 columns {missing}; header={h}")
 
-    df = pd.read_csv(path, usecols=lambda c: str(c).strip() in needed, low_memory=False)
+    df = pd.concat([pd.read_csv(p, usecols=lambda c: str(c).strip() in needed, low_memory=False)
+                    for p in paths], ignore_index=True)
     df.columns = [str(c).strip() for c in df.columns]
     out = pd.DataFrame(index=df.index)
     for raw, (feat, mult) in schema.NETFLOW_V2_COLUMN_MAP.items():

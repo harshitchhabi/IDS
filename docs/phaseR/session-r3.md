@@ -75,19 +75,29 @@ after subsampling from each `sampling.json`), the grid and tau per dataset, then
 to R3.3 with verdicts against the §31.3 bars (quoted), then the cross-dataset summary table §31.3
 asks for, then the `common.md` §6 table. Commit, push, stop.
 
-## Smoke-tested: the command chain, not the real data
+## What to expect from the real data
 
-None of these commands could be smoke-tested on real data before §31 was committed: the NetFlow
-v2 files did not exist yet (§31.4). What was tested:
+- **Most rows are exact duplicates** on the 29 mapped features. The standard cleaning step drops
+  them, before the near-duplicate guard: NF-UNSW-NB15-v2's 1,095,053-row subsample cleans down to
+  73,284, and the loop gets about 22,000 seed_train rows instead of its 30,000 cap (§31.7).
+  That is expected. Report the cleaning counts for each dataset next to R3.0; don't work around
+  them.
+- **Grid 0.0 shows up as `partition_valid = False`** in `grid_sweep.csv` (guard (a) off; on
+  NF-UNSW-NB15-v2 it leaves `prod_benign` empty). That is a recorded invalid grid point, not an
+  error. §31.3's rule picks the gentlest *valid* grid.
 
-- Both stages (`prep`, then `main`) of `experiments/run_phaseR_r3.sh nf-ton-iot-v2` at 1 seed / 2
-  rounds (`SMOKE=1`), against a **synthetic** CSV carrying the NetFlow v2 header, placed at
-  `data/netflow-v2/NF-ToN-IoT-v2.csv` and deleted afterwards. That covers the loader, the cache
-  build, grid sweep, degeneracy, the 7-tau control sweep, and every stage-2 arm. The tau floor
-  needs rounds 11-20, so it is skipped under `SMOKE=1`; it is Phase A's script, unmodified.
+## Smoke-tested
+
+- **Real data, NF-UNSW-NB15-v2:** both stages of `experiments/run_phaseR_r3.sh nf-unsw-nb15-v2`
+  at 1 seed / 2 rounds (`SMOKE=1`), on the actual subsample from IDS-data. That covers the cache
+  build, grid sweep (0.0 invalid, 0.005-0.05 valid), degeneracy, the 7-tau control sweep and all
+  17 stage-2 jobs. It found one crash, fixed with a regression test before this file was
+  updated (§31.7). The tau floor needs rounds 11-20, so it is skipped under `SMOKE=1`; it is
+  Phase A's script, unmodified.
+- **Not smoke-tested on real data:** NF-CSE-CIC-IDS2018-v2 and NF-ToN-IoT-v2. Their files passed
+  the same checks (sha1, row counts, header) and use the same code path, but the first real
+  stage-1 run on each is also its smoke test. If anything in it errors, stop and report it rather
+  than patching the pre-registered script.
 - `tests/test_phaseR.py`: the loader (column mapping, unit conversion, label consistency, a
-  missing column refused), partitioning and a loop arm on the 29-feature set, and the
-  subsampler.
-
-**So the first real stage-1 run is also the real-data smoke test.** If anything in it errors,
-stop and report it rather than patching the pre-registered script.
+  missing column refused, row-range parts), partitioning and a loop arm on the 29-feature set,
+  the subsampler, the packager, and the empty-partition case.

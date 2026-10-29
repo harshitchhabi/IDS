@@ -75,6 +75,12 @@ from dloop.logging_config import get_logger
 
 log = get_logger("sim.partition")
 
+
+class EmptyPartitionError(ValueError):
+    """A partition received no rows. Whole-burst assignment can do this when one burst
+    spans a whole segment, e.g. on a dataset whose timestamps are synthesized from
+    file order (one row per second), where interleaved families form long bursts."""
+
 PARTITIONS: tuple[str, ...] = ("seed_train", "prod_benign", "honeypot_pool", "trusted_eval")
 
 # within_day_temporal: which partition each time-ordered segment of a stream
@@ -642,7 +648,7 @@ def build_partitions(
     out: dict[str, pd.DataFrame] = {}
     for part in PARTITIONS:
         if not frames[part]:
-            raise ValueError(f"partition {part!r} received no rows (strategy={cfg.strategy})")
+            raise EmptyPartitionError(f"partition {part!r} received no rows (strategy={cfg.strategy})")
         out[part] = pd.concat(frames[part], ignore_index=True)
 
     if cfg.strategy == "within_day_temporal" and (

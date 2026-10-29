@@ -69,8 +69,9 @@ missing, not the repo.
 **Build the loop dataset cache before running anything else.** `experiments/phase0_loop.py` loads
 `data/loop/<dataset>.npz`, a gitignored derived cache the extraction above does not create.
 Build it once per dataset your item uses, right after extraction, **with this commit's code**.
-`--eval-redraw` (R1.a) needs the full trusted_eval arrays that only a cache built by this
-commit or later contains, and the runner refuses an older cache rather than guessing:
+`--eval-redraw` (R1.a) needs the full trusted_eval arrays, and R2.4's stale-replay filler needs
+`seed_family` (§31.6). Only a cache built by current code contains both, and the runner refuses
+an older cache rather than guessing:
 
 ```
 python -m experiments.phase0_loop_data --source cicids          # R1, R2

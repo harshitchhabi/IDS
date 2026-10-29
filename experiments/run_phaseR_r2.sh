@@ -43,12 +43,17 @@ if [ "$DATASET" = cicids ]; then
   # R2.3  source-partition baseline, pairs (c) only
   loop --scenarios a1 --models rf xgboost --jitters 0 --ratios 0.2 0.5 0.9 --defense srcpart --sp-alpha 0.5
   loop --scenarios s0 --models rf xgboost --ratios 0.2 --defense srcpart --sp-alpha 0.5
-  # R2.4  crowd-out against ShareCap c=0.05 (S0 m=0 arms are the R2.1 s0 runs above)
+  # R2.4  crowd-out against ShareCap c=0.05 (S0 m=0 arms are the R2.1 s0 runs above).
+  # Fillers per the §31.6 addendum: primary = stale replay of seed_train's DDoS rows
+  # (correctly labelled, no label conflict); secondary = benign rows at jitter 0.7.
   for M in 1 4 9; do
     for DEF in "none" "sharecap --share-cap 0.05"; do
       # shellcheck disable=SC2086
       loop --scenarios s0crowd --models rf xgboost --ratios 0.2 --crowd-factor "$M" \
-        --crowd-jitter 0.7 --defense $DEF
+        --crowd-filler stale --crowd-family DDoS --defense $DEF
+      # shellcheck disable=SC2086
+      loop --scenarios s0crowd --models rf xgboost --ratios 0.2 --crowd-factor "$M" \
+        --crowd-filler benign --crowd-jitter 0.7 --defense $DEF
     done
   done
 fi

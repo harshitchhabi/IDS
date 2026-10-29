@@ -10,9 +10,14 @@ gain, not as damage.
 
 Each round's batch is the genuine batch (``genuine``, e.g. :class:`CleanAdversary`
 over real attack rows, sized by the loop's budget) followed by
-``round(factor * budget)`` filler rows from ``filler`` (e.g. A1's mimicry
-generator at a jitter that stays off copy fidelity). ``true_label`` is kept per
+``round(factor * budget)`` filler rows from ``filler``. ``true_label`` is kept per
 row; the auto-labeler stamps every row malicious regardless.
+
+Two fillers (DECISIONS.md §31.6). The primary one, :class:`StaleReplayAdversary`,
+replays correctly labelled attack rows the detector already trained on: volume
+with no label conflict and no new information, so lost S0 gain under a cap is
+dilution alone. The secondary one is A1's mimicry generator at jitter 0.7, benign
+rows stamped malicious; it carries a label conflict of its own (s26.6).
 """
 
 from __future__ import annotations
@@ -21,6 +26,15 @@ import numpy as np
 import pandas as pd
 
 from dloop.adversary.base import Adversary, CostMetadata, cost_metadata, features_of, TRUE_LABEL
+from dloop.adversary.clean import CleanAdversary
+
+
+class StaleReplayAdversary(CleanAdversary):
+    """Replays rows of one attack family taken from seed_train (``LoopData.
+    seed_family_rows``): true label 1, which is also the stamp, so there is no label
+    conflict, and every row is already in the training set. Draws without replacement
+    and reshuffles (flagging ``resampled``) once the family's rows run out, which at
+    large factors is the expected case for a replay."""
 
 
 class CrowdOutAdversary:

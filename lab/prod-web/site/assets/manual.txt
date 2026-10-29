@@ -1,0 +1,3 @@
+Acme manual
+===========
+Install: unzip and run. This is synthetic lab content.

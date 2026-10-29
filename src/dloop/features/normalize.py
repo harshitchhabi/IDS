@@ -41,6 +41,15 @@ def _as_feature_array(data, features: tuple[str, ...]) -> np.ndarray:
     return np.asarray(data, dtype="float32")
 
 
+def _log1p32(x: np.ndarray) -> np.ndarray:
+    # log1p in float64, rounded once to float32. numpy's float32 log1p is SIMD-dispatched
+    # and on x86 AVX2/AVX-512 differs from the correctly rounded value by 1 ulp on a few
+    # percent of inputs, enough to flip rows sitting on a near-dup grid-cell boundary and
+    # so change every partition downstream. The float64 path gives the same float32 bits
+    # on every platform (docs/phaseR/r1-results.md).
+    return np.log1p(x.astype("float64")).astype("float32")
+
+
 @dataclass(frozen=True)
 class Normalizer:
     features: tuple[str, ...]
@@ -50,7 +59,7 @@ class Normalizer:
     def transform(self, data) -> np.ndarray:
         """Transform a DataFrame (by canonical column name) or a raw ndarray
         (assumed already in canonical feature order)."""
-        z = (np.log1p(_as_feature_array(data, self.features)) - self.center) / self.scale
+        z = (_log1p32(_as_feature_array(data, self.features)) - self.center) / self.scale
         return np.clip(z, -_CLIP, _CLIP)
 
     def as_dict(self) -> dict:
@@ -68,7 +77,7 @@ class Normalizer:
     def fit(cls, data, features: tuple[str, ...] = schema.CANONICAL_FEATURES) -> "Normalizer":
         """Fit on *data* only. Models call this per round on the training split
         exactly — never on anything that includes validation or eval rows."""
-        x = np.log1p(_as_feature_array(data, features))
+        x = _log1p32(_as_feature_array(data, features))
         if not isinstance(data, pd.DataFrame) and x.shape[1] != len(features):
             # a raw array from a dataset's feature subset (models fit on ndarrays):
             # keep the stored names honest about the width rather than mislabelled

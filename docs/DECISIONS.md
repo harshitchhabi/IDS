@@ -3017,3 +3017,158 @@ tests the command chain (loader, cache, grid sweep, degeneracy, tau sweep, all s
 not the real data: the first real-data run of stage 1 is the R3 session's own smoke step. The
 loader, partition, loop and subsampler are also unit-tested on synthetic NetFlow-v2-shaped
 data (`tests/test_phaseR.py`). The session files say exactly what was smoke-tested.
+
+### 31.6 Addendum, dated 2026-10-29, before any Phase R run: the R2.4 crowd-out filler
+
+Written before any Phase R run: the only runs so far are §31.5's 1-seed / 2-round smoke tests.
+This addendum changes one thing, R2.4's filler. Nothing else in §31 changes, and §31.2's text is
+left as written; for R2.4's filler, this section supersedes it.
+
+**Why.** R2.4 as registered fills the honeypot with benign rows at jitter 0.7, stamped
+malicious. Those rows damage RF on their own: that is s26.6/s26.8's confirmed at-distance
+result (recalibrated $\Delta$TPR about $-0.13$ at ratio 0.2, realized distance about 0.56). Under
+that filler, a loss of S0's detection gain mixes two things: dilution of the genuine attack
+rows' share of the capped budget, which is what R2.4 is meant to measure, and the filler's own
+label conflict. §31.2 named this confound and planned to separate the two by subtraction
+(capped minus uncapped). A filler with no label conflict separates them by construction.
+
+**Primary filler (new): stale replay.** Rows of one attack family that is already in
+seed_train, replayed into the honeypot batch at the same factors as before ($m\in$ {1, 4, 9}
+filler rows per genuine row). Each row is correctly labelled (true label 1, stamped 1). It adds
+volume with no label conflict and no information the detector has not already trained on, so
+any loss of S0's gain under the cap is dilution alone. **Family, by a rule fixed now:** the
+attack family with the most rows in the loop's seed_train subsample. On CICIDS2017 that is
+**DDoS**: 4,980 of the subsample's 5,577 attack rows (next largest: DoS GoldenEye, 223).
+
+DoS Hulk, given as an example when this addendum was requested, cannot be used. On CICIDS2017
+it is withheld from seed_train, and it is the `honeypot_only` family whose TPR gain R2.4
+measures. Replaying it would add exactly the information whose dilution is being measured.
+DDoS is the `seed_only` arm (withheld from the honeypot pool), so replaying it touches neither
+the outcome arm nor the pool S0 draws from. At $m=9$ the replay needs up to 67,500 rows from
+4,980 unique ones, so rows repeat (`batch_resampled` = True). For a replay of stale traffic that
+is the intended behaviour, not a pool shortage.
+
+**Secondary filler: kept.** Benign rows at jitter 0.7, stamped malicious, as originally
+registered.
+
+**Cells.** Both fillers $\times$ $m\in$ {1, 4, 9} $\times$ defense $\in$ {none, ShareCap
+$c=0.05$} $\times$ {RF, XGBoost}; CICIDS2017, tau 0.1, S0 at ratio 0.2, 15 seeds. The uncapped
+(`none`) measurement is kept for both fillers. Loss $\ell(m,d)$ and the S0 reference arms are as
+R2.4 defines them. Family: 6 cells ($m\times d$) per (model, filler), Holm within each.
+
+**Bar: unchanged**, quoted from R2.4: "**crowd-out defeats ShareCap** (holds) iff under $c=0.05$
+the $m=9$ loss clears Holm and $\ell(9, c{=}0.05)\ge0.5\,g(\mathrm{S0}, c{=}0.05)$; **does not
+hold** iff no $m$ clears Holm under $c=0.05$; **mixed** otherwise." **The verdict is read on the
+primary (stale) filler.** The same bar, evaluated on the secondary filler, is reported next to
+it as secondary, never in its place. Also reported for both fillers, descriptively: the
+dilution-attributable difference $\ell(m, c{=}0.05) - \ell(m, \text{none})$, and fixed-threshold
+FPR. For the stale filler, `seed_only` (DDoS) TPR is reported too, since replaying DDoS may move
+it.
+
+**Code (this commit).** `dloop.adversary.crowd.StaleReplayAdversary`, and `LoopData.seed_family`
+(a new array in the loop `.npz`, added without consuming a random draw). Rebuilding
+`data/loop/cicids.npz` gives byte-identical copies of all 16 arrays the previous build had,
+checked array by array. Runner flags: `--crowd-filler stale --crowd-family DDoS` (the default,
+`--crowd-filler benign`, keeps the earlier job keys). Unit tests are in `tests/test_phaseR.py`.
+The updated `experiments/run_phaseR_r2.sh cicids` was smoke-tested end to end at 1 seed / 2
+rounds before this commit. R2.4 grows from 180 to 360 jobs.
+
+### 31.7 Addendum, dated 2026-10-29, before any Phase R run: R3 data received, and how it is packaged
+
+The three UQ NetFlow v2 files were downloaded by hand (§31.4) as UQ RDM BagIt packages and
+checked, streaming, before anything else read them. All three are the v2 releases:
+
+| file | sha1 vs. UQ manifest | rows (published) | benign share (published) | header |
+|---|---|---:|---:|---|
+| NF-UNSW-NB15-v2 | match | 2,390,275 (2,390,275) | 96.02% (96.02%) | 43 fields + Label + Attack, as mapped in §31.3 |
+| NF-CSE-CIC-IDS2018-v2 | match | 18,893,708 (18,893,708) | 88.05% (88.05%) | same |
+| NF-ToN-IoT-v2 | match | 16,940,496 (16,940,496) | 36.01% (36.01%) | same |
+
+No row in any file has a Label/Attack disagreement. UQ's own field dictionary, shipped in each
+package, documents `RETRANSMITTED_IN_*` as src->dst. That confirms §31.3's
+IN = forward mapping; the mapping is unchanged.
+
+**Packaging change (supersedes one sentence of §31.3).** §31.3 says that where a zipped subsample
+would exceed 95 MB, "the benign cap (only) is lowered in steps of 100,000 until it fits". That
+fallback is **not used**. Instead, a subsample that does not fit in one zip is split into
+contiguous row ranges (`<stem>.part01.csv`, `part02`, ..., each with the header, rows in
+original order), each zipped separately under 95 MB (`experiments/phaseR_netflow_package.py`).
+The loader reads the parts back in order (`dloop.sim.netflow_v2.files_for`; unit-tested to give
+a frame identical to the unsplit file). This changes packaging only. Both caps stay exactly as
+pre-registered (200,000 per attack family, 1,000,000 benign), so the R3 sample is the one §31.3
+specified. **In the event, no split was needed:** all three subsamples fit in a single zip
+(NF-UNSW-NB15-v2 1,095,053 rows, 16.2 MiB; NF-CSE-CIC-IDS2018-v2 2,037,335 rows, 58.2 MiB;
+NF-ToN-IoT-v2 2,227,957 rows, 24.5 MiB). Each zip's CSV is byte-identical (sha256) to the
+subsampler's output. Per-family counts before and after sampling are in
+`harshitchhabi/IDS-data/netflow-v2/README.md` and in each `<stem>.sampling.json`.
+
+The raw downloads stay on the author's laptop (`newdata/`, gitignored in this repo); only the
+subsamples go to the private IDS-data repo, under UQ's terms (academic use with citation, no
+redistribution beyond it).
+
+**Real-data smoke test, NF-UNSW-NB15-v2 (1 seed, 2 rounds, both stages of
+`run_phaseR_r3.sh`; scratch output, deleted; no R3 number is read from it).** Two things
+surfaced, neither of which changes a cell, a bar or the pipeline's behaviour:
+
+1. *A data property, reported here because it bears on R3's feasibility.* On the 29 mapped
+   features, most NetFlow v2 flows are exact duplicates. The project's standard cleaning step
+   (exact duplicates over features + label, s1) takes NF-UNSW-NB15-v2's subsample from 1,095,053
+   rows to 73,284 (benign 1,000,000 -> 37,461), before the near-duplicate guard removes 9,902 more.
+   The loop then has about 22,000 seed_train rows, not its usual 30,000 cap. Nothing is changed in
+   response: the cleaning rule is the one every dataset in this project uses, and the R3 write-up
+   reports these counts per dataset alongside R3.0.
+2. *A crash, fixed in this commit with a regression test.* NetFlow v2 has no timestamps, so
+   cleaning synthesizes one per row in file order (as §31.3 states). With guard (a) off (grid
+   0.0), the partition's whole-burst assignment left `prod_benign` empty. One run of interleaved
+   rows formed a burst spanning a whole segment, and that raised a plain `ValueError` the grid
+   sweep did not catch. It now raises `EmptyPartitionError` (a `ValueError` subclass, so every
+   other caller is unaffected), which `phase0_grid_sweep.py` records as an invalid grid point
+   exactly as it already did for guard (a)'s `AssertionError`. On NF-UNSW-NB15-v2, grid 0.0 is
+   invalid and 0.005-0.05 are valid. §31.3's rule (gentlest valid grid) therefore still gives
+   0.005, and `NETFLOW_GRID` is unchanged.
+
+### 31.8 Addendum, dated 2026-10-29: R1 determinism fix on main, and why thread count is *not* R1.b's explanation
+
+The platform-independent `log1p` fix (branch `claude/phase-r-session-r1-oxrgw5`, the
+single commit that computes `log1p` in float64 and rounds once to float32,
+`dloop.features.normalize._log1p32`) is now on main, with a regression test
+(`tests/test_normalize.py::test_log1p_is_float64_path_so_transform_is_platform_independent`).
+The R1 *results* are deliberately not merged. This addendum records what the fix does on this
+laptop and resolves the reproduction check R1.b (§31.1) withheld its verdict behind. It changes
+no cell, no bar and no published number.
+
+**What the fix changes here (loop-cache rebuild, byte-level).** Rebuilding `data/loop/*.npz`
+with the fix and comparing against a same-code pre-fix baseline:
+
+- **synthetic: every array byte-identical.** The fix is a no-op for the synthetic source.
+- **cicids: every data array byte-identical** — `seed_x`, `pool_benign_x` (344,221 rows, the
+  published count), `pool_attack_x`, all eval arrays, labels, families — **except `norm_scale`**,
+  the stored 24-element global-normalizer IQR, which differs in **1 of 24 elements by one float64
+  ULP (1.49e-8, 3.3e-9 relative)**. On this machine the pre-fix build already produced the
+  published partitions (344,221, not the cloud build's 344,227), so the only local effect of the
+  float64 path is that sub-ULP shift in one normalizer constant.
+
+**Published-job reruns (one RF, one XGBoost; control, seed 2, 20 rounds, fixed build).**
+
+- **RF: bit-identical to the published CSV** — max absolute difference 0.000 over every numeric
+  cell, round-0 fixed threshold 0.1159999999999999 and recalibrated 0.3502222222222222 both exact.
+- **XGBoost: differs** — round-0 fixed threshold 0.0715470761060714 here vs the published
+  0.0715088546276092 (~3.8e-5), which flips borderline eval rows (fp/tn differ by 239, tp/fn by
+  31). RF, which consumes the *identical* normalized inputs and is bit-identical, rules out the
+  data path and the `log1p` fix as the cause: the XGBoost gap is cross-machine, in XGBoost alone.
+
+**Thread count is ruled out (the R1.b explanation, negative).** Running the same XGBoost control
+seed-2 job three times with `n_jobs` = 1, 4 and default gives the **identical** round-0 threshold
+every time (0.0715470761060714 in all three) — equal to this machine's rerun and still different
+from the published cloud value. So the cross-machine XGBoost mismatch is **not** driven by thread
+count, and is not a bug in this project's code (the model already fixes `n_jobs=1`, inputs are
+bit-identical via RF). It is XGBoost's `hist` algorithm not being bit-reproducible across CPU
+microarchitecture / XGBoost build. The consequence for R1.b: its reproduction check ("seeds 1-5
+must reproduce §25.6 exactly") is only meaningful **within one build**; a cross-machine XGBoost
+threshold difference at the 1e-5 scale is expected and is not the determinism bug the check was
+guarding against. R1.b's verdict may therefore be read from runs pinned to a single machine/build,
+with this XGBoost cross-build nondeterminism noted as a limitation, not resolved by the `log1p`
+fix. RF reproduces bit-for-bit cross-machine and needs no such caveat.
+
+(The user's step named this "§31.2"; §31.2 is already R2 ShareCap generality, so it is recorded
+here as §31.8, cross-referenced from R1.b.)

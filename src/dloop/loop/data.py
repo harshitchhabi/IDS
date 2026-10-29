@@ -66,6 +66,8 @@ class LoopData:
     eval_attack_full_x: np.ndarray | None = None
     eval_attack_full_family: np.ndarray | None = None
     eval_attack_full_arm: np.ndarray | None = None
+    # family label of every seed_x row ("BENIGN" for benign); None in older files
+    seed_family: np.ndarray | None = None
 
     @property
     def normalizer(self) -> Normalizer:
@@ -73,6 +75,18 @@ class LoopData:
 
     def arm_counts(self) -> dict[str, int]:
         return {a: int(np.sum(self.eval_arm == a)) for a in ARMS}
+
+    def seed_family_rows(self, family: str) -> np.ndarray:
+        """seed_train rows of one attack family: correctly labelled traffic the
+        detector already trained on (the stale-replay crowd-out filler)."""
+        if self.seed_family is None:
+            raise ValueError("this loop .npz predates seed_family; rebuild it with "
+                             "python -m experiments.phase0_loop_data --source <dataset>")
+        sel = (self.seed_family == family) & (self.seed_y == 1)
+        if not sel.any():
+            raise ValueError(f"no seed_train attack rows of family {family!r}; families: "
+                             f"{sorted(set(self.seed_family[self.seed_y == 1].tolist()))}")
+        return self.seed_x[sel]
 
     def redraw_eval(self, run_seed: int, cfg: "LoopDataConfig | None" = None) -> "LoopData":
         """A copy whose eval subsample is redrawn for ``run_seed``: the same benign
@@ -112,6 +126,8 @@ class LoopData:
             extra = dict(eval_attack_full_x=self.eval_attack_full_x,
                          eval_attack_full_family=self.eval_attack_full_family,
                          eval_attack_full_arm=self.eval_attack_full_arm)
+        if self.seed_family is not None:
+            extra["seed_family"] = self.seed_family
         np.savez_compressed(p, name=np.array(self.name), seed_x=self.seed_x, seed_y=self.seed_y,
                             pool_benign_x=self.pool_benign_x, pool_attack_x=self.pool_attack_x,
                             eval_x=self.eval_x, eval_y=self.eval_y, eval_family=self.eval_family,
@@ -179,6 +195,7 @@ def from_partitions(data: PartitionedData, name: str, cfg: LoopDataConfig | None
         eval_attack_full_x=_x(full_a, feats),
         eval_attack_full_family=full_a[schema.LABEL].to_numpy().astype("U40"),
         eval_attack_full_arm=np.array(full_arms, dtype="U16"),
+        seed_family=seed_df[schema.LABEL].to_numpy().astype("U40"),
     )
     log.info("loop data built", name=name, config=asdict(cfg), seed_rows=len(ld.seed_x),
              pool_benign=len(ld.pool_benign_x), pool_attack=len(ld.pool_attack_x),
