@@ -45,3 +45,15 @@
 {"done": 50, "of": 60, "minutes": 9.0, "event": "progress", "level": "info", "timestamp": "2026-10-29T00:09:25.596157Z"}
 === resumed after container restart Thu Oct 29 00:11:19 UTC 2026 ===
 >>> phase0_loop --seeds 15 --scenarios control --models rf xgboost logreg mlp
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T00:12:31.200470Z"}
+{"total": 60, "todo": 0, "workers": 3, "config_hash": "3d309b22cc301662", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T00:12:31.205865Z"}
+>>> phase0_loop --seeds 15 --scenarios a1 --models rf xgboost logreg mlp --jitters 0 --ratios 0.2 0.5 0.9 --defense none
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T00:12:47.181350Z"}
+{"total": 180, "todo": 0, "workers": 3, "config_hash": "11f20d336ed760f1", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T00:12:47.189683Z"}
+>>> phase0_loop --seeds 15 --scenarios s0 --models rf xgboost logreg mlp --ratios 0.2 --defense none
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T00:12:53.835136Z"}
+{"total": 60, "todo": 2, "workers": 3, "config_hash": "91acf12f2e3f8005", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T00:12:53.840408Z"}
+{"done": 2, "of": 2, "minutes": 1.6, "event": "progress", "level": "info", "timestamp": "2026-10-29T00:14:28.560088Z"}
+>>> phase0_loop --seeds 15 --scenarios a1 --models rf xgboost logreg mlp --jitters 0 --ratios 0.2 0.5 0.9 --defense sharecap --share-cap 0.02
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-29T00:14:35.183301Z"}
+{"total": 180, "todo": 180, "workers": 3, "config_hash": "a54bd655f6283d5c", "event": "loop jobs", "level": "info", "timestamp": "2026-10-29T00:14:35.194499Z"}
