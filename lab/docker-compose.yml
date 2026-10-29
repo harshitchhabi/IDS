@@ -1,0 +1,134 @@
+# Phase B packet-level lab (docs/phaseB/README.md).
+#
+# One internal network (no egress). Attack tooling runs only inside this compose
+# project and validates every target against an allowlist before firing. Honeypots
+# and servers are never published to the host — there are no `ports:` stanzas.
+# Every service is memory-capped so the whole lab stays under ~4 GB (CLAUDE.md).
+#
+# Build needs the internet (pip, apk, image pulls); runtime does not — `labnet` is
+# `internal: true`, so nothing in the lab can reach outside it once it is up.
+
+name: dloop-lab
+
+x-logging: &default-logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+networks:
+  labnet:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1
+
+services:
+  # --- production side (the "real" hosts the benign users talk to) ---------
+  prod-web:
+    build: ./prod-web
+    container_name: lab-prod-web
+    hostname: prod-web
+    networks:
+      labnet: { ipv4_address: 172.28.0.10 }
+    mem_limit: 64m
+    restart: unless-stopped
+    logging: *default-logging
+
+  prod-ssh:
+    build: ./prod-ssh
+    container_name: lab-prod-ssh
+    hostname: prod-ssh
+    networks:
+      labnet: { ipv4_address: 172.28.0.11 }
+    mem_limit: 96m
+    restart: unless-stopped
+    logging: *default-logging
+
+  # --- decoy side (honeypots; everything they see is unsolicited) ----------
+  cowrie:
+    image: cowrie/cowrie:3.1.4
+    container_name: lab-cowrie
+    hostname: svc-01
+    networks:
+      labnet: { ipv4_address: 172.28.0.20 }
+    volumes:
+      - ./cowrie/cowrie.cfg:/cowrie/cowrie-git/etc/cowrie.cfg:ro
+      - ./data/logs/cowrie:/cowrie/cowrie-git/var/log/cowrie
+    mem_limit: 320m
+    restart: unless-stopped
+    logging: *default-logging
+
+  http-honeypot:
+    build: ./http-honeypot
+    container_name: lab-http-honeypot
+    hostname: svc-02
+    environment:
+      - SITE_DIR=/site
+    volumes:
+      - ./prod-web/site:/site:ro               # serves the SAME pages as prod-web
+      - ./data/logs/http-honeypot:/var/log/hp
+    networks:
+      labnet: { ipv4_address: 172.28.0.21 }
+    mem_limit: 128m
+    restart: unless-stopped
+    logging: *default-logging
+
+  # --- benign users --------------------------------------------------------
+  benign-client:
+    build: ./benign-client
+    container_name: lab-benign-client
+    environment:
+      - LAB_SEED=${LAB_SEED:-1}
+      - BENIGN_RATE=${BENIGN_RATE:-1.0}
+      - WEB_TARGETS=http://172.28.0.10
+      - SSH_TARGETS=172.28.0.11
+      - GROUND_TRUTH=/data/logs/ground_truth/benign.jsonl
+    volumes:
+      - ./data/logs/ground_truth:/data/logs/ground_truth
+    networks:
+      labnet: { ipv4_address: 172.28.0.30 }
+    mem_limit: 256m
+    restart: unless-stopped
+    logging: *default-logging
+
+  # --- adversary (mimic + small real attacks; allowlist-gated) -------------
+  attacker:
+    build: ./attacker
+    container_name: lab-attacker
+    environment:
+      - LAB_SEED=${LAB_SEED:-1}
+      # Allowlist: the ONLY addresses any attack may target. Enforced in code
+      # (attacker/lib/allowlist.py) before a single packet is sent.
+      - TARGET_ALLOWLIST=172.28.0.10,172.28.0.11,172.28.0.20,172.28.0.21
+      - PROFILE=/profiles/benign_profile.json
+      - GROUND_TRUTH=/data/logs/ground_truth/attacker.jsonl
+    volumes:
+      - ./data/profiles:/profiles
+      - ./data/logs/ground_truth:/data/logs/ground_truth
+    networks:
+      labnet: { ipv4_address: 172.28.0.40 }
+    mem_limit: 256m
+    # Idle by default; scenarios are driven with `docker compose exec attacker ...`.
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+    logging: *default-logging
+
+  # --- capture -------------------------------------------------------------
+  # tcpdump on the lab bridge, writing rotated pcaps. Runs in the host network
+  # namespace (the only place the docker bridge interface is visible under the
+  # Docker Desktop / WSL2 backend) and filters to the lab subnet, so it records
+  # lab traffic only. Read-only: being in host netns gives the lab no egress.
+  capture:
+    build: ./capture
+    container_name: lab-capture
+    network_mode: host
+    cap_add: [NET_ADMIN, NET_RAW]
+    environment:
+      - LAB_SUBNET=172.28.0.0/16
+      - ROTATE_SECONDS=${ROTATE_SECONDS:-60}
+    volumes:
+      - ./data/pcap:/pcap
+    mem_limit: 128m
+    restart: unless-stopped
+    logging: *default-logging

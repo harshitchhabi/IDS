@@ -42,3 +42,7 @@ paper/main.out
 # Raw third-party datasets (UQ NetFlow v2 downloads, Phase R): never committed here;
 # subsamples live in the private IDS-data repo.
 /newdata/
+
+# Phase B packet-level lab (docs/phaseB): pcaps, extracted flows, honeypot logs,
+# and learned profiles are data, never committed. Only lab code is tracked.
+/lab/data/
