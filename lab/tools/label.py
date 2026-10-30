@@ -147,7 +147,9 @@ def label_flows(flows: pd.DataFrame, gt: pd.DataFrame, *,
     src = flows[F_SRC].to_numpy(); dst = flows[F_DST].to_numpy(); dport = flows[F_DPORT].to_numpy()
     intents, kinds = [], []
     for i in range(len(flows)):
-        cand = idx.get((src[i], dst[i], int(dport[i])))
+        # exact (src,dst,port) candidates, plus any (src,dst,0) wildcard records —
+        # a port-0 ground-truth entry (e.g. a port scan) matches any flow port.
+        cand = (idx.get((src[i], dst[i], int(dport[i])), []) + idx.get((src[i], dst[i], 0), [])) or None
         t = ts[i]
         if not cand:
             intents.append("unknown"); kinds.append(""); continue
@@ -179,10 +181,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--flows", type=Path, required=True, help="extracted flows CSV")
     ap.add_argument("--ground-truth", type=Path, nargs="+", required=True)
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("--honeypots", default=",".join(HONEYPOT_IPS),
+                    help="comma list of honeypot IPs the policy stamps malicious")
     args = ap.parse_args(argv)
     flows = pd.read_csv(args.flows, low_memory=False)
     gt = parse_ground_truth(list(args.ground_truth))
-    labelled = label_flows(flows, gt)
+    hp = tuple(h.strip() for h in args.honeypots.split(",") if h.strip())
+    labelled = label_flows(flows, gt, honeypots=hp)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     labelled.to_csv(args.out, index=False)
     counts = labelled.groupby(["true_intent", "policy_label"]).size().to_dict()

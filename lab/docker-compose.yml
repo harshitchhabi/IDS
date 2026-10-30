@@ -74,6 +74,30 @@ services:
     restart: unless-stopped
     logging: *default-logging
 
+  # --- high-interaction clone honeypots (Phase B.4, DECISIONS §33, condition H) --
+  # Prod-IDENTICAL servers used as decoys: the SAME nginx image/config/content as
+  # prod-web, and a real OpenSSH like prod-ssh, on the production ports, logging
+  # only. Their distinct IPs are what the auto-label policy keys on.
+  http-honeypot-hi:
+    build: ./prod-web                           # identical to prod-web (same nginx + site)
+    container_name: lab-http-honeypot-hi
+    hostname: svc-03
+    networks:
+      labnet: { ipv4_address: 172.28.0.22 }
+    mem_limit: 64m
+    restart: unless-stopped
+    logging: *default-logging
+
+  ssh-honeypot-hi:
+    build: ./prod-ssh                           # identical to prod-ssh (real OpenSSH)
+    container_name: lab-ssh-honeypot-hi
+    hostname: svc-04
+    networks:
+      labnet: { ipv4_address: 172.28.0.23 }
+    mem_limit: 96m
+    restart: unless-stopped
+    logging: *default-logging
+
   # --- benign users --------------------------------------------------------
   benign-client:
     build: ./benign-client
@@ -102,8 +126,11 @@ services:
       - LAB_SEED=${LAB_SEED:-1}
       # Allowlist: the ONLY addresses any attack may target. Enforced in code
       # (attacker/lib/allowlist.py) before a single packet is sent.
-      - TARGET_ALLOWLIST=172.28.0.10,172.28.0.11,172.28.0.20,172.28.0.21
+      - TARGET_ALLOWLIST=172.28.0.10,172.28.0.11,172.28.0.20,172.28.0.21,172.28.0.22,172.28.0.23
       - PROFILE=/profiles/benign_profile.json
+      # Phase B.4: which honeypot the mimic/attacks target (L: .21/.20, H: .22/.23)
+      - HTTP_HONEYPOT=${HTTP_HONEYPOT:-172.28.0.21}
+      - SSH_HONEYPOT=${SSH_HONEYPOT:-172.28.0.20}
       - GROUND_TRUTH=/data/logs/ground_truth/attacker.jsonl
     volumes:
       - ./data/profiles:/profiles

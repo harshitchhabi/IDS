@@ -30,8 +30,12 @@ from lib.gt import GroundTruth
 
 SEED = int(os.environ.get("LAB_SEED", "1"))
 GT = GroundTruth(os.environ.get("GROUND_TRUTH", "/data/logs/ground_truth/attacker.jsonl"))
-HTTP_HONEYPOT = "172.28.0.21"
-SSH_HONEYPOT = ("172.28.0.20", 2222)
+# Honeypot targets are env-configurable so the same image drives condition L
+# (Cowrie :2222 / Flask :21) and condition H (prod-identical :22 / :80), §33.
+HTTP_HONEYPOT = os.environ.get("HTTP_HONEYPOT", "172.28.0.21")
+_SSH_HP_IP = os.environ.get("SSH_HONEYPOT", "172.28.0.20")
+_SSH_HP_PORT = int(os.environ.get("SSH_HONEYPOT_PORT", "2222"))
+SSH_HONEYPOT = (_SSH_HP_IP, _SSH_HP_PORT)
 PROD_IP = "172.28.0.10"
 
 # Decoy site paths the mimic can request (same pages prod-web/the honeypot serve).
@@ -158,7 +162,11 @@ def ssh_guess(args: argparse.Namespace) -> int:
     host, port = SSH_HONEYPOT if args.target == "honeypot" else (require_allowed("172.28.0.11"), 22)
     require_allowed(host)
     rng = random.Random(SEED + 7)
-    tries = [(u, p) for u in GUESS_USERS for p in GUESS_PASSWORDS]
+    # Generate up to --attempts credential pairs (cycle a widened space so large
+    # attempt counts are possible, §33 needs enough attack flows for usable TPR).
+    users = GUESS_USERS + [f"user{i}" for i in range(50)]
+    pws = GUESS_PASSWORDS + [f"pass{i:04d}" for i in range(400)]
+    tries = [(u, p) for u in users for p in pws]
     rng.shuffle(tries)
     tries = tries[: args.attempts]
     t0 = time.time(); ok = 0
@@ -207,16 +215,17 @@ def webprobe(args: argparse.Namespace) -> int:
     base = f"http://{host}"
     rng = random.Random(SEED + 11)
     t0 = time.time(); n = 0
-    probes = WEB_PROBES[:]
-    rng.shuffle(probes)
-    for path in probes:
-        try:
-            requests.get(base + path, timeout=5,
-                         headers={"User-Agent": "sqlmap/1.8-probe"})
-            n += 1
-        except requests.RequestException:
-            pass
-        time.sleep(args.delay)
+    for _ in range(args.count):
+        probes = WEB_PROBES[:]
+        rng.shuffle(probes)
+        for path in probes:
+            try:
+                requests.get(base + path, timeout=5,
+                             headers={"User-Agent": "sqlmap/1.8-probe", "Connection": "close"})
+                n += 1
+            except requests.RequestException:
+                pass
+            time.sleep(args.delay)
     GT.log(dst=host, dst_port=80, intent="attack", kind="web_probe",
            t_start=t0, t_end=time.time(), probes=n)
     print(f"webprobe: {n} probes -> {host}", flush=True)
@@ -247,11 +256,12 @@ def main(argv: list[str] | None = None) -> int:
 
     s = sub.add_parser("portscan"); s.set_defaults(fn=portscan)
     s.add_argument("--host", default="172.28.0.21")
-    s.add_argument("--ports", default="21,22,80,443,2222,3306,8080")
+    s.add_argument("--ports", default="1-1000")   # §33: many ports -> many flows
 
     w = sub.add_parser("webprobe"); w.set_defaults(fn=webprobe)
     w.add_argument("--host", default="172.28.0.21")
     w.add_argument("--delay", type=float, default=1.0)
+    w.add_argument("--count", type=int, default=1, help="repeat the probe set N times")
 
     args = ap.parse_args(argv)
     return args.fn(args)
