@@ -171,3 +171,17 @@
 {"done": 140, "of": 180, "minutes": 151.9, "event": "progress", "level": "info", "timestamp": "2026-10-30T08:54:40.476609Z"}
 {"done": 150, "of": 180, "minutes": 154.1, "event": "progress", "level": "info", "timestamp": "2026-10-30T08:56:50.022952Z"}
 {"done": 160, "of": 180, "minutes": 156.4, "event": "progress", "level": "info", "timestamp": "2026-10-30T08:59:10.608844Z"}
+{"done": 170, "of": 180, "minutes": 159.0, "event": "progress", "level": "info", "timestamp": "2026-10-30T09:01:48.307275Z"}
+{"done": 180, "of": 180, "minutes": 161.4, "event": "progress", "level": "info", "timestamp": "2026-10-30T09:04:10.043607Z"}
+>>> phase0_loop --seeds 15 --scenarios s0 --models rf xgboost logreg mlp --ratios 0.2 --defense sharecap --share-cap 0.2
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-30T09:04:14.773726Z"}
+{"total": 60, "todo": 60, "workers": 3, "config_hash": "55a7dd27a75fa7bc", "event": "loop jobs", "level": "info", "timestamp": "2026-10-30T09:04:14.778733Z"}
+{"done": 10, "of": 60, "minutes": 2.1, "event": "progress", "level": "info", "timestamp": "2026-10-30T09:06:19.082158Z"}
+{"done": 20, "of": 60, "minutes": 3.7, "event": "progress", "level": "info", "timestamp": "2026-10-30T09:07:54.771726Z"}
+{"done": 30, "of": 60, "minutes": 5.6, "event": "progress", "level": "info", "timestamp": "2026-10-30T09:09:48.673325Z"}
+{"done": 40, "of": 60, "minutes": 7.4, "event": "progress", "level": "info", "timestamp": "2026-10-30T09:11:39.495290Z"}
+{"done": 50, "of": 60, "minutes": 9.4, "event": "progress", "level": "info", "timestamp": "2026-10-30T09:13:37.750941Z"}
+{"done": 60, "of": 60, "minutes": 11.3, "event": "progress", "level": "info", "timestamp": "2026-10-30T09:15:33.822380Z"}
+>>> phase0_loop --seeds 15 --scenarios a1 --models rf xgboost logreg mlp --jitters 0 --ratios 0.2 0.5 0.9 --defense uniform --uniform-w 0.05
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-30T09:15:38.367877Z"}
+{"total": 180, "todo": 180, "workers": 3, "config_hash": "63d49d41bc08f771", "event": "loop jobs", "level": "info", "timestamp": "2026-10-30T09:15:38.375461Z"}
