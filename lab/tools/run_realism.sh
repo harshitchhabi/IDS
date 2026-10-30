@@ -59,12 +59,15 @@ echo "== label (honeypots=$HP_IPS) =="
 # The experiment steps run from the repo root (that is where the `experiments`
 # package lives); paths are repo-relative there.
 LAB_CSV="lab/data/realism_${COND}_labelled.csv"
-R="results/phaseB/realism/${COND}"
 cd "$REPO"
 echo "== build loop cache + B.1 =="
 "$PY" -m experiments.phaseB_build_lab --labelled "$LAB_CSV" \
   --out "data/loop/lab_${COND}.npz" --primary-strategy replay
 cp "data/loop/lab_${COND}.npz" "data/loop/lab.npz"
+# Guarded output dirs: include condition + npz hash so jobs can never be reused
+# across conditions/datasets (DECISIONS §33/§34 follow-up, experiments.phaseB_jobs).
+R="results/phaseB/realism/$("$PY" -c "from experiments.phaseB_jobs import run_dir; print(run_dir('','${COND}','data/loop/lab.npz').name)")"
+RS="results/phaseB/realism/$("$PY" -c "from experiments.phaseB_jobs import run_dir; print(run_dir('','${COND}_sharecap','data/loop/lab.npz').name)")"
 "$PY" -m experiments.phaseB_fidelity --labelled "$LAB_CSV" \
   --npz "data/loop/lab_${COND}.npz" --out "results/phaseB/b1_fidelity_${COND}.csv"
 echo "== B.2 loop (a1/a1truth/junk/control + sharecap) =="
@@ -74,5 +77,5 @@ echo "== B.2 loop (a1/a1truth/junk/control + sharecap) =="
   --scenarios junk --jitters 0.0 --models rf xgboost --ratios 0.2 0.5 --seeds 15 --workers 2 --out "$R"
 "$PY" -m experiments.phase0_loop --dataset lab --a1-replay --val-nn-tau 0.1 \
   --scenarios control a1 --defense sharecap --share-cap 0.05 --models rf xgboost \
-  --ratios 0.2 0.5 --seeds 15 --workers 2 --out "${R}_sharecap"
+  --ratios 0.2 0.5 --seeds 15 --workers 2 --out "$RS"
 echo "REALISM_${COND}_DONE"

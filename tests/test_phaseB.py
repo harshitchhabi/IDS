@@ -179,3 +179,59 @@ def test_build_lab_partitions_roles_disjoint_and_pool_is_mimic():
     assert tuple(data.features) == schema.CANONICAL_FEATURES
     # the build asserts trusted_eval disjoint from training internally; reaching
     # here without raising means it held.
+
+
+# --- Phase B job-safety guards (phaseB_jobs) ---
+
+def test_run_dir_includes_condition_and_npz_hash(tmp_path):
+    import numpy as np
+    from experiments.phaseB_jobs import npz_hash, run_dir
+    a = tmp_path / "a.npz"; b = tmp_path / "b.npz"
+    np.savez(a, x=np.arange(10)); np.savez(b, x=np.arange(10) + 1)
+    da = run_dir(tmp_path / "base", "H", a)
+    db = run_dir(tmp_path / "base", "H", b)
+    dL = run_dir(tmp_path / "base", "L", a)
+    assert "H__npz" in da.name and npz_hash(a) in da.name
+    assert da != db                      # different npz content -> different dir
+    assert dL.name.startswith("L__npz") and dL != da   # condition is in the path
+    assert run_dir(tmp_path / "base", "H", a) == da     # stable for same inputs
+
+
+def _good_job_csv(path, min_rounds=2):
+    import pandas as pd
+    rows = []
+    for mode in ("fixed", "recalibrated"):
+        for r in range(min_rounds + 1):
+            rows.append(dict(scenario="a1", model="rf", seed=1, target_poison_ratio=0.5,
+                             round=r, threshold_mode=mode, threshold=0.1, fpr=0.01, tpr=0.9))
+    pd.DataFrame(rows).to_csv(path, index=False)
+
+
+def test_validate_job_csv_good_and_bad(tmp_path):
+    import pandas as pd
+    from experiments.phaseB_jobs import validate_job_csv, validate_dir
+    good = tmp_path / "good.csv"; _good_job_csv(good, min_rounds=2)
+    assert validate_job_csv(good, min_rounds=2)[0] is True
+
+    # missing a round
+    missing = tmp_path / "missing.csv"
+    pd.read_csv(good).query("round != 1").to_csv(missing, index=False)
+    assert validate_job_csv(missing, min_rounds=2)[0] is False
+
+    # missing a required column
+    nocol = tmp_path / "nocol.csv"
+    pd.read_csv(good).drop(columns=["fpr"]).to_csv(nocol, index=False)
+    assert validate_job_csv(nocol, min_rounds=2)[0] is False
+
+    # truncated / ragged rows -> unparseable
+    trunc = tmp_path / "trunc.csv"
+    trunc.write_text("scenario,model,seed,round\na1,rf,1,0\na1,rf\n")
+    assert validate_job_csv(trunc, min_rounds=2)[0] is False
+
+    # validate_dir raises when any file is bad
+    import pytest as _pytest
+    d = tmp_path / "jobs"; d.mkdir()
+    _good_job_csv(d / "ok.csv", min_rounds=2)
+    (d / "bad.csv").write_text("scenario,model\na1\n")
+    with _pytest.raises(ValueError):
+        validate_dir(d, min_rounds=2)

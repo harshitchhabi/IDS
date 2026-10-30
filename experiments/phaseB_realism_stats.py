@@ -18,6 +18,7 @@ import pandas as pd
 
 from experiments.phase0_stats_recompute import report_cell
 from experiments.phaseA_datasets_stats import holm, paired_deltas
+from experiments.phaseB_jobs import resolve_jobs_dir, validate_dir
 
 ALPHA = 0.05
 TAU = 0.1
@@ -69,7 +70,9 @@ def main(argv: list[str] | None = None) -> int:
     all_rows = []
     damage = {}
     for cond in ("L", "H"):
-        df = load_jobs(args.realism_root / cond / "jobs")
+        jd = resolve_jobs_dir(args.realism_root, cond)
+        validate_dir(jd)   # fail loudly on any bad/truncated CSV before stats read
+        df = load_jobs(jd)
         for model in ("rf", "xgboost"):
             fam = holm_family(df, model)
             for r in fam:
