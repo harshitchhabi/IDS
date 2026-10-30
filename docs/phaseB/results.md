@@ -59,13 +59,18 @@ junk = volume with no fidelity; vs control. 15 seeds.
 for RF at ratio 0.2 clears Bonferroni (α/4 = 0.0125) by paired t, and the s28
 null-arm rule holds (each of a1truth and junk has its 95% CI including 0)."*
 
-**Verdict: does not replicate (literal §32.2 outcome: "mixed").** RF recalibrated
-ΔTPR at r=0.2 clears α/4 (p_t = 1.3e-7), **but the null-arm rule fails**: junk's CI
-is [0.092, 0.208] (nowhere near 0) and a1truth's is [−0.086, −0.048]. The reason is
-plain in the numbers — with only 12 eval attack rows, ΔTPR is quantised at 0.083,
-so **junk moves TPR as much as a1 (+0.150 vs +0.156)** and the ΔTPR is *positive*
-(the opposite of the TPR collapse the feature-space A1 causes). The recalibrated-TPR
-channel is not usable at this eval-attack power, and nothing A1-specific survives it.
+**Verdict (literal §32.2 outcome): "mixed".** RF recalibrated ΔTPR at r=0.2 clears
+α/4 (p_t = 1.3e-7), **but the null-arm rule fails**: junk's CI is [0.092, 0.208]
+(nowhere near 0) and a1truth's is [−0.086, −0.048]. By §32.2's definition ("mixed
+iff a1 clears but a null arm does not"), the outcome is **mixed**.
+
+**Interpretation (does not replicate).** The "mixed" is an artifact, not a real A1
+effect. With only 12 eval attack rows, ΔTPR is quantised at 0.083, so **junk moves
+TPR as much as a1 (+0.150 vs +0.156)** and the ΔTPR is *positive* (the opposite of
+the TPR collapse the feature-space A1 causes). The recalibrated-TPR channel is not
+usable at this eval-attack power, and nothing A1-specific survives it — so the
+substantive reading is that real-traffic A1 **does not replicate** the feature-space
+damage.
 
 The robust channel is the fixed-threshold FPR on 49k benign, and it is decisive:
 real-traffic A1 raises FPR by **+0.0004 to +0.0019**, versus the feature-space A1 at

@@ -3316,3 +3316,100 @@ python -m experiments.phaseB_cost  --out results/phaseB/b3_cost.csv
 Holm is not used in Phase B; the only multiplicity is the 4-test Bonferroni family
 per (model, threshold mode), and the single primary cell is RF / recalibrated /
 ratio 0.2. All of §32 is fixed before `phaseB_build_lab` is run.
+
+### 33 Phase B.4 pre-registration: honeypot realism, dated 2026-10-30, before any run
+
+B.1/B.2 (§32, `results.md`) showed real-traffic A1 does not reproduce the
+feature-space damage: the honeypot-bound mimic flows sit ~46x the benign floor,
+far past the fidelity cliff. The exploratory diagnosis (`realism-results.md` §1,
+labelled exploratory) decomposed that distance: timing/IAT ~48% and
+backward/server-produced bytes ~23% dominate, while forward/client-controlled
+features are only ~10%. So the gap is the honeypot's **server half** (what the decoy
+emits and how fast), not the attacker's knowledge of what to send. The low-
+interaction honeypot (Flask/gunicorn, `Server: gunicorn`, Flask ETags, Flask
+timing) differs from production (nginx/1.27.5) exactly there. B.4 tests whether a
+**realistic** honeypot closes the gap enough to make real-traffic A1 bite.
+
+**Two honeypot conditions.**
+* **(L) low-interaction** — the current decoys: Cowrie (SSH) + the Flask HTTP
+  honeypot. Unchanged from §32.
+* **(H) high-interaction clone** — the **same nginx image, config and site content
+  as prod-web**, and a **real OpenSSH container configured like prod-ssh**, with
+  request/session logging only (no other behaviour change). Both listen on the
+  **production ports** (HTTP 80, SSH 22), on their own decoy IPs so the auto-label
+  policy still keys on destination.
+
+**Mimic strategies.** Run **replay** and **oracle** (the two §32 strategies that
+do not depend on the defender's live data beyond the oracle profile) against
+**both** conditions.
+
+**Measurements, per (condition, strategy).**
+* Fidelity: median NN RMS distance, twin fraction (delta=0.0015), and ratio to the
+  benign-to-benign floor at matched reference size — exactly B.1's method.
+* End-to-end damage: the §32 B.2 protocol — RF and XGBoost, ratios 0.2 and 0.5,
+  15 seeds, fixed and recalibrated thresholds, the s28 null arms (a1truth = same
+  mimic flows labelled benign; junk), and ShareCap c=0.05 on the a1 arm. A1 is the
+  mimic flows replayed unchanged (`LabReplayAdversary`).
+
+**Eval attack power (fixing §32's limitation).** Scale the real attacks so
+**trusted_eval holds at least 1,000 attack rows across several families** — a TCP
+port scan, SSH brute force, and HTTP attacks (SQLi/XSS-style and path traversal) —
+so recalibrated TPR is usable (quantum <= 0.001 instead of 0.083). The attacker
+runs these against both prod and the honeypots; the eval-attack families are the
+`seed_only` arm as in §32.
+
+**Seeds:** 1-15 throughout.
+
+**Holm families (fixed now).** Per (condition, model), one Holm family of **3
+tests**: a1, a1truth and junk vs control, on **fixed-threshold Delta-FPR at ratio
+0.5**, final round. Holm step-down at alpha=0.05 within the 3, paired t primary with
+the sign-flip permutation test alongside (the s23/s26.1/s28 machinery). "a1 clears
+Holm with the null-arm rule" means: **a1 is rejected under Holm by both tests in the
+damage direction (Delta-FPR > 0), and each of a1truth and junk has its 95% CI
+including 0.** The primary model is **RF**; XGBoost is reported alongside. Recalibrated
+Delta-TPR, the other ratio (0.2) and ShareCap recovery are reported but carry no bar.
+
+**Bar (fixed now).** *"Realism drives poisoning"* holds iff **both**:
+* under **(H)**, the **replay** mimic's median NN distance is **within 3x the benign
+  floor** AND its a1 fixed-threshold Delta-FPR at ratio 0.5 **clears Holm with the
+  null-arm rule** (RF); and
+* under **(L)**, it **does not** (either the replay median NN exceeds 3x the floor,
+  or a1 does not clear Holm with the null-arm rule).
+
+*Does not hold* iff (H)'s two conditions are not both met. *Mixed* iff (H) meets
+exactly one of its two conditions (fidelity closes but damage does not clear, or
+vice versa). The oracle strategy and ratio 0.2 are reported for context; the bar is
+on replay at ratio 0.5, because replay is the strategy an attacker can run without
+any access to the defender's data.
+
+**Memory.** Same rule as §32: the Docker VM stays at ~1.86 GB, inputs are split
+(short rotated captures, small extraction batches); no limit is raised. Pause if
+Windows memory exceeds 90%.
+
+**Commands (fixed now).** New compose services `http-honeypot-hi` (nginx, prod-web
+image/content, :80) and `ssh-honeypot-hi` (OpenSSH, prod-ssh config, :22); the
+attacker drives replay/oracle and the scaled attacks at the (L) and (H) decoy IPs
+in separate captures. Build + run per condition:
+
+```
+# capture L and H (separate rotated captures, extracted per-file)
+bash lab/tools/run_realism.sh L
+bash lab/tools/run_realism.sh H
+# per condition: build the loop cache, B.1 fidelity, B.2 damage (a1/a1truth/junk/control,
+# RF+XGB, ratios 0.2/0.5, 15 seeds), ShareCap c=0.05
+python -m experiments.phaseB_build_lab --labelled lab/data/realism_<cond>_labelled.csv \
+    --out data/loop/lab_<cond>.npz --primary-strategy replay
+python -m experiments.phaseB_fidelity --labelled ... --npz data/loop/lab_<cond>.npz --out ...
+python -m experiments.phase0_loop --dataset lab --a1-replay --scenarios control a1 a1truth \
+    --models rf xgboost --ratios 0.2 0.5 --seeds 15 --val-nn-tau 0.1 --out results/phaseB/realism/<cond>
+python -m experiments.phase0_loop --dataset lab --scenarios junk --jitters 0.0 \
+    --models rf xgboost --ratios 0.2 0.5 --seeds 15 --val-nn-tau 0.1 --out results/phaseB/realism/<cond>
+python -m experiments.phase0_loop --dataset lab --a1-replay --scenarios control a1 \
+    --defense sharecap --share-cap 0.05 --models rf xgboost --ratios 0.2 0.5 --seeds 15 \
+    --val-nn-tau 0.1 --out results/phaseB/realism/<cond>_sharecap
+python -m experiments.phaseB_realism_stats --out results/phaseB/b4_stats.csv
+```
+
+(`phase0_loop --dataset lab` reads whichever `data/loop/lab.npz` the condition's
+build wrote; the run script swaps the per-condition npz into place, as §32's build
+does.) All of §33 is fixed before `run_realism.sh` is first run.

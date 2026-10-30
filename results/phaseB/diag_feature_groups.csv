@@ -1,0 +1,4 @@
+strategy,n,forward(client),backward(server),timing/IAT,flags,derived,top5_feats
+profile,11741,0.098,0.227,0.484,0.004,0.187,"flow_iat_max=0.14, flow_iat_min=0.11, flow_iat_std=0.08, bwd_bytes=0.08, pkt_size_avg=0.08"
+oracle,12364,0.087,0.237,0.487,0.005,0.184,"flow_iat_max=0.15, flow_iat_min=0.12, flow_iat_std=0.09, pkt_size_avg=0.09, bwd_bytes=0.09"
+replay,5853,0.103,0.238,0.465,0.004,0.189,"flow_iat_max=0.13, flow_iat_min=0.11, bwd_bytes=0.08, flow_iat_std=0.08, pkt_size_avg=0.08"
