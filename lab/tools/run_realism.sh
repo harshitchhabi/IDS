@@ -56,19 +56,23 @@ echo "== label (honeypots=$HP_IPS) =="
 "$PY" tools/label.py --flows "data/realism_${COND}_flows.csv" \
   --ground-truth "$GT/benign.jsonl" "$GT/attacker.jsonl" \
   --honeypots "$HP_IPS" --out "data/realism_${COND}_labelled.csv"
+# The experiment steps run from the repo root (that is where the `experiments`
+# package lives); paths are repo-relative there.
+LAB_CSV="lab/data/realism_${COND}_labelled.csv"
+R="results/phaseB/realism/${COND}"
+cd "$REPO"
 echo "== build loop cache + B.1 =="
-"$PY" -m experiments.phaseB_build_lab --labelled "data/realism_${COND}_labelled.csv" \
-  --out "$REPO/data/loop/lab_${COND}.npz" --primary-strategy replay
-cp "$REPO/data/loop/lab_${COND}.npz" "$REPO/data/loop/lab.npz"
-"$PY" -m experiments.phaseB_fidelity --labelled "data/realism_${COND}_labelled.csv" \
-  --npz "$REPO/data/loop/lab_${COND}.npz" --out "$REPO/results/phaseB/b1_fidelity_${COND}.csv"
+"$PY" -m experiments.phaseB_build_lab --labelled "$LAB_CSV" \
+  --out "data/loop/lab_${COND}.npz" --primary-strategy replay
+cp "data/loop/lab_${COND}.npz" "data/loop/lab.npz"
+"$PY" -m experiments.phaseB_fidelity --labelled "$LAB_CSV" \
+  --npz "data/loop/lab_${COND}.npz" --out "results/phaseB/b1_fidelity_${COND}.csv"
 echo "== B.2 loop (a1/a1truth/junk/control + sharecap) =="
-R="$REPO/results/phaseB/realism/${COND}"
 "$PY" -m experiments.phase0_loop --dataset lab --a1-replay --val-nn-tau 0.1 \
-  --scenarios control a1 a1truth --models rf xgboost --ratios 0.2 0.5 --seeds 15 --workers 3 --out "$R"
+  --scenarios control a1 a1truth --models rf xgboost --ratios 0.2 0.5 --seeds 15 --workers 2 --out "$R"
 "$PY" -m experiments.phase0_loop --dataset lab --val-nn-tau 0.1 \
-  --scenarios junk --jitters 0.0 --models rf xgboost --ratios 0.2 0.5 --seeds 15 --workers 3 --out "$R"
+  --scenarios junk --jitters 0.0 --models rf xgboost --ratios 0.2 0.5 --seeds 15 --workers 2 --out "$R"
 "$PY" -m experiments.phase0_loop --dataset lab --a1-replay --val-nn-tau 0.1 \
   --scenarios control a1 --defense sharecap --share-cap 0.05 --models rf xgboost \
-  --ratios 0.2 0.5 --seeds 15 --workers 3 --out "${R}_sharecap"
+  --ratios 0.2 0.5 --seeds 15 --workers 2 --out "${R}_sharecap"
 echo "REALISM_${COND}_DONE"

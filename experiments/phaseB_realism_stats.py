@@ -1,9 +1,9 @@
 """B.4 statistics and the §33 bar (honeypot realism).
 
 Per condition (L, H) and model, a Holm family of 3 tests (a1, a1truth, junk vs
-control) on fixed-threshold ΔFPR at ratio 0.5, final round, 15 seeds. a1 "clears
+control) on fixed-threshold dFPR at ratio 0.5, final round, 15 seeds. a1 "clears
 Holm with the null-arm rule" iff a1 is rejected under Holm by both the paired t and
-the permutation test in the damage direction (ΔFPR > 0) AND each of a1truth, junk
+the permutation test in the damage direction (dFPR > 0) AND each of a1truth, junk
 has its 95% CI including 0. Combined with the replay fidelity (median NN vs 3× the
 benign floor), it reports the §33 bar verdict. RF is primary; XGBoost alongside.
 """
@@ -34,7 +34,7 @@ def load_jobs(*dirs: Path) -> pd.DataFrame:
 
 
 def holm_family(df: pd.DataFrame, model: str) -> list[dict]:
-    """The 3-arm Holm family: fixed ΔFPR at ratio 0.5."""
+    """The 3-arm Holm family: fixed dFPR at ratio 0.5."""
     rows = []
     for arm in ARMS:
         d = paired_deltas(df, arm, model, "fixed", 0.0, 0.5, TAU, "fpr")
@@ -93,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
                 fid[cond] = {"median_nn": float(row["median_nn"]), "floor": float(row["benign_floor"]),
                              "ratio": float(row["ratio_to_floor"]), "within_3x": bool(row["ratio_to_floor"] <= 3.0)}
 
-    print("=== B.4 fixed ΔFPR r=0.5 Holm family (RF primary) ===")
+    print("=== B.4 fixed dFPR r=0.5 Holm family (RF primary) ===")
     print(out[out.model == "rf"][["condition", "arm", "mean", "ci_lo", "ci_hi", "p_t", "p_perm",
                                   "clears_holm", "ci_includes_0"]].to_string(index=False))
     print("\nreplay fidelity:", fid)
