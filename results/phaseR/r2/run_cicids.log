@@ -78,3 +78,16 @@
 {"done": 60, "of": 180, "minutes": 163.8, "event": "progress", "level": "info", "timestamp": "2026-10-30T01:55:31.065720Z"}
 {"done": 70, "of": 180, "minutes": 169.3, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:01:03.224712Z"}
 {"done": 80, "of": 180, "minutes": 172.4, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:04:10.656966Z"}
+{"done": 90, "of": 180, "minutes": 174.9, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:06:40.731754Z"}
+{"done": 100, "of": 180, "minutes": 177.5, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:09:11.654539Z"}
+{"done": 110, "of": 180, "minutes": 180.2, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:11:54.401509Z"}
+{"done": 120, "of": 180, "minutes": 182.8, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:14:32.133285Z"}
+{"done": 130, "of": 180, "minutes": 187.3, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:19:04.020578Z"}
+{"done": 140, "of": 180, "minutes": 190.9, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:22:36.970354Z"}
+{"done": 150, "of": 180, "minutes": 193.7, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:25:25.424864Z"}
+{"done": 160, "of": 180, "minutes": 196.9, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:28:36.606340Z"}
+{"done": 170, "of": 180, "minutes": 200.2, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:31:53.605497Z"}
+{"done": 180, "of": 180, "minutes": 203.5, "event": "progress", "level": "info", "timestamp": "2026-10-30T02:35:12.547930Z"}
+>>> phase0_loop --seeds 15 --scenarios s0 --models rf xgboost logreg mlp --ratios 0.2 --defense sharecap --share-cap 0.05
+{"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-30T02:35:17.417614Z"}
+{"total": 60, "todo": 60, "workers": 3, "config_hash": "141cf905d35f1bcb", "event": "loop jobs", "level": "info", "timestamp": "2026-10-30T02:35:17.421920Z"}
