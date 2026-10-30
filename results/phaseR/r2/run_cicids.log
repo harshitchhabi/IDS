@@ -188,3 +188,6 @@
 {"done": 10, "of": 180, "minutes": 29.8, "event": "progress", "level": "info", "timestamp": "2026-10-30T09:45:23.600764Z"}
 {"done": 20, "of": 180, "minutes": 50.0, "event": "progress", "level": "info", "timestamp": "2026-10-30T10:05:35.719531Z"}
 {"done": 30, "of": 180, "minutes": 72.6, "event": "progress", "level": "info", "timestamp": "2026-10-30T10:28:13.134664Z"}
+{"done": 40, "of": 180, "minutes": 93.0, "event": "progress", "level": "info", "timestamp": "2026-10-30T10:48:41.255564Z"}
+=== resumed after worker restart Fri Oct 30 16:21:02 UTC 2026 ===
+>>> phase0_loop --seeds 15 --scenarios control --models rf xgboost logreg mlp
