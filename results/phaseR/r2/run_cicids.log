@@ -155,3 +155,4 @@
 >>> phase0_loop --seeds 15 --scenarios a1 --models rf xgboost logreg mlp --jitters 0 --ratios 0.2 0.5 0.9 --defense sharecap --share-cap 0.2
 {"detail": "5 poison source rows are identical to trusted_eval rows", "event": "attack-side pool/eval overlap (cross-family, non-fatal)", "level": "warning", "timestamp": "2026-10-30T06:22:46.367417Z"}
 {"total": 180, "todo": 180, "workers": 3, "config_hash": "283058dc4e54d2f3", "event": "loop jobs", "level": "info", "timestamp": "2026-10-30T06:22:46.380707Z"}
+{"done": 10, "of": 180, "minutes": 28.4, "event": "progress", "level": "info", "timestamp": "2026-10-30T06:51:11.567929Z"}
