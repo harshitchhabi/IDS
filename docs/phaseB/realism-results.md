@@ -152,3 +152,79 @@ and resumed per instruction. Observed peaks: **~93%** during L's capture (the Co
 OOM-killed B.2 loops left orphaned worker processes (cleared, after which the loops
 completed at 1 worker ~74–85%). H's capture ran at ~80%. The whole pipeline stayed
 within the 1.86 GB Docker VM by splitting inputs; no memory limit was raised.
+
+## B.5 — independent attacker benign knowledge (DECISIONS §34)
+
+B.4's replay/profile mimics were learned from the attacker's own benign capture,
+which (§5 above) used the *same* scripts/paths/timing as the defender — so B.4-H
+was close to oracle knowledge. B.5 removes that: the attacker's benign generator is
+**independent** (`ATTACKER_INDEP=1`) — a different URL set (query strings, deeper
+and 404-prone paths: `INDEP_PATHS`) and a heavy-tailed (Pareto) think-time
+distribution, vs the defender's nine `SITE_PATHS` and near-uniform small gaps. Same
+high-interaction honeypot (condition H clone), same §32 damage protocol, replay +
+profile strategies (no oracle), `--workers 2`. Counts: benign 84,207, replay mimic
+6,449, attack 3,802 (~1,520 eval) — matched to H.
+
+**Fidelity (independent attacker):**
+
+| strategy | median NN | ratio to floor | twin fraction |
+|---|---:|---:|---:|
+| replay | 0.0205 | **0.93×** | 0.00047 |
+| profile | 0.0210 | 0.95× | 0.00077 |
+
+The independent attacker **still reaches the benign cluster** (~0.93× floor) —
+because the fidelity is dominated by the honeypot's server half (timing + backward
+bytes, §1), which a realistic honeypot supplies regardless of which paths the
+attacker browses. Different benign scripts do not move it out of the cluster.
+
+**Damage (RF, fixed ΔFPR r=0.5; `b5_stats.csv`):**
+
+| arm | mean ΔFPR | 95% CI | clears Holm | CI incl. 0 |
+|---|---:|---|:--:|:--:|
+| a1 | **+0.458** | [0.235, 0.681] | ✓ | — |
+| a1truth | −0.00010 | [−0.00015, −0.00005] | — | ✗ |
+| junk | +0.028 | [−0.025, 0.082] | — | ✓ |
+
+a1 raises FPR by **+0.458** (XGBoost +0.415, both clear Holm); recalibrated ΔTPR is
+**−0.046**. ShareCap c=0.05 recovers **R=0.98** (undefended +0.458 → defended +0.010).
+
+**Literal §34 verdict: DOES NOT HOLD.** The bar requires the replay fidelity within
+3× the floor (met: 0.93×) **and** a1 to clear Holm with the s28 null-arm rule (each
+null's 95% CI includes 0). a1truth's CI is [−0.00015, −0.00005] — it **excludes 0**,
+so the null-arm rule fails and the bar is not met as written.
+
+**Interpretation.** The failure is a **bar technicality, not a null result for A1.**
+a1truth here is −0.0001 — a negligible effect in the *safe* direction (labelling the
+mimic flows correctly benign slightly *lowers* FPR), with a CI so tight (sd 1e-4)
+that it excludes 0. a1's +0.458 dwarfs both nulls by ~4,000×. So A1 **does** inflict
+large, real damage with independent benign knowledge — B.5 essentially **replicates
+B.4-H** (+0.458 vs +0.62). The substantive conclusion: **the honeypot's realism, not
+a benign model shared with the defender, is what drives the poisoning** — which
+resolves the B.4 confound in §5. The s28 "CI includes 0" null-arm rule is too strict
+for a null that lands at a trivially non-zero value in the safe direction; a
+magnitude-aware rule (e.g. |null mean| < a small fraction of the a1 effect) would
+pass here, and is worth adopting for the paper. Reported as the literal verdict with
+this interpretation, per the pre-registration discipline — not re-scored.
+
+## Reading fidelity: ratio to the benign floor, not absolute twin fraction
+
+Across the whole paper, mimic fidelity should be read as the **ratio of the mimic's
+median NN distance to the benign-to-benign floor at matched reference size**, not as
+the absolute twin fraction (δ=0.0015):
+
+| condition | twin fraction | ratio to floor | A1 ΔFPR r=0.5 |
+|---|---:|---:|---:|
+| L (low-interaction) | 0.0 | 46× | +0.0002 (none) |
+| H (high-interaction, matched benign) | 0.0005 | 0.95× | +0.62 |
+| H5 (high-interaction, independent benign) | 0.00047 | 0.93× | +0.458 |
+| paper, copy fidelity (§17/§26) | **0.11** | ~1× | catastrophic |
+
+H and H5 produce catastrophic FPR damage at a twin fraction of **~0.0005 — roughly
+200× below the paper's copy-fidelity 0.11** — but at a ratio-to-floor of ~1. The
+twin fraction measures the near-exact-duplicate *tail*; the damage sets in once the
+mimic reaches the benign *cluster* (ratio ≈ 1), which happens well before the tail
+fills. The absolute twin fraction therefore **understates** the danger of real
+traffic, while the ratio to the benign floor tracks it: 46× (L) → no damage, ~1×
+(H, H5) → catastrophic. The paper should report and reason about the ratio to the
+floor, citing these numbers (twin 0.0005 yet 0.95× floor and ΔFPR +0.62) as the
+reason the absolute twin fraction is the wrong lens.

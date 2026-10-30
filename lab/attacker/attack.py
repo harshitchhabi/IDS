@@ -42,6 +42,24 @@ PROD_IP = "172.28.0.10"
 SITE_PATHS = ["/", "/about.html", "/docs.html", "/status.html", "/contact.html",
               "/assets/style.css", "/assets/app.js", "/assets/logo.svg", "/assets/manual.txt"]
 
+# Phase B.5 (DECISIONS §34): an INDEPENDENT attacker benign generator — different
+# browsing paths (query strings, deeper/404-prone URLs the defender's users never
+# visit) and a heavier-tailed think-time distribution — so the attacker's benign
+# model does NOT match the defender's. Enabled by ATTACKER_INDEP=1.
+ATTACKER_INDEP = os.environ.get("ATTACKER_INDEP", "0") == "1"
+INDEP_PATHS = ["/index.html?ref=ad", "/search?q=report", "/api/v1/status", "/old/home.htm",
+               "/images/banner.png", "/robots.txt", "/blog/2019/post-7",
+               "/download?file=manual", "/account/login", "/missing-page-x"]
+
+
+def _attacker_paths() -> list[str]:
+    return INDEP_PATHS if ATTACKER_INDEP else SITE_PATHS
+
+
+def _attacker_think(rng) -> float:
+    # defender: near-uniform small gaps; independent attacker: heavy-tailed (Pareto).
+    return min(rng.paretovariate(1.5) * 0.15, 4.0) if ATTACKER_INDEP else rng.uniform(0.0, 0.3)
+
 
 # --------------------------------------------------------------------------- #
 # (a) mimic — the A1 channel                                                  #
@@ -100,7 +118,8 @@ def benign(args: argparse.Namespace) -> int:
     deadline = time.time() + args.seconds
     while time.time() < deadline:
         t0 = time.time(); nr = 0; nb = 0
-        for path in rng.sample(SITE_PATHS, rng.randint(2, len(SITE_PATHS))):
+        paths = _attacker_paths()
+        for path in rng.sample(paths, rng.randint(2, len(paths))):
             try:
                 r = requests.get(base + path, timeout=5,
                                  headers={"User-Agent": "Mozilla/5.0 AcmeBrowse/1.0",
@@ -113,8 +132,8 @@ def benign(args: argparse.Namespace) -> int:
         GT.log(dst=PROD_IP, dst_port=80, intent="benign", kind="web",
                t_start=t0, t_end=time.time(), requests=nr, bytes=nb)
         n += 1
-        time.sleep(rng.uniform(0.0, 0.3))
-    print(f"benign(attacker): {n} sessions -> prod", flush=True)
+        time.sleep(_attacker_think(rng))
+    print(f"benign(attacker): {n} sessions -> prod (indep={ATTACKER_INDEP})", flush=True)
     return 0
 
 
@@ -129,8 +148,9 @@ def replay(args: argparse.Namespace) -> int:
     n = 0
     deadline = time.time() + args.seconds
     while time.time() < deadline and (args.sessions == 0 or n < args.sessions):
-        k = rng.randint(2, len(SITE_PATHS))
-        seq = [rng.choice(SITE_PATHS) for _ in range(k)]  # the concrete sequence
+        paths = _attacker_paths()
+        k = rng.randint(2, len(paths))
+        seq = [rng.choice(paths) for _ in range(k)]  # the concrete sequence
         # perform it against prod (real benign session), then replay to the honeypot
         for dst, base, intent, kind in ((PROD_IP, prod, "benign", "replay_record"),
                                         (HTTP_HONEYPOT, hp, "poison", "mimic_replay")):
@@ -146,8 +166,8 @@ def replay(args: argparse.Namespace) -> int:
             GT.log(dst=dst, dst_port=80, intent=intent, kind=kind,
                    t_start=t0, t_end=time.time(), requests=nr, bytes=nb)
         n += 1
-        time.sleep(rng.uniform(0.0, 0.3))
-    print(f"replay: {n} sessions (prod then honeypot)", flush=True)
+        time.sleep(_attacker_think(rng))
+    print(f"replay: {n} sessions (prod then honeypot; indep={ATTACKER_INDEP})", flush=True)
     return 0
 
 
